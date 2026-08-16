@@ -11,29 +11,36 @@
   <script src="portal-shim.js"></script>
   <style>
     :root {
-      --primary: #55d9f3;
+      --primary: #1fc1e6;
+      --primary-soft: #55d9f3;
+      --primary-strong: #0ea5c6;
       --primary-hover: #076b88;
-      --accent: #c5c200;
+      --accent: #ffd24d;
       --accent-light: #fff49a;
-      --bg-dark: #372763;
-      --bg-card: rgba(76, 71, 146, 0.97);
-      --text: #dadcdd;
-      --text-muted: #b0aebf;
-      --success: #27ae60;
-      --danger: #c0392b;
-      --border: #b5b5d4;
+      --accent-strong: #e6a418;
+      --accent-deep: #c57a00;
+      --bg-dark: #0b3d59;
+      --bg-card: rgba(255, 255, 255, 0.95);
+      --bg-card-soft: #dff6ff;
+      --bg-page: #dff6ff;
+      --bg-page-alt: #ffffff;
+      --text: #0b3d59;
+      --text-muted: #076b88;
+      --success: #0ea5c6;
+      --danger: #8a5b00;
+      --border: #55d9f3;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: 'Segoe UI', Arial, sans-serif;
-      background: linear-gradient(135deg, #e8dfd0 0%, #f5f0e4 100%);
+      background: linear-gradient(135deg, var(--bg-page-alt) 0%, var(--bg-page) 55%, var(--accent-light) 100%);
       color: var(--text); min-height: 100vh;
       background-attachment: fixed; padding: 60px 8px 80px 8px;
     }
     .tab-nav {
       position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
       display: flex; justify-content: center; gap: 0;
-      background: #fffcf5; border-bottom: 2px solid var(--accent);
+      background: rgba(255,255,255,0.96); border-bottom: 2px solid var(--primary-soft);
       box-shadow: 0 1px 4px rgba(0,0,0,0.08);
       padding: 0;
     }
@@ -51,14 +58,14 @@
     }
     .login-bar .user-email { font-size: 0.8em; color: var(--primary); }
     .login-bar button {
-      background: var(--primary); color: #fff; border: none; border-radius: 6px;
+      background: var(--primary); color: #ffffff; border: none; border-radius: 6px;
       padding: 6px 14px; cursor: pointer; font-weight: 600; font-size: 0.85em;
     }
     .login-bar button:hover { background: var(--primary-hover); }
-    .login-bar .logout-btn { background: #c4b99a; color: var(--text); }
+    .login-bar .logout-btn { background: var(--accent-light); color: var(--accent-deep); }
     .container {
       max-width: 1200px; margin: 0 auto; background: var(--bg-card);
-      border-radius: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); padding: 24px 16px;
+      border-radius: 16px; box-shadow: 0 12px 30px rgba(11,61,89,0.12); padding: 24px 16px; border: 1px solid rgba(85,217,243,0.45);
     }
     h1 { color: var(--primary); text-align: center; margin-bottom: 4px; font-size: 1.8em; }
     .site-logo { width: 64px; height: 64px; display: block; margin: 0 auto 8px auto; }
@@ -66,7 +73,7 @@
 
     /* Member Form (admin only) */
     .admin-panel {
-      display: none; background: #f8f4ea; border-radius: 12px;
+      display: none; background: linear-gradient(180deg, #ffffff 0%, var(--bg-card-soft) 100%); border-radius: 12px;
       padding: 16px; margin-bottom: 20px; border: 1px solid var(--border);
     }
     .admin-panel.visible { display: block; }
@@ -79,7 +86,7 @@
       background: #ffffff; border: 1px solid var(--border); border-radius: 8px;
       color: var(--text); font-size: 0.9em;
     }
-    .form-row input:focus, .form-row select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 2px rgba(26,122,109,0.15); }
+    .form-row input:focus, .form-row select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 2px rgba(31,193,230,0.18); }
     .btn {
       background: var(--primary); color: #fff; border: none; border-radius: 8px;
       padding: 8px 16px; cursor: pointer; font-weight: 600; font-size: 0.9em;
@@ -87,28 +94,28 @@
     .btn:hover { background: var(--primary-hover); }
     .btn.danger { background: var(--danger); color: #fff; }
     .btn.danger:hover { background: #a93226; }
-    .btn.secondary { background: #c4b99a; color: var(--text); }
+    .btn.secondary { background: var(--accent-light); color: var(--accent-deep); }
 
     /* Members Table */
     .table-container { overflow-x: auto; }
     table { width: 100%; border-collapse: collapse; font-size: 0.9em; }
     th {
-      background: #ede5d5; color: var(--primary); padding: 10px 8px;
+      background: var(--bg-card-soft); color: var(--primary-hover); padding: 10px 8px;
       text-align: left; border-bottom: 2px solid var(--accent); cursor: pointer;
     }
-    th:hover { background: #ddd5c5; }
+    th:hover { background: var(--accent-light); }
     td { padding: 8px; border-bottom: 1px solid #eee; }
-    tr:hover { background: rgba(26,122,109,0.05); }
+    tr:hover { background: rgba(85,217,243,0.14); }
 
     .might-value { color: var(--primary); font-weight: 600; }
     .growth-positive { color: var(--success); }
     .growth-negative { color: var(--danger); }
     .member-actions { display: flex; gap: 4px; }
     .member-actions button {
-      background: #ede5d5; color: var(--text); border: none; border-radius: 4px;
+      background: var(--bg-card-soft); color: var(--text); border: none; border-radius: 4px;
       padding: 4px 8px; cursor: pointer; font-size: 0.8em;
     }
-    .member-actions button:hover { background: #ddd5c5; }
+    .member-actions button:hover { background: var(--accent-light); }
     .member-actions .remove-btn:hover { background: var(--danger); color: #fff; }
 
     .loading { text-align: center; padding: 40px; color: var(--text-muted); }
@@ -160,7 +167,7 @@
     .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 12px; }
     .form-grid label { display: block; font-size: 0.75em; font-weight: 600; color: var(--primary); margin-bottom: 4px; text-transform: uppercase; }
     .form-grid input, .form-grid select { width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.9em; background: #fff; color: var(--text); }
-    .form-grid input:focus, .form-grid select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 2px rgba(26,122,109,0.15); }
+    .form-grid input:focus, .form-grid select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 2px rgba(31,193,230,0.18); }
     .form-grid .note { font-size: 0.7em; color: var(--text-muted); margin-top: 2px; }
     .status { margin-top: 8px; padding: 8px 12px; border-radius: 6px; font-size: 0.85em; min-height: 1.5em; }
     .status.ok { background: #e8f5e9; color: #2e7d32; }
@@ -255,7 +262,7 @@
         <p style="color:var(--text-muted);font-size:0.82em;margin-bottom:10px;">Use the Member dropdown & Hero Level field above, press Enter to queue each entry. Click Save All when done.</p>
         <div id="heroBatchStatus" class="status" style="margin-bottom:8px;"></div>
         <div style="max-height:50vh;overflow-y:auto;"><table style="width:100%;border-collapse:collapse;">
-          <thead><tr style="background:#ede5d5;"><th style="text-align:left;padding:6px 8px;">Member</th><th style="text-align:center;padding:6px 8px;width:100px;">Level</th><th style="text-align:center;padding:6px 8px;width:60px;"></th></tr></thead>
+          <thead><tr style="background:var(--bg-card-soft);"><th style="text-align:left;padding:6px 8px;">Member</th><th style="text-align:center;padding:6px 8px;width:100px;">Level</th><th style="text-align:center;padding:6px 8px;width:60px;"></th></tr></thead>
           <tbody id="heroBatchBody"></tbody>
         </table></div>
       </div>
@@ -281,7 +288,7 @@
         <p style="color:var(--text-muted);font-size:0.82em;margin-bottom:10px;">Use the Member dropdown & Carter Level field above, press Enter to queue each entry. Click Save All when done.</p>
         <div id="carterBatchStatus" class="status" style="margin-bottom:8px;"></div>
         <div style="max-height:50vh;overflow-y:auto;"><table style="width:100%;border-collapse:collapse;">
-          <thead><tr style="background:#ede5d5;"><th style="text-align:left;padding:6px 8px;">Member</th><th style="text-align:center;padding:6px 8px;width:100px;">Level</th><th style="text-align:center;padding:6px 8px;width:60px;"></th></tr></thead>
+          <thead><tr style="background:var(--bg-card-soft);"><th style="text-align:left;padding:6px 8px;">Member</th><th style="text-align:center;padding:6px 8px;width:100px;">Level</th><th style="text-align:center;padding:6px 8px;width:60px;"></th></tr></thead>
           <tbody id="carterBatchBody"></tbody>
         </table></div>
       </div>
@@ -863,7 +870,7 @@
         return;
       }
       let html = '<table style="width:100%;border-collapse:collapse;font-size:0.88em;">';
-      html += '<tr style="background:#ede5d5;"><th style="text-align:left;padding:6px 8px;">Member</th><th style="text-align:left;padding:6px 8px;">Custom Target</th></tr>';
+      html += '<tr style="background:var(--bg-card-soft);"><th style="text-align:left;padding:6px 8px;">Member</th><th style="text-align:left;padding:6px 8px;">Custom Target</th></tr>';
       sorted.forEach(m => {
         const current = targets[m.name] || '';
         html += `<tr style="border-bottom:1px solid #eee;">`;

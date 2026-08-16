@@ -11,22 +11,31 @@
   <script src="portal-shim.js"></script>
   <style>
     :root {
-      --primary: #55d9f3;
+      --primary: #1fc1e6;
+      --primary-soft: #55d9f3;
+      --primary-strong: #0ea5c6;
       --primary-hover: #076b88;
-      --accent: #c5c200;
+      --accent: #ffd24d;
       --accent-light: #fff49a;
-      --bg-dark: #372763;
-      --bg-card: rgba(76, 71, 146, 0.97);
-      --text: #dadcdd;
-      --text-muted: #b0aebf;
-      --success: #27ae60;
-      --danger: #c0392b;
-      --border: #b5b5d4;
+      --accent-strong: #e6a418;
+      --accent-deep: #c57a00;
+      --bg-dark: #0b3d59;
+      --bg-card: rgba(255, 255, 255, 0.95);
+      --bg-card-soft: #dff6ff;
+      --bg-page: #dff6ff;
+      --bg-page-alt: #ffffff;
+      --text: #0b3d59;
+      --text-muted: #076b88;
+      --success: #0ea5c6;
+      --danger: #8a5b00;
+      --border: #55d9f3;
+      --warn-bg: linear-gradient(180deg, #ffffff 0%, var(--bg-card-soft) 100%);
+      --warn-border: #ffd24d;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: 'Segoe UI', Arial, sans-serif;
-      background: linear-gradient(135deg, #e8dfd0 0%, #f5f0e4 100%);
+      background: linear-gradient(135deg, var(--bg-page-alt) 0%, var(--bg-page) 55%, var(--accent-light) 100%);
       color: var(--text); min-height: 100vh;
       background-attachment: fixed; padding: 60px 8px 80px 8px;
     }
@@ -35,7 +44,7 @@
     .tab-nav {
       position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
       display: flex; justify-content: center; gap: 0;
-      background: #fffcf5; border-bottom: 2px solid var(--accent);
+      background: rgba(255,255,255,0.96); border-bottom: 2px solid var(--primary-soft);
       box-shadow: 0 1px 4px rgba(0,0,0,0.08); padding: 0;
     }
     .tab-nav a {
@@ -52,11 +61,11 @@
     }
     .login-bar .user-email { font-size: 0.8em; color: var(--primary); }
     .login-bar button {
-      background: var(--primary); color: #fff; border: none; border-radius: 6px;
+      background: var(--primary); color: #ffffff; border: none; border-radius: 6px;
       padding: 6px 14px; cursor: pointer; font-weight: 600; font-size: 0.85em;
     }
     .login-bar button:hover { background: var(--primary-hover); }
-    .login-bar .logout-btn { background: #c4b99a; color: var(--text); }
+    .login-bar .logout-btn { background: var(--accent-light); color: var(--accent-deep); }
     .nav-links { display: flex; }
     .hamburger {
       display: none; background: none; border: none; cursor: pointer; padding: 8px;
@@ -69,7 +78,7 @@
     /* Container */
     .container {
       max-width: 900px; margin: 0 auto; background: var(--bg-card);
-      border-radius: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); padding: 20px 16px;
+      border-radius: 16px; box-shadow: 0 12px 30px rgba(11,61,89,0.12); padding: 20px 16px; border: 1px solid rgba(85,217,243,0.45);
     }
     h1 { color: var(--primary); text-align: center; margin-bottom: 4px; font-size: 1.6em; }
     .site-logo { width: 56px; height: 56px; display: block; margin: 0 auto 6px auto; }
@@ -84,7 +93,7 @@
       font-size: 0.92em; font-weight: 600; color: var(--text-muted);
       border-bottom: 3px solid transparent; margin-bottom: -2px; transition: all 0.2s;
     }
-    .content-tabs button:hover { color: var(--primary); background: rgba(26,122,109,0.04); }
+    .content-tabs button:hover { color: var(--primary); background: rgba(85,217,243,0.14); }
     .content-tabs button.active { color: var(--primary); border-bottom-color: var(--primary); }
     .tab-panel { display: none; }
     .tab-panel.active { display: block; }
@@ -114,7 +123,7 @@
     }
     .form-grid textarea { resize: vertical; min-height: 60px; font-family: inherit; }
     .form-grid select:focus, .form-grid input:focus, .form-grid textarea:focus {
-      outline: none; border-color: var(--primary); box-shadow: 0 0 0 2px rgba(26,122,109,0.15);
+      outline: none; border-color: var(--primary); box-shadow: 0 0 0 2px rgba(31,193,230,0.18);
     }
     .btn {
       background: var(--primary); color: #fff; border: none; border-radius: 8px;
@@ -132,15 +141,15 @@
     .summary-table-wrap { overflow-x: auto; }
     .summary-table { width: 100%; border-collapse: collapse; font-size: 0.88em; }
     .summary-table th {
-      background: #ede5d5; color: var(--primary); padding: 10px 8px;
+      background: var(--bg-card-soft); color: var(--primary-hover); padding: 10px 8px;
       text-align: left; border-bottom: 2px solid var(--accent); cursor: pointer;
       white-space: nowrap; user-select: none; -webkit-user-select: none;
     }
-    .summary-table th:hover { background: #ddd5c5; }
+    .summary-table th:hover { background: var(--accent-light); }
     .summary-table th .sort-arrow { font-size: 0.7em; margin-left: 4px; opacity: 0.4; }
     .summary-table th.sorted .sort-arrow { opacity: 1; }
     .summary-table td { padding: 8px; border-bottom: 1px solid #eee; }
-    .summary-table tr:hover { background: rgba(26,122,109,0.05); }
+    .summary-table tr:hover { background: rgba(85,217,243,0.14); }
     .summary-table .warn-badge {
       display: inline-block; padding: 2px 10px; border-radius: 10px;
       font-size: 0.8em; font-weight: 700; color: #fff; min-width: 28px; text-align: center;
@@ -155,7 +164,7 @@
       padding: 3px 6px; cursor: pointer; font-size: 0.8em;
     }
     .summary-table .action-btns .clear-btn { border-color: var(--danger); color: var(--danger); }
-    .summary-table .action-btns button:hover { background: #f5f0e4; }
+    .summary-table .action-btns button:hover { background: var(--accent-light); }
     .summary-table .type-tags { font-size: 0.75em; color: var(--text-muted); }
 
     /* Warning History */
@@ -187,7 +196,7 @@
     .warn-item .warn-name { font-weight: 700; font-size: 0.95em; }
     .warn-item .warn-type {
       display: inline-block; padding: 2px 8px; border-radius: 6px;
-      font-size: 0.75em; background: #f5f0e4; color: var(--text-muted); font-weight: 600;
+      font-size: 0.75em; background: var(--accent-light); color: var(--accent-deep); font-weight: 600;
     }
     .warn-item .warn-detail { font-size: 0.82em; color: var(--text-muted); margin-top: 4px; }
     .warn-item .warn-comment { font-size: 0.85em; color: var(--text); margin-top: 6px; padding: 6px 10px; background: #f9f6ee; border-radius: 6px; font-style: italic; }

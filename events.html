@@ -11,29 +11,36 @@
   <script src="portal-shim.js"></script>
   <style>
     :root {
-      --primary: #55d9f3;
+      --primary: #1fc1e6;
+      --primary-soft: #55d9f3;
+      --primary-strong: #0ea5c6;
       --primary-hover: #076b88;
-      --accent: #c5c200;
+      --accent: #ffd24d;
       --accent-light: #fff49a;
-      --bg-dark: #372763;
-      --bg-card: rgba(76, 71, 146, 0.97);
-      --text: #dadcdd;
-      --text-muted: #b0aebf;
-      --success: #27ae60;
-      --danger: #c0392b;
-      --border: #b5b5d4;
+      --accent-strong: #e6a418;
+      --accent-deep: #c57a00;
+      --bg-dark: #0b3d59;
+      --bg-card: rgba(255, 255, 255, 0.95);
+      --bg-card-soft: #dff6ff;
+      --bg-page: #dff6ff;
+      --bg-page-alt: #ffffff;
+      --text: #0b3d59;
+      --text-muted: #076b88;
+      --success: #0ea5c6;
+      --danger: #8a5b00;
+      --border: #55d9f3;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: 'Segoe UI', Arial, sans-serif;
-      background: linear-gradient(135deg, #e8dfd0 0%, #f5f0e4 100%);
+      background: linear-gradient(135deg, var(--bg-page-alt) 0%, var(--bg-page) 55%, var(--accent-light) 100%);
       color: var(--text); min-height: 100vh; background-attachment: fixed;
       padding: 60px 8px 80px 8px;
     }
     .tab-nav {
       position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
-      display: flex; justify-content: center; background: #fffcf5;
-      border-bottom: 2px solid var(--accent);
+      display: flex; justify-content: center; background: rgba(255,255,255,0.96);
+      border-bottom: 2px solid var(--primary-soft);
       box-shadow: 0 1px 4px rgba(0,0,0,0.08);
     }
     .tab-nav a {
@@ -49,20 +56,20 @@
     }
     .login-bar .user-email { font-size: 0.8em; color: var(--primary); }
     .login-bar button {
-      background: var(--primary); color: #fff; border: none; border-radius: 6px;
+      background: var(--primary); color: #ffffff; border: none; border-radius: 6px;
       padding: 6px 14px; cursor: pointer; font-weight: 600; font-size: 0.85em;
     }
-    .login-bar .logout-btn { background: #c4b99a; color: var(--text); }
+    .login-bar .logout-btn { background: var(--accent-light); color: var(--accent-deep); }
     .container {
       max-width: 1200px; margin: 0 auto; background: var(--bg-card);
-      border-radius: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); padding: 24px 16px;
+      border-radius: 16px; box-shadow: 0 12px 30px rgba(11,61,89,0.12); padding: 24px 16px; border: 1px solid rgba(85,217,243,0.45);
     }
     h1 { color: var(--primary); text-align: center; margin-bottom: 4px; font-size: 1.8em; }
     .site-logo { width: 64px; height: 64px; display: block; margin: 0 auto 8px auto; }
     .subtitle { text-align: center; color: var(--text-muted); margin-bottom: 16px; font-size: 0.9em; }
 
     /* Admin panel */
-    .admin-panel { display: none; background: #f8f4ea; border-radius: 12px; padding: 16px; margin-bottom: 20px; border: 1px solid var(--border); }
+    .admin-panel { display: none; background: linear-gradient(180deg, #ffffff 0%, var(--bg-card-soft) 100%); border-radius: 12px; padding: 16px; margin-bottom: 20px; border: 1px solid var(--border); }
     .admin-panel.visible { display: block; }
     .admin-panel h3 { color: var(--primary); margin-bottom: 12px; font-size: 1em; }
     .form-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
@@ -71,30 +78,30 @@
       background: #ffffff; border: 1px solid var(--border); border-radius: 8px;
       color: var(--text); font-size: 0.9em;
     }
-    .form-row input:focus, .form-row select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 2px rgba(26,122,109,0.15); }
+    .form-row input:focus, .form-row select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 2px rgba(31,193,230,0.18); }
     .btn {
       background: var(--primary); color: #fff; border: none; border-radius: 8px;
       padding: 8px 16px; cursor: pointer; font-weight: 600; font-size: 0.9em;
     }
     .btn:hover { background: var(--primary-hover); }
     .btn.danger { background: var(--danger); color: #fff; }
-    .btn.secondary { background: #c4b99a; color: var(--text); }
+    .btn.secondary { background: var(--accent-light); color: var(--accent-deep); }
 
     /* Tabs */
     .sub-tabs { display: flex; gap: 4px; margin-bottom: 16px; }
     .sub-tabs button {
-      background: #ede5d5; color: var(--text); border: 1px solid var(--border);
+      background: var(--bg-card-soft); color: var(--text); border: 1px solid var(--border);
       border-radius: 8px 8px 0 0; padding: 8px 16px; cursor: pointer; font-size: 0.9em;
     }
-    .sub-tabs button.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .sub-tabs button.active { background: var(--primary); color: #ffffff; border-color: var(--primary); }
 
     /* Events Table */
     .table-container { overflow-x: auto; }
     table { width: 100%; border-collapse: collapse; font-size: 0.9em; }
-    th { background: #ede5d5; color: var(--primary); padding: 10px 8px; text-align: left; border-bottom: 2px solid var(--accent); cursor: pointer; user-select: none; }
-    th:hover { background: #ddd5c5; }
+    th { background: var(--bg-card-soft); color: var(--primary-hover); padding: 10px 8px; text-align: left; border-bottom: 2px solid var(--accent); cursor: pointer; user-select: none; }
+    th:hover { background: var(--accent-light); }
     td { padding: 8px; border-bottom: 1px solid #eee; }
-    tr:hover { background: rgba(26,122,109,0.05); }
+    tr:hover { background: rgba(85,217,243,0.14); }
 
     .method-badge {
       display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 0.8em; font-weight: 600;
@@ -104,16 +111,16 @@
     .method-period { background: #e8daef; color: #7d3c98; }
 
     .filter-btn {
-      background: #ede5d5 !important; color: var(--text) !important; border: 1px solid var(--border) !important;
+      background: var(--bg-card-soft) !important; color: var(--text) !important; border: 1px solid var(--border) !important;
       border-radius: 8px !important; padding: 5px 12px !important; font-size: 0.82em !important; font-weight: 500 !important;
     }
     .filter-btn.active { background: var(--primary) !important; color: #fff !important; border-color: var(--primary) !important; }
 
     .event-actions button {
-      background: #ede5d5; color: var(--text); border: none; border-radius: 4px;
+      background: var(--bg-card-soft); color: var(--text); border: none; border-radius: 4px;
       padding: 4px 8px; cursor: pointer; font-size: 0.8em; margin-right: 4px;
     }
-    .event-actions button:hover { background: #ddd5c5; }
+    .event-actions button:hover { background: var(--accent-light); }
 
     /* Participation Section */
     .participation-section {
@@ -131,7 +138,7 @@
       padding: 8px; background: #fff;
     }
     .checkbox-item { display: flex; align-items: center; gap: 6px; padding: 4px 6px; border-radius: 4px; cursor: pointer; }
-    .checkbox-item:hover { background: #f5f0e4; }
+    .checkbox-item:hover { background: var(--accent-light); }
     .checkbox-item input[type="checkbox"] { cursor: pointer; accent-color: var(--primary); }
     .checkbox-item label { margin: 0; font-weight: normal; color: var(--text); cursor: pointer; font-size: 0.9em; }
 
@@ -354,7 +361,7 @@
         </table></div>
       </div>
     </div>
-    <div id="troopTargetInfo" style="display:none; margin-bottom:12px; padding:10px 14px; background:rgba(26,122,109,0.06); border:1px solid var(--border); border-radius:8px;">
+    <div id="troopTargetInfo" style="display:none; margin-bottom:12px; padding:10px 14px; background:rgba(85,217,243,0.14); border:1px solid var(--border); border-radius:8px;">
       <strong style="color:var(--primary); font-size:0.85em;">🎯 Category Targets:</strong>
       <span id="troopTargetSummary" style="font-size:0.85em; color:var(--text-muted);"></span>
     </div>
@@ -380,7 +387,7 @@
         <input type="date" id="eventEndDate">
         <input type="number" id="eventTargetPoints" placeholder="Target Points">
       </div>
-      <div id="eventTroopTargetSection" style="display:none; margin-bottom:12px; padding:12px; border:1px solid var(--border); border-radius:8px; background:rgba(26,122,109,0.04);">
+      <div id="eventTroopTargetSection" style="display:none; margin-bottom:12px; padding:12px; border:1px solid var(--border); border-radius:8px; background:rgba(85,217,243,0.10);">
         <label style="font-weight:600; color:var(--primary); margin-bottom:8px; display:block;">🎯 Troop Category Targets</label>
         <div class="note" style="margin-bottom:8px;">Set point targets per troop category. Categories match the highest troop level recorded for each member (e.g. G7 = Guard level 7).</div>
         <div id="troopTargetRows"></div>

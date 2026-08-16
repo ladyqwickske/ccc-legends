@@ -11,29 +11,36 @@
   <script src="portal-shim.js"></script>
   <style>
     :root {
-      --primary: #55d9f3;
+      --primary: #1fc1e6;
+      --primary-soft: #55d9f3;
+      --primary-strong: #0ea5c6;
       --primary-hover: #076b88;
-      --accent: #c5c200;
+      --accent: #ffd24d;
       --accent-light: #fff49a;
-      --bg-dark: #372763;
-      --bg-card: rgba(76, 71, 146, 0.97);
-      --text: #dadcdd;
-      --text-muted: #b0aebf;
-      --success: #27ae60;
-      --danger: #c0392b;
-      --border: #b5b5d4;
+      --accent-strong: #e6a418;
+      --accent-deep: #c57a00;
+      --bg-dark: #0b3d59;
+      --bg-card: rgba(255, 255, 255, 0.94);
+      --bg-card-soft: #dff6ff;
+      --bg-page: #dff6ff;
+      --bg-page-alt: #ffffff;
+      --text: #0b3d59;
+      --text-muted: #076b88;
+      --success: #0ea5c6;
+      --danger: #8a5b00;
+      --border: #55d9f3;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: 'Segoe UI', Arial, sans-serif;
-      background: linear-gradient(135deg, #e8dfd0 0%, #f5f0e4 100%);
+      background: linear-gradient(135deg, var(--bg-page-alt) 0%, var(--bg-page) 55%, var(--accent-light) 100%);
       color: var(--text); min-height: 100vh; background-attachment: fixed;
       padding: 60px 8px 80px 8px;
     }
     .tab-nav {
       position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
-      display: flex; justify-content: center; background: #fffcf5;
-      border-bottom: 2px solid var(--accent);
+      display: flex; justify-content: center; background: rgba(255, 255, 255, 0.96);
+      border-bottom: 2px solid var(--primary-soft);
       box-shadow: 0 1px 4px rgba(0,0,0,0.08);
     }
     .tab-nav a {
@@ -49,13 +56,13 @@
     }
     .login-bar .user-email { font-size: 0.8em; color: var(--primary); }
     .login-bar button {
-      background: var(--primary); color: #fff; border: none; border-radius: 6px;
+      background: var(--primary); color: #ffffff; border: none; border-radius: 6px;
       padding: 6px 14px; cursor: pointer; font-weight: 600; font-size: 0.85em;
     }
-    .login-bar .logout-btn { background: #c4b99a; color: var(--text); }
+    .login-bar .logout-btn { background: var(--accent-light); color: var(--accent-deep); }
     .container {
       max-width: 1100px; margin: 0 auto; background: var(--bg-card);
-      border-radius: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); padding: 24px 16px;
+      border-radius: 16px; box-shadow: 0 12px 30px rgba(11,61,89,0.12); padding: 24px 16px; border: 1px solid rgba(85,217,243,0.45);
     }
     h1 { color: var(--primary); text-align: center; margin-bottom: 4px; font-size: 1.8em; }
     .site-logo { width: 64px; height: 64px; display: block; margin: 0 auto 8px auto; }
@@ -66,10 +73,10 @@
       display: flex; align-items: center; justify-content: center; gap: 16px; margin-bottom: 16px;
     }
     .month-nav button {
-      background: #ede5d5; color: var(--primary); border: 1px solid var(--border);
+      background: var(--bg-card-soft); color: var(--primary-hover); border: 1px solid var(--border);
       border-radius: 8px; padding: 8px 16px; cursor: pointer; font-size: 1.1em;
     }
-    .month-nav button:hover { background: #ddd5c5; }
+    .month-nav button:hover { background: var(--accent-light); }
     .month-nav .month-label { font-size: 1.3em; font-weight: 600; color: var(--primary); min-width: 180px; text-align: center; }
 
     /* Calendar Grid */
@@ -77,7 +84,7 @@
       display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px;
     }
     .day-header {
-      background: #ede5d5; color: var(--primary); padding: 8px 4px;
+      background: var(--bg-card-soft); color: var(--primary-hover); padding: 8px 4px;
       text-align: center; font-weight: 600; font-size: 0.85em;
     }
     .day-cell {
@@ -85,7 +92,7 @@
       border: 1px solid #eee; position: relative;
     }
     .day-cell.other-month { opacity: 0.3; }
-    .day-cell.today { border-color: var(--primary); background: rgba(26,122,109,0.08); }
+    .day-cell.today { border-color: var(--primary); background: rgba(85,217,243,0.18); }
     .day-number {
       font-size: 0.85em; font-weight: 600; color: var(--text-muted);
       margin-bottom: 4px;
@@ -133,7 +140,7 @@
       padding: 8px 16px; cursor: pointer; font-weight: 600; font-size: 0.9em;
     }
     .btn:hover { background: var(--primary-hover); }
-    .btn.secondary { background: #c4b99a; color: var(--text); }
+    .btn.secondary { background: var(--accent-light); color: var(--accent-deep); }
 
     /* Upcoming Events List */
     .upcoming { margin-top: 20px; }
