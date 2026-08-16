@@ -1,0 +1,727 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>cCc Legends - Warnings</title>
+  <link rel="icon" type="image/png" href="logo.png">
+  <script src="perf-debug.js"></script>
+  <script src="config.js"></script>
+  <script src="site-config.js"></script>
+  <script src="portal-shim.js"></script>
+  <style>
+    :root {
+      --primary: #1a7a6d;
+      --primary-hover: #156b60;
+      --accent: #c8a415;
+      --accent-light: #e6d06c;
+      --bg-dark: #f5f0e4;
+      --bg-card: rgba(255, 252, 245, 0.97);
+      --text: #2d2418;
+      --text-muted: #6b5d4e;
+      --success: #27ae60;
+      --danger: #c0392b;
+      --border: #d4c9b5;
+      --warn-bg: #fff8e1;
+      --warn-border: #ffb300;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: linear-gradient(135deg, #e8dfd0 0%, #f5f0e4 100%);
+      color: var(--text); min-height: 100vh;
+      background-attachment: fixed; padding: 60px 8px 80px 8px;
+    }
+
+    /* Nav */
+    .tab-nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+      display: flex; justify-content: center; gap: 0;
+      background: #fffcf5; border-bottom: 2px solid var(--accent);
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08); padding: 0;
+    }
+    .tab-nav a {
+      color: var(--text-muted); text-decoration: none;
+      padding: 12px 18px; font-size: 0.95em; font-weight: 500;
+      border-bottom: 3px solid transparent; transition: all 0.2s;
+    }
+    .tab-nav a:hover { color: var(--primary); }
+    .tab-nav a.active { color: var(--primary); border-bottom-color: var(--primary); }
+    .nav-icon { width: 18px; height: 18px; vertical-align: middle; margin-right: 4px; }
+    .login-bar {
+      position: fixed; top: 0; right: 8px; z-index: 1001;
+      display: flex; align-items: center; gap: 8px; padding: 8px;
+    }
+    .login-bar .user-email { font-size: 0.8em; color: var(--primary); }
+    .login-bar button {
+      background: var(--primary); color: #fff; border: none; border-radius: 6px;
+      padding: 6px 14px; cursor: pointer; font-weight: 600; font-size: 0.85em;
+    }
+    .login-bar button:hover { background: var(--primary-hover); }
+    .login-bar .logout-btn { background: #c4b99a; color: var(--text); }
+    .nav-links { display: flex; }
+    .hamburger {
+      display: none; background: none; border: none; cursor: pointer; padding: 8px;
+      flex-direction: column; gap: 4px;
+    }
+    .hamburger span {
+      display: block; width: 22px; height: 2px; background: var(--primary); border-radius: 2px;
+    }
+
+    /* Container */
+    .container {
+      max-width: 900px; margin: 0 auto; background: var(--bg-card);
+      border-radius: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); padding: 20px 16px;
+    }
+    h1 { color: var(--primary); text-align: center; margin-bottom: 4px; font-size: 1.6em; }
+    .site-logo { width: 56px; height: 56px; display: block; margin: 0 auto 6px auto; }
+    .subtitle { text-align: center; color: var(--text-muted); margin-bottom: 16px; font-size: 0.85em; }
+
+    /* Content Tabs */
+    .content-tabs {
+      display: flex; gap: 0; margin-bottom: 18px; border-bottom: 2px solid var(--border);
+    }
+    .content-tabs button {
+      flex: 1; background: none; border: none; padding: 12px 8px; cursor: pointer;
+      font-size: 0.92em; font-weight: 600; color: var(--text-muted);
+      border-bottom: 3px solid transparent; margin-bottom: -2px; transition: all 0.2s;
+    }
+    .content-tabs button:hover { color: var(--primary); background: rgba(26,122,109,0.04); }
+    .content-tabs button.active { color: var(--primary); border-bottom-color: var(--primary); }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+    .btn-row { display: flex; gap: 10px; flex-wrap: wrap; }
+    .btn-row .btn { flex: 1; min-width: 160px; }
+
+    /* Warning Form */
+    .warn-form {
+      background: var(--warn-bg); border: 1px solid var(--warn-border);
+      border-radius: 12px; padding: 16px; margin-bottom: 20px;
+    }
+    .warn-form h3 { color: var(--danger); margin-bottom: 12px; font-size: 1em; }
+    .form-grid {
+      display: grid; gap: 10px; margin-bottom: 12px;
+      grid-template-columns: 1fr 1fr;
+    }
+    .form-grid.full { grid-template-columns: 1fr; }
+    .form-grid label {
+      display: block; font-size: 0.72em; font-weight: 700; color: var(--primary);
+      margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.3px;
+    }
+    .form-grid select, .form-grid input, .form-grid textarea {
+      width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px;
+      font-size: 1em; background: #fff; color: var(--text);
+      -webkit-appearance: none;
+      appearance: none;
+    }
+    .form-grid textarea { resize: vertical; min-height: 60px; font-family: inherit; }
+    .form-grid select:focus, .form-grid input:focus, .form-grid textarea:focus {
+      outline: none; border-color: var(--primary); box-shadow: 0 0 0 2px rgba(26,122,109,0.15);
+    }
+    .btn {
+      background: var(--primary); color: #fff; border: none; border-radius: 8px;
+      padding: 12px 24px; cursor: pointer; font-weight: 700; font-size: 1em;
+      width: 100%; touch-action: manipulation;
+    }
+    .btn:hover { background: var(--primary-hover); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn.danger { background: var(--danger); }
+    .btn.danger:hover { background: #a93226; }
+
+    /* Summary Cards */
+    .summary-section { margin-top: 20px; }
+    .summary-section h3 { color: var(--primary); margin-bottom: 10px; font-size: 1em; }
+    .summary-table-wrap { overflow-x: auto; }
+    .summary-table { width: 100%; border-collapse: collapse; font-size: 0.88em; }
+    .summary-table th {
+      background: #ede5d5; color: var(--primary); padding: 10px 8px;
+      text-align: left; border-bottom: 2px solid var(--accent); cursor: pointer;
+      white-space: nowrap; user-select: none; -webkit-user-select: none;
+    }
+    .summary-table th:hover { background: #ddd5c5; }
+    .summary-table th .sort-arrow { font-size: 0.7em; margin-left: 4px; opacity: 0.4; }
+    .summary-table th.sorted .sort-arrow { opacity: 1; }
+    .summary-table td { padding: 8px; border-bottom: 1px solid #eee; }
+    .summary-table tr:hover { background: rgba(26,122,109,0.05); }
+    .summary-table .warn-badge {
+      display: inline-block; padding: 2px 10px; border-radius: 10px;
+      font-size: 0.8em; font-weight: 700; color: #fff; min-width: 28px; text-align: center;
+    }
+    .warn-badge.w1 { background: var(--accent); }
+    .warn-badge.w2 { background: #e67e22; }
+    .warn-badge.w3 { background: var(--danger); }
+    .warn-badge.w4 { background: #7b1fa2; }
+    .summary-table .action-btns { display: flex; gap: 4px; }
+    .summary-table .action-btns button {
+      background: none; border: 1px solid var(--border); border-radius: 4px;
+      padding: 3px 6px; cursor: pointer; font-size: 0.8em;
+    }
+    .summary-table .action-btns .clear-btn { border-color: var(--danger); color: var(--danger); }
+    .summary-table .action-btns button:hover { background: #f5f0e4; }
+    .summary-table .type-tags { font-size: 0.75em; color: var(--text-muted); }
+
+    /* Warning History */
+    .history-section { margin-top: 24px; }
+    .history-section h3 { color: var(--primary); margin-bottom: 10px; font-size: 1em; }
+    .filter-row {
+      display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap;
+    }
+    .filter-row select, .filter-row input {
+      padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px;
+      font-size: 0.9em; background: #fff; color: var(--text); flex: 1; min-width: 140px;
+    }
+    .warn-list { list-style: none; }
+    .warn-item {
+      background: #fff; border: 1px solid var(--border); border-radius: 10px;
+      padding: 12px 14px; margin-bottom: 8px; position: relative;
+    }
+    .warn-item .warn-header {
+      display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 4px;
+    }
+    .warn-item .warn-num {
+      display: inline-block; padding: 2px 10px; border-radius: 10px;
+      font-size: 0.75em; font-weight: 700; color: #fff;
+    }
+    .warn-num.w1 { background: var(--accent); }
+    .warn-num.w2 { background: #e67e22; }
+    .warn-num.w3 { background: var(--danger); }
+    .warn-num.w4 { background: #7b1fa2; }
+    .warn-item .warn-name { font-weight: 700; font-size: 0.95em; }
+    .warn-item .warn-type {
+      display: inline-block; padding: 2px 8px; border-radius: 6px;
+      font-size: 0.75em; background: #f5f0e4; color: var(--text-muted); font-weight: 600;
+    }
+    .warn-item .warn-detail { font-size: 0.82em; color: var(--text-muted); margin-top: 4px; }
+    .warn-item .warn-comment { font-size: 0.85em; color: var(--text); margin-top: 6px; padding: 6px 10px; background: #f9f6ee; border-radius: 6px; font-style: italic; }
+    .warn-item .delete-btn {
+      position: absolute; top: 10px; right: 10px; background: none; border: none;
+      color: #ccc; cursor: pointer; font-size: 1.1em; padding: 4px;
+    }
+    .warn-item .delete-btn:hover { color: var(--danger); }
+
+    /* Loading & Toast */
+    .loading { text-align: center; padding: 30px; color: var(--text-muted); }
+    .spinner {
+      display: inline-block; width: 24px; height: 24px;
+      border: 3px solid var(--border); border-top-color: var(--primary);
+      border-radius: 50%; animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .toast {
+      position: fixed; bottom: 20px; right: 20px; z-index: 3000;
+      background: #fff; color: var(--text); padding: 12px 20px;
+      border-radius: 8px; font-size: 0.9em; display: none;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.12);
+    }
+    .toast.success { border-left: 4px solid var(--success); }
+    .toast.error { border-left: 4px solid var(--danger); }
+    .no-data { text-align: center; color: var(--text-muted); padding: 20px; font-style: italic; }
+
+    /* Mobile */
+    @media (max-width: 600px) {
+      body { padding: 50px 4px 70px 4px; }
+      .tab-nav { flex-wrap: wrap; padding: 0 8px; align-items: center; }
+      .hamburger { display: flex; }
+      .login-bar {
+        position: static; flex: 1; justify-content: flex-end;
+        padding: 4px 0; gap: 6px;
+      }
+      .nav-links { display: none; width: 100%; flex-direction: column; order: 10; }
+      .nav-links.open { display: flex; }
+      .nav-links a { padding: 10px 12px; font-size: 0.9em; border-bottom: 1px solid var(--border); }
+      .container { padding: 14px 10px; border-radius: 12px; }
+      h1 { font-size: 1.3em; }
+      .form-grid { grid-template-columns: 1fr; }
+      .summary-grid { grid-template-columns: 1fr; }
+      .btn { padding: 14px 24px; font-size: 1.05em; }
+    }
+  </style>
+</head>
+<body>
+
+<nav class="tab-nav">
+  <button class="hamburger" id="hamburgerBtn" onclick="document.getElementById('navLinks').classList.toggle('open')"><span></span><span></span><span></span></button>
+  <div class="login-bar" id="loginBar">
+    <span class="user-email" id="userEmail" style="display:none"></span>
+    <button id="loginBtn" onclick="handleLogin()">🔑 Login</button>
+    <button id="logoutBtn" class="logout-btn" style="display:none" onclick="handleLogout()">Logout</button>
+  </div>
+  <div class="nav-links" id="navLinks">
+    <a href="dashboard.html"><img src="chest.png" class="nav-icon" alt=""> Dashboard</a>
+    <a href="events.html"><img src="events.png" class="nav-icon" alt=""> Events</a>
+    <a href="members.html"><img src="members.png" class="nav-icon" alt=""> Members</a>
+    <a href="profiling.html"><img src="profiling.png" class="nav-icon" alt=""> Profiling</a>
+    <a href="resources.html"><img src="resources.png" class="nav-icon" alt=""> Resources</a>
+    <a href="warnings.html" class="active"><img src="warning.png" class="nav-icon" alt=""> Warnings</a>
+    <a href="calendar.html"><img src="calendar.png" class="nav-icon" alt=""> Calendar</a>
+  </div>
+</nav>
+
+<div class="login-gate" id="loginGate" style="max-width:500px;margin:80px auto;text-align:center;background:var(--bg-card);border-radius:16px;padding:40px 24px;box-shadow:0 2px 12px rgba(0,0,0,0.08);">
+  <h2 style="color:var(--primary);margin-bottom:12px;">🔒 Login Required</h2>
+  <p style="color:var(--text-muted);margin-bottom:20px;">You need to be logged in to manage warnings.</p>
+  <button class="btn" onclick="handleLogin()" style="max-width:300px;margin:0 auto;">🔑 Login</button>
+</div>
+
+<div class="container" id="mainContent" style="display:none">
+  <img src="logo.png" alt="cCc Legends" class="site-logo">
+  <h1>Member Warnings</h1>
+  <p class="subtitle">Track and manage performance warnings</p>
+
+  <!-- Content Tabs -->
+  <div class="content-tabs">
+    <button class="active" onclick="switchTab('overview')">📋 Overview</button>
+    <button onclick="switchTab('issue')">➕ Issue Warning</button>
+    <button onclick="switchTab('history')">📜 History</button>
+  </div>
+
+  <!-- Tab 1: Overview -->
+  <div class="tab-panel active" id="tab-overview">
+    <div class="summary-section" id="summarySection">
+      <h3>Members with Warnings (<span id="summaryCount">0</span>)</h3>
+      <div class="summary-table-wrap" id="summaryGrid">
+        <div class="loading"><span class="spinner"></span> Loading...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab 2: Issue Warning -->
+  <div class="tab-panel" id="tab-issue">
+    <div class="warn-form" id="warnForm">
+      <h3>Issue a Warning</h3>
+      <div class="form-grid">
+        <div>
+          <label for="warnMember">Member</label>
+          <select id="warnMember"><option value="">Loading...</option></select>
+        </div>
+        <div>
+          <label for="warnNumber">Warning #</label>
+          <select id="warnNumber">
+            <option value="1">1st Warning</option>
+            <option value="2">2nd Warning</option>
+            <option value="3">3rd Warning</option>
+            <option value="4">4th Warning</option>
+            <option value="5">5th Warning (Final)</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-grid full">
+        <div>
+          <label for="warnType">Reason</label>
+          <select id="warnType"><option value="">Loading...</option></select>
+        </div>
+      </div>
+      <div class="form-grid full">
+        <div>
+          <label for="warnComment">Comment (optional)</label>
+          <textarea id="warnComment" placeholder="Add details about the warning..."></textarea>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn danger" id="submitWarnBtn" onclick="submitWarning()" disabled>⚠️ Issue Warning</button>
+        <button class="btn" id="autoGenBtn" onclick="autoGenTargetWarnings()" disabled style="background:#e67e22;">🎯 Auto-warn Custom Targets</button>
+      </div>
+      <div id="formStatus" style="margin-top:8px;font-size:0.85em;"></div>
+    </div>
+  </div>
+
+  <!-- Tab 3: History -->
+  <div class="tab-panel" id="tab-history">
+    <div class="history-section" id="historySection">
+      <h3>Warning History</h3>
+      <div class="filter-row">
+        <select id="filterMember" onchange="renderHistory()">
+          <option value="">All Members</option>
+        </select>
+        <select id="filterType" onchange="renderHistory()">
+          <option value="">All Types</option>
+        </select>
+      </div>
+      <ul class="warn-list" id="warnList">
+        <li class="loading"><span class="spinner"></span> Loading...</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  let isLoggedIn = false;
+  let currentUser = null;
+  let allWarnings = [];
+  let warningSummary = {};
+  let memberNames = [];
+  let warningTypes = [];
+
+  // ===== AUTH =====
+  function checkLoginState() {
+    const stored = localStorage.getItem('leg_auth');
+    if (stored) {
+      try {
+        const auth = JSON.parse(stored);
+        if (auth.email && auth.allowed) {
+          isLoggedIn = true;
+          currentUser = auth;
+          updateLoginUI();
+        }
+      } catch (e) {}
+    }
+  }
+
+  function handleLogin() {
+    if (!document.getElementById('gsi-script')) {
+      const script = document.createElement('script');
+      script.id = 'gsi-script';
+      script.src = 'https://accounts.google.com/gsi/client';
+      script.onload = () => initGoogleLogin();
+      document.head.appendChild(script);
+    } else { initGoogleLogin(); }
+  }
+
+  function initGoogleLogin() {
+    google.accounts.id.initialize({ client_id: SITE_CONFIG.googleClientId, callback: handleGoogleCallback });
+    google.accounts.id.prompt();
+  }
+
+  async function handleGoogleCallback(response) {
+    try {
+      const res = await fetch(window.GAS_WEB_APP_URL, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idToken: response.credential })
+      });
+      const data = await res.json();
+      if (data.success && data.email) {
+        const verifyRes = await fetch(window.GAS_WEB_APP_URL, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'api', fn: 'verifyGoogleLogin', args: [{ email: data.email }] })
+        });
+        const verifyData = await verifyRes.json();
+        const authResult = verifyData.data || verifyData;
+        if (authResult.success && authResult.allowed) {
+          isLoggedIn = true;
+          currentUser = { email: data.email, allowed: true };
+          localStorage.setItem('leg_auth', JSON.stringify(currentUser));
+          updateLoginUI();
+          showToast('Logged in as ' + data.email, 'success');
+        } else { showToast('Access denied', 'error'); }
+      }
+    } catch (err) { showToast('Login error', 'error'); }
+  }
+
+  function handleLogout() {
+    isLoggedIn = false; currentUser = null;
+    localStorage.removeItem('leg_auth');
+    window.location.href = 'dashboard.html';
+  }
+
+  function updateLoginUI() {
+    document.getElementById('userEmail').textContent = isLoggedIn ? currentUser.email : '';
+    document.getElementById('userEmail').style.display = isLoggedIn ? 'inline' : 'none';
+    document.getElementById('loginBtn').style.display = isLoggedIn ? 'none' : 'inline';
+    document.getElementById('logoutBtn').style.display = isLoggedIn ? 'inline' : 'none';
+    document.getElementById('loginGate').style.display = isLoggedIn ? 'none' : 'block';
+    document.getElementById('mainContent').style.display = isLoggedIn ? 'block' : 'none';
+    if (isLoggedIn) loadAllData();
+  }
+
+  // ===== DATA LOADING =====
+  async function loadAllData() {
+    try {
+      const [members, types, warnings] = await Promise.all([
+        callFunction('getAllMembers'),
+        callFunction('getWarningTypes'),
+        callFunction('getWarnings')
+      ]);
+
+      // Populate member dropdown
+      memberNames = (members || []).map(m => typeof m === 'string' ? m : (m.name || '')).filter(n => n).sort();
+      const memberSelect = document.getElementById('warnMember');
+      const filterMember = document.getElementById('filterMember');
+      memberSelect.innerHTML = '<option value="">-- Select Member --</option>';
+      filterMember.innerHTML = '<option value="">All Members</option>';
+      memberNames.forEach(name => {
+        memberSelect.innerHTML += '<option value="' + esc(name) + '">' + esc(name) + '</option>';
+        filterMember.innerHTML += '<option value="' + esc(name) + '">' + esc(name) + '</option>';
+      });
+
+      // Populate warning types
+      warningTypes = types || [];
+      const typeSelect = document.getElementById('warnType');
+      const filterType = document.getElementById('filterType');
+      typeSelect.innerHTML = '<option value="">-- Select Reason --</option>';
+      filterType.innerHTML = '<option value="">All Types</option>';
+      warningTypes.forEach(t => {
+        typeSelect.innerHTML += '<option value="' + esc(t) + '">' + esc(t) + '</option>';
+        filterType.innerHTML += '<option value="' + esc(t) + '">' + esc(t) + '</option>';
+      });
+
+      document.getElementById('submitWarnBtn').disabled = false;
+      document.getElementById('autoGenBtn').disabled = false;
+
+      // Process warnings
+      if (warnings && warnings.success) {
+        allWarnings = warnings.warnings || [];
+        warningSummary = warnings.summary || {};
+      }
+
+      renderSummary();
+      renderHistory();
+      autoSetWarningNumber();
+    } catch (err) {
+      showToast('Failed to load data: ' + err.message, 'error');
+    }
+  }
+
+  // ===== AUTO-SET WARNING NUMBER =====
+  document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('warnMember').addEventListener('change', autoSetWarningNumber);
+  });
+
+  function autoSetWarningNumber() {
+    const member = document.getElementById('warnMember').value;
+    if (!member) return;
+    const s = warningSummary[member];
+    const nextNum = s ? s.maxWarningNum + 1 : 1;
+    const sel = document.getElementById('warnNumber');
+    sel.value = String(Math.min(nextNum, 5));
+  }
+
+  // ===== SUBMIT WARNING =====
+  async function submitWarning() {
+    const member = document.getElementById('warnMember').value;
+    const warningNumber = document.getElementById('warnNumber').value;
+    const type = document.getElementById('warnType').value;
+    const comment = document.getElementById('warnComment').value.trim();
+    const statusEl = document.getElementById('formStatus');
+
+    if (!member) { statusEl.innerHTML = '<span style="color:var(--danger)">Please select a member.</span>'; return; }
+    if (!type) { statusEl.innerHTML = '<span style="color:var(--danger)">Please select a reason.</span>'; return; }
+
+    const btn = document.getElementById('submitWarnBtn');
+    btn.disabled = true;
+    btn.textContent = 'Saving...';
+    statusEl.innerHTML = '';
+
+    try {
+      const result = await callFunction('addWarning', [{
+        member: member,
+        warningNumber: parseInt(warningNumber),
+        type: type,
+        comment: comment,
+        issuedBy: currentUser ? currentUser.email : ''
+      }]);
+
+      if (result && result.success) {
+        showToast(result.message, 'success');
+        document.getElementById('warnComment').value = '';
+        document.getElementById('warnType').value = '';
+        // Reload warnings
+        const warnings = await callFunction('getWarnings');
+        if (warnings && warnings.success) {
+          allWarnings = warnings.warnings || [];
+          warningSummary = warnings.summary || {};
+        }
+        renderSummary();
+        renderHistory();
+        autoSetWarningNumber();
+      } else {
+        showToast('Error: ' + (result ? result.message : 'Unknown'), 'error');
+      }
+    } catch (err) {
+      showToast('Error: ' + err.message, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = '⚠️ Issue Warning';
+    }
+  }
+
+  // ===== DELETE WARNING =====
+  async function deleteWarningClick(rowIndex) {
+    if (!confirm('Delete this warning? This cannot be undone.')) return;
+    try {
+      const result = await callFunction('deleteWarning', [rowIndex]);
+      if (result && result.success) {
+        showToast('Warning deleted', 'success');
+        const warnings = await callFunction('getWarnings');
+        if (warnings && warnings.success) {
+          allWarnings = warnings.warnings || [];
+          warningSummary = warnings.summary || {};
+        }
+        renderSummary();
+        renderHistory();
+      } else { showToast('Delete failed', 'error'); }
+    } catch (err) { showToast('Error: ' + err.message, 'error'); }
+  }
+
+  // ===== RENDER SUMMARY =====
+  let summarySortCol = 'level';
+  let summarySortAsc = false;
+
+  function renderSummary() {
+    const grid = document.getElementById('summaryGrid');
+    let entries = Object.entries(warningSummary).filter(([name]) => memberNames.includes(name));
+    document.getElementById('summaryCount').textContent = entries.length;
+    if (entries.length === 0) {
+      grid.innerHTML = '<div class="no-data">No warnings issued yet. 🎉</div>';
+      return;
+    }
+
+    // Sort
+    entries.sort((a, b) => {
+      let va, vb;
+      if (summarySortCol === 'name') { va = a[0].toLowerCase(); vb = b[0].toLowerCase(); return summarySortAsc ? va.localeCompare(vb) : vb.localeCompare(va); }
+      if (summarySortCol === 'level') { va = a[1].maxWarningNum; vb = b[1].maxWarningNum; }
+      else if (summarySortCol === 'count') { va = a[1].count; vb = b[1].count; }
+      else if (summarySortCol === 'date') { va = a[1].latestDate; vb = b[1].latestDate; return summarySortAsc ? (va > vb ? 1 : -1) : (vb > va ? 1 : -1); }
+      else { va = a[1].maxWarningNum; vb = b[1].maxWarningNum; }
+      return summarySortAsc ? va - vb : vb - va;
+    });
+
+    const arrow = (col) => '<span class="sort-arrow">' + (summarySortCol === col ? (summarySortAsc ? '▲' : '▼') : '⇅') + '</span>';
+    const sorted = (col) => summarySortCol === col ? ' sorted' : '';
+
+    let html = '<table class="summary-table"><thead><tr>' +
+      '<th class="' + sorted('name') + '" onclick="sortSummary(\'name\')">' + 'Member' + arrow('name') + '</th>' +
+      '<th class="' + sorted('level') + '" onclick="sortSummary(\'level\')" style="text-align:center">' + 'Level' + arrow('level') + '</th>' +
+      '<th class="' + sorted('count') + '" onclick="sortSummary(\'count\')" style="text-align:center">' + 'Total' + arrow('count') + '</th>' +
+      '<th>' + 'Reasons</th>' +
+      '<th class="' + sorted('date') + '" onclick="sortSummary(\'date\')">' + 'Latest' + arrow('date') + '</th>' +
+      '<th style="width:70px"></th>' +
+      '</tr></thead><tbody>';
+
+    entries.forEach(([name, data]) => {
+      const wClass = data.maxWarningNum >= 4 ? 'w4' : data.maxWarningNum >= 3 ? 'w3' : data.maxWarningNum >= 2 ? 'w2' : 'w1';
+      html += '<tr>' +
+        '<td style="font-weight:600">' + esc(name) + '</td>' +
+        '<td style="text-align:center"><span class="warn-badge ' + wClass + '">' + data.maxWarningNum + '</span></td>' +
+        '<td style="text-align:center">' + data.count + '</td>' +
+        '<td class="type-tags">' + data.types.map(t => esc(t)).join(', ') + '</td>' +
+        '<td style="font-size:0.82em">' + data.latestDate + '</td>' +
+        '<td><div class="action-btns">' +
+          '<button onclick="filterByMember(\'' + esc(name) + '\')" title="View history">📜</button>' +
+          '<button class="clear-btn" onclick="clearMemberWarningsClick(\'' + esc(name) + '\')" title="Clear all">🧹</button>' +
+        '</div></td></tr>';
+    });
+
+    html += '</tbody></table>';
+    grid.innerHTML = html;
+  }
+
+  function sortSummary(col) {
+    if (summarySortCol === col) { summarySortAsc = !summarySortAsc; }
+    else { summarySortCol = col; summarySortAsc = col === 'name'; }
+    renderSummary();
+  }
+
+  function switchTab(tab) {
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.content-tabs button').forEach(b => b.classList.remove('active'));
+    document.getElementById('tab-' + tab).classList.add('active');
+    const btns = document.querySelectorAll('.content-tabs button');
+    const idx = tab === 'overview' ? 0 : tab === 'issue' ? 1 : 2;
+    btns[idx].classList.add('active');
+  }
+
+  function filterByMember(name) {
+    document.getElementById('filterMember').value = name;
+    renderHistory();
+    switchTab('history');
+  }
+
+  // ===== RENDER HISTORY =====
+  function renderHistory() {
+    const memberFilter = document.getElementById('filterMember').value;
+    const typeFilter = document.getElementById('filterType').value;
+    const list = document.getElementById('warnList');
+
+    let filtered = allWarnings.filter(w => memberNames.includes(w.member));
+    if (memberFilter) filtered = filtered.filter(w => w.member === memberFilter);
+    if (typeFilter) filtered = filtered.filter(w => w.type === typeFilter);
+
+    if (filtered.length === 0) {
+      list.innerHTML = '<li class="no-data">No warnings match the current filter.</li>';
+      return;
+    }
+
+    let html = '';
+    filtered.forEach(w => {
+      const wClass = w.warningNumber >= 4 ? 'w4' : w.warningNumber >= 3 ? 'w3' : w.warningNumber >= 2 ? 'w2' : 'w1';
+      html += '<li class="warn-item">' +
+        '<button class="delete-btn" onclick="deleteWarningClick(' + w.rowIndex + ')" title="Delete">🗑️</button>' +
+        '<div class="warn-header">' +
+          '<span class="warn-num ' + wClass + '">#' + w.warningNumber + '</span>' +
+          '<span class="warn-name">' + esc(w.member) + '</span>' +
+          '<span class="warn-type">' + esc(w.type) + '</span>' +
+        '</div>' +
+        '<div class="warn-detail">📅 ' + w.timestamp + (w.issuedBy ? ' &middot; by ' + esc(w.issuedBy) : '') + '</div>' +
+        (w.comment ? '<div class="warn-comment">"' + esc(w.comment) + '"</div>' : '') +
+        '</li>';
+    });
+    list.innerHTML = html;
+  }
+
+  // ===== CLEAR MEMBER WARNINGS =====
+  async function clearMemberWarningsClick(memberName) {
+    if (!confirm('Clear ALL warnings for "' + memberName + '"? This cannot be undone.')) return;
+    try {
+      const result = await callFunction('clearMemberWarnings', [memberName]);
+      if (result && result.success) {
+        showToast(result.message, 'success');
+        const warnings = await callFunction('getWarnings');
+        if (warnings && warnings.success) {
+          allWarnings = warnings.warnings || [];
+          warningSummary = warnings.summary || {};
+        }
+        renderSummary();
+        renderHistory();
+      } else { showToast('Error: ' + (result ? result.message : 'Unknown'), 'error'); }
+    } catch (err) { showToast('Error: ' + err.message, 'error'); }
+  }
+
+  // ===== AUTO-GENERATE TARGET WARNINGS =====
+  async function autoGenTargetWarnings() {
+    const btn = document.getElementById('autoGenBtn');
+    btn.disabled = true;
+    btn.textContent = 'Processing...';
+    try {
+      const result = await callFunction('autoGenerateTargetWarnings', [currentUser ? currentUser.email : '']);
+      if (result && result.success) {
+        let msg = result.message;
+        if (result.added && result.added.length > 0) msg += ': ' + result.added.join(', ');
+        showToast(msg, 'success');
+        // Reload warnings
+        const warnings = await callFunction('getWarnings');
+        if (warnings && warnings.success) {
+          allWarnings = warnings.warnings || [];
+          warningSummary = warnings.summary || {};
+        }
+        renderSummary();
+        renderHistory();
+      } else {
+        showToast('Error: ' + (result ? result.message : 'Unknown'), 'error');
+      }
+    } catch (err) {
+      showToast('Error: ' + err.message, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = '\uD83C\uDFAF Auto-warn members with custom targets';
+    }
+  }
+
+  // ===== HELPERS =====
+  function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+  function showToast(msg, type) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = 'toast ' + (type || '');
+    t.style.display = 'block';
+    setTimeout(() => { t.style.display = 'none'; }, 3500);
+  }
+
+  // ===== INIT =====
+  document.addEventListener('DOMContentLoaded', checkLoginState);
+</script>
+</body>
+</html>

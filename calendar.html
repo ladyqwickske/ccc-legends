@@ -1,0 +1,524 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>cCc Legends - Calendar</title>
+  <link rel="icon" type="image/png" href="logo.png">
+  <script src="perf-debug.js"></script>
+  <script src="config.js"></script>
+  <script src="site-config.js"></script>
+  <script src="portal-shim.js"></script>
+  <style>
+    :root {
+      --primary: #1a7a6d; --primary-hover: #156b60; --accent: #c8a415; --accent-light: #e6d06c;
+      --bg-dark: #f5f0e4; --bg-card: rgba(255, 252, 245, 0.97);
+      --text: #2d2418; --text-muted: #6b5d4e; --success: #27ae60; --danger: #c0392b; --border: #d4c9b5;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: linear-gradient(135deg, #e8dfd0 0%, #f5f0e4 100%);
+      color: var(--text); min-height: 100vh; background-attachment: fixed;
+      padding: 60px 8px 80px 8px;
+    }
+    .tab-nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+      display: flex; justify-content: center; background: #fffcf5;
+      border-bottom: 2px solid var(--accent);
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    }
+    .tab-nav a {
+      color: var(--text-muted); text-decoration: none; padding: 12px 18px;
+      font-size: 0.95em; font-weight: 500; border-bottom: 3px solid transparent;
+    }
+    .tab-nav a:hover { color: var(--primary); }
+    .tab-nav a.active { color: var(--primary); border-bottom-color: var(--primary); }
+    .nav-icon { width: 18px; height: 18px; vertical-align: middle; margin-right: 4px; }
+    .login-bar {
+      position: fixed; top: 0; right: 8px; z-index: 1001;
+      display: flex; align-items: center; gap: 8px; padding: 8px;
+    }
+    .login-bar .user-email { font-size: 0.8em; color: var(--primary); }
+    .login-bar button {
+      background: var(--primary); color: #fff; border: none; border-radius: 6px;
+      padding: 6px 14px; cursor: pointer; font-weight: 600; font-size: 0.85em;
+    }
+    .login-bar .logout-btn { background: #c4b99a; color: var(--text); }
+    .container {
+      max-width: 1100px; margin: 0 auto; background: var(--bg-card);
+      border-radius: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); padding: 24px 16px;
+    }
+    h1 { color: var(--primary); text-align: center; margin-bottom: 4px; font-size: 1.8em; }
+    .site-logo { width: 64px; height: 64px; display: block; margin: 0 auto 8px auto; }
+    .subtitle { text-align: center; color: var(--text-muted); margin-bottom: 16px; font-size: 0.9em; }
+
+    /* Month Navigation */
+    .month-nav {
+      display: flex; align-items: center; justify-content: center; gap: 16px; margin-bottom: 16px;
+    }
+    .month-nav button {
+      background: #ede5d5; color: var(--primary); border: 1px solid var(--border);
+      border-radius: 8px; padding: 8px 16px; cursor: pointer; font-size: 1.1em;
+    }
+    .month-nav button:hover { background: #ddd5c5; }
+    .month-nav .month-label { font-size: 1.3em; font-weight: 600; color: var(--primary); min-width: 180px; text-align: center; }
+
+    /* Calendar Grid */
+    .calendar-grid {
+      display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px;
+    }
+    .day-header {
+      background: #ede5d5; color: var(--primary); padding: 8px 4px;
+      text-align: center; font-weight: 600; font-size: 0.85em;
+    }
+    .day-cell {
+      background: #f8f4ea; min-height: 80px; padding: 4px;
+      border: 1px solid #eee; position: relative;
+    }
+    .day-cell.other-month { opacity: 0.3; }
+    .day-cell.today { border-color: var(--primary); background: rgba(26,122,109,0.08); }
+    .day-number {
+      font-size: 0.85em; font-weight: 600; color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+    .today .day-number { color: var(--primary); }
+    .event-dot {
+      display: block; font-size: 0.7em; padding: 1px 4px; margin-bottom: 2px;
+      border-radius: 4px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+      cursor: pointer;
+    }
+    .event-dot.ev-doomsday        { background: #fce4ec; color: #c62828; }
+    .event-dot.ev-arachne          { background: #e8f5e9; color: #2e7d32; }
+    .event-dot.ev-slaughter        { background: #fff3e0; color: #e65100; }
+    .event-dot.ev-crypting         { background: #e8eaf6; color: #283593; }
+    .event-dot.ev-crypting-bar      { background: #c5cae9; color: #283593; height: 4px; padding: 0; margin: 1px 0; border-radius: 2px; font-size: 0; cursor: pointer; }
+    .event-dot.ev-ancients         { background: #e0f7fa; color: #00695c; }
+    .event-dot.ev-great-hunt       { background: #f3e5f5; color: #6a1b9a; }
+    .event-dot.ev-kvk              { background: #fbe9e7; color: #bf360c; }
+    .event-dot.ev-cot              { background: #e1f5fe; color: #01579b; }
+    .event-dot.ev-armageddon       { background: #f9fbe7; color: #827717; }
+    .event-dot.ev-shadow-invasion  { background: #ede7f6; color: #4527a0; }
+    .event-dot.ev-hellforge        { background: #fff8e1; color: #ff6f00; }
+    .event-dot.ev-ragnarok         { background: #efebe9; color: #4e342e; }
+    .event-dot.ev-forest-pass      { background: #e8f5e9; color: #1b5e20; }
+
+    .event-dot.ev-ends { opacity: 0.65; }
+
+    /* Event Detail Popup */
+    .event-popup {
+      display: none; position: fixed; top: 50%; left: 50%;
+      transform: translate(-50%, -50%); z-index: 2000;
+      background: #ffffff; border: 2px solid var(--primary);
+      border-radius: 12px; padding: 20px; min-width: 300px; max-width: 500px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+    }
+    .event-popup h3 { color: var(--primary); margin-bottom: 8px; }
+    .event-popup .detail { margin-bottom: 6px; color: var(--text-muted); font-size: 0.9em; }
+    .event-popup .detail strong { color: var(--text); }
+    .popup-overlay {
+      display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.2); z-index: 1999;
+    }
+    .btn {
+      background: var(--primary); color: #fff; border: none; border-radius: 8px;
+      padding: 8px 16px; cursor: pointer; font-weight: 600; font-size: 0.9em;
+    }
+    .btn:hover { background: var(--primary-hover); }
+    .btn.secondary { background: #c4b99a; color: var(--text); }
+
+    /* Upcoming Events List */
+    .upcoming { margin-top: 20px; }
+    .upcoming h3 { color: var(--primary); margin-bottom: 8px; }
+    .upcoming-item {
+      background: #f8f4ea; border-radius: 8px; padding: 10px 14px;
+      margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center;
+      border: 1px solid var(--border);
+    }
+    .upcoming-item .event-name { font-weight: 600; }
+    .upcoming-item .event-dates { font-size: 0.85em; color: var(--text-muted); }
+
+    .loading { text-align: center; padding: 40px; color: var(--text-muted); }
+    .spinner {
+      display: inline-block; width: 24px; height: 24px;
+      border: 3px solid var(--border); border-top-color: var(--primary);
+      border-radius: 50%; animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .toast {
+      position: fixed; bottom: 20px; right: 20px; z-index: 3000;
+      background: #fff; color: var(--text); padding: 12px 20px;
+      border-radius: 8px; font-size: 0.9em; display: none;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.12);
+    }
+    .toast.success { border-left: 4px solid var(--success); }
+    .toast.error { border-left: 4px solid var(--danger); }
+    .nav-links { display: flex; }
+    .hamburger {
+      display: none; background: none; border: none; cursor: pointer; padding: 8px;
+      flex-direction: column; gap: 4px;
+    }
+    .hamburger span {
+      display: block; width: 22px; height: 2px; background: var(--primary); border-radius: 2px;
+    }
+    @media (max-width: 600px) {
+      body { padding: 50px 4px 70px 4px; }
+      .tab-nav { flex-wrap: wrap; padding: 0 8px; align-items: center; }
+      .hamburger { display: flex; }
+      .login-bar {
+        position: static; flex: 1; justify-content: flex-end;
+        padding: 4px 0; gap: 6px;
+      }
+      .nav-links { display: none; width: 100%; flex-direction: column; order: 10; }
+      .nav-links.open { display: flex; }
+      .nav-links a { padding: 10px 12px; font-size: 0.9em; border-bottom: 1px solid var(--border); }
+      .day-cell { min-height: 50px; }
+      .event-dot { font-size: 0.6em; }
+      .month-nav .month-label { font-size: 1em; min-width: 140px; }
+    }
+  </style>
+</head>
+<body>
+
+<nav class="tab-nav">
+  <button class="hamburger" id="hamburgerBtn" onclick="document.getElementById('navLinks').classList.toggle('open')"><span></span><span></span><span></span></button>
+  <div class="login-bar">
+    <span class="user-email" id="userEmail" style="display:none"></span>
+    <button id="loginBtn" onclick="handleLogin()">🔑 Login</button>
+    <button id="logoutBtn" class="logout-btn" style="display:none" onclick="handleLogout()">Logout</button>
+  </div>
+  <div class="nav-links" id="navLinks">
+    <a href="dashboard.html"><img src="chest.png" class="nav-icon" alt=""> Dashboard</a>
+    <a href="events.html" id="navEvents" style="display:none"><img src="events.png" class="nav-icon" alt=""> Events</a>
+    <a href="members.html" id="navMembers" style="display:none"><img src="members.png" class="nav-icon" alt=""> Members</a>
+    <a href="profiling.html" id="navProfiling" style="display:none"><img src="profiling.png" class="nav-icon" alt=""> Profiling</a>
+    <a href="resources.html" id="navResources" style="display:none"><img src="resources.png" class="nav-icon" alt=""> Resources</a>
+    <a href="warnings.html"><img src="warning.png" class="nav-icon" alt=""> Warnings</a>
+    <a href="calendar.html" class="active"><img src="calendar.png" class="nav-icon" alt=""> Calendar</a>
+  </div>
+</nav>
+
+<div class="container">
+  <img src="logo.png" alt="cCc Legends" class="site-logo">
+  <h1>Calendar</h1>
+  <p class="subtitle">Event Schedule Overview</p>
+
+  <div class="month-nav">
+    <button onclick="changeMonth(-1)">◀</button>
+    <span class="month-label" id="monthLabel"></span>
+    <button onclick="changeMonth(1)">▶</button>
+    <button class="btn secondary" onclick="goToday()">Today</button>
+  </div>
+
+  <div class="loading" id="loadingDiv"><div class="spinner"></div><br>Loading events...</div>
+
+  <div class="calendar-grid" id="calendarGrid" style="display:none">
+    <div class="day-header">Mon</div>
+    <div class="day-header">Tue</div>
+    <div class="day-header">Wed</div>
+    <div class="day-header">Thu</div>
+    <div class="day-header">Fri</div>
+    <div class="day-header">Sat</div>
+    <div class="day-header">Sun</div>
+  </div>
+
+  <!-- Upcoming Events -->
+  <div class="upcoming" id="upcomingSection">
+    <h3>📌 Upcoming &amp; Active Events</h3>
+    <div id="upcomingList"></div>
+  </div>
+</div>
+
+<!-- Event Detail Popup -->
+<div class="popup-overlay" id="popupOverlay" onclick="closePopup()"></div>
+<div class="event-popup" id="eventPopup">
+  <h3 id="popupTitle"></h3>
+  <div class="detail"><strong>Type:</strong> <span id="popupType"></span></div>
+  <div class="detail"><strong>Dates:</strong> <span id="popupDates"></span></div>
+  <div class="detail"><strong>Method:</strong> <span id="popupMethod"></span></div>
+  <div class="detail"><strong>Target:</strong> <span id="popupTarget"></span></div>
+  <br>
+  <button class="btn secondary" onclick="closePopup()">Close</button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  let eventsData = [];
+  let currentYear, currentMonth;
+  let isLoggedIn = false;
+  let currentUser = null;
+
+  const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+  // ── Recurring event definitions ──────────────────────────────
+  // Edit firstStart, duration (days), and interval (days) as needed
+  const RECURRING = [
+    { title: 'Doomsday',          firstStart: '2026-05-20', duration: 2, interval: 5,  color: 'ev-doomsday',        category: 'Daily Event', description: 'Doomsday — recurring every 5 days.' },
+    { title: 'Arachne\'s Swarm',  firstStart: '2026-05-21', duration: 2, interval: 5,  color: 'ev-arachne',         category: 'Daily Event', description: 'Arachne\'s Swarm — recurring every 5 days.' },
+    { title: 'Ruthless Slaughter',firstStart: '2026-05-24', duration: 2, interval: 5,  color: 'ev-slaughter',       category: 'Daily Event', description: 'Ruthless Slaughter — recurring every 5 days.' },
+    { title: 'Crypting Period',    firstStart: '2026-05-14', duration: 6, interval: 5,  color: 'ev-crypting',        category: 'Crypting', description: 'Crypting period.' },
+    { title: 'Ancients',          firstStart: '2026-05-20', duration: 2, interval: 5,  color: 'ev-ancients',        category: 'Daily Event', description: 'Ancients — recurring every 5 days.' },
+    { title: 'The Great Hunt',    firstStart: '2026-05-19', duration: 2, interval: 5,  color: 'ev-great-hunt',      category: 'Daily Event', description: 'The Great Hunt — recurring every 5 days.' },
+    { title: 'KvK',               firstStart: '2026-05-24', duration: 2, interval: 5,  color: 'ev-kvk',             category: 'Major Event', description: 'Kingdom vs Kingdom — recurring every 5 days.' },
+    { title: 'CoT',               firstStart: '2026-05-10', duration: 2, interval: 5,  color: 'ev-cot',             category: 'Major Event', description: 'Clash for the Throne — recurring every 5 days.' },
+    { title: 'Armageddon',        firstStart: '2026-05-21', duration: 2, interval: 5,  color: 'ev-armageddon',      category: 'Major Event', description: 'Armageddon — recurring every 5 days.' },
+    { title: 'Shadow Invasion',   firstStart: '2026-05-23', duration: 2, interval: 5,  color: 'ev-shadow-invasion', category: 'Major Event', description: 'Shadow Invasion — recurring every 5 days.' },
+    { title: 'HellForge',         firstStart: '2026-05-20', duration: 2, interval: 5,  color: 'ev-hellforge',       category: 'Major Event', description: 'HellForge — recurring every 5 days.' },
+    { title: 'Ragnarok',          firstStart: '2026-05-22', duration: 2, interval: 5,  color: 'ev-ragnarok',        category: 'Major Event', description: 'Ragnarok — recurring every 5 days.' },
+    { title: 'Forest Pass',       firstStart: '2026-05-14', duration: 1, interval: 7,  color: 'ev-forest-pass',     category: 'Weekly Event', description: 'Forest Pass — 7-day event, resets every Wednesday.' },
+  ];
+
+  function parseDateLocal(s) { const p = s.split('-'); return new Date(Date.UTC(+p[0], +p[1]-1, +p[2])); }
+  function fmtDateLocal(d) {
+    return d.getUTCFullYear() + '-' + String(d.getUTCMonth()+1).padStart(2,'0') + '-' + String(d.getUTCDate()).padStart(2,'0');
+  }
+  function expandRecurring(rangeStartDate, rangeEndDate) {
+    const events = [];
+    for (const def of RECURRING) {
+      const first = parseDateLocal(def.firstStart);
+      const dur = def.duration;
+      const interval = def.interval;
+      const diffDays = Math.floor((rangeStartDate - first) / 86400000);
+      const skipCount = diffDays > 0 ? Math.floor(diffDays / interval) : 0;
+      let occ = new Date(first.getTime() + skipCount * interval * 86400000);
+      for (let safety = 0; safety < 200; safety++) {
+        const occEnd = new Date(occ.getTime() + (dur - 1) * 86400000);
+        if (occ > rangeEndDate) break;
+        if (occEnd >= rangeStartDate) {
+          events.push({
+            eventName: def.title,
+            startDate: fmtDateLocal(occ),
+            endDate: fmtDateLocal(occEnd),
+            eventType: def.category,
+            participationMethod: def.color,
+            duration: def.duration,
+            targetPoints: '-',
+            _recurring: true,
+            _description: def.description
+          });
+        }
+        occ = new Date(occ.getTime() + interval * 86400000);
+      }
+    }
+    return events;
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const now = new Date();
+    currentYear = now.getUTCFullYear();
+    currentMonth = now.getUTCMonth();
+    checkLoginState();
+    loadEvents();
+  });
+
+  // AUTH (identical pattern)
+  function checkLoginState() {
+    const stored = localStorage.getItem('leg_auth');
+    if (stored) {
+      try {
+        const auth = JSON.parse(stored);
+        if (auth.email && auth.allowed) { isLoggedIn = true; currentUser = auth; updateLoginUI(); }
+      } catch (e) {}
+    }
+  }
+  function handleLogin() {
+    if (!document.getElementById('gsi-script')) {
+      const s = document.createElement('script'); s.id = 'gsi-script';
+      s.src = 'https://accounts.google.com/gsi/client';
+      s.onload = () => { google.accounts.id.initialize({ client_id: SITE_CONFIG.googleClientId, callback: handleGoogleCallback }); google.accounts.id.prompt(); };
+      document.head.appendChild(s);
+    } else { google.accounts.id.prompt(); }
+  }
+  async function handleGoogleCallback(response) {
+    try {
+      const res = await fetch(window.GAS_WEB_APP_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idToken: response.credential }) });
+      const data = await res.json();
+      if (data.success && data.email) {
+        const vRes = await fetch(window.GAS_WEB_APP_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'api', fn: 'verifyGoogleLogin', args: [{ email: data.email }] }) });
+        const vData = await vRes.json();
+        const auth = vData.data || vData;
+        if (auth.success && auth.allowed) {
+          isLoggedIn = true; currentUser = { email: data.email, allowed: true };
+          localStorage.setItem('leg_auth', JSON.stringify(currentUser));
+          updateLoginUI(); showToast('Logged in', 'success');
+        } else { showToast('Access denied', 'error'); }
+      }
+    } catch (err) { showToast('Login error', 'error'); }
+  }
+  function handleLogout() { isLoggedIn = false; currentUser = null; localStorage.removeItem('leg_auth'); updateLoginUI(); }
+  function updateLoginUI() {
+    document.getElementById('userEmail').textContent = isLoggedIn ? currentUser.email : '';
+    document.getElementById('userEmail').style.display = isLoggedIn ? 'inline' : 'none';
+    document.getElementById('loginBtn').style.display = isLoggedIn ? 'none' : 'inline';
+    document.getElementById('logoutBtn').style.display = isLoggedIn ? 'inline' : 'none';
+    // Show/hide protected nav links
+    document.getElementById('navEvents').style.display = isLoggedIn ? '' : 'none';
+    document.getElementById('navMembers').style.display = isLoggedIn ? '' : 'none';
+    document.getElementById('navProfiling').style.display = isLoggedIn ? '' : 'none';
+    document.getElementById('navResources').style.display = isLoggedIn ? '' : 'none';
+  }
+
+  // LOAD EVENTS (recurring only — backend events are managed on the Events page)
+  function loadEvents() {
+    const rangeStart = new Date(Date.UTC(currentYear, currentMonth - 1, 1));
+    const rangeEnd = new Date(Date.UTC(currentYear, currentMonth + 2, 0));
+    eventsData = expandRecurring(rangeStart, rangeEnd);
+    document.getElementById('loadingDiv').style.display = 'none';
+    document.getElementById('calendarGrid').style.display = 'grid';
+    renderCalendar();
+    renderUpcoming();
+  }
+
+  // CALENDAR RENDERING
+  function changeMonth(delta) {
+    currentMonth += delta;
+    if (currentMonth > 11) { currentMonth = 0; currentYear++; }
+    if (currentMonth < 0) { currentMonth = 11; currentYear--; }
+    const rangeStart = new Date(Date.UTC(currentYear, currentMonth - 1, 1));
+    const rangeEnd = new Date(Date.UTC(currentYear, currentMonth + 2, 0));
+    eventsData = expandRecurring(rangeStart, rangeEnd);
+    renderCalendar();
+    renderUpcoming();
+  }
+  function goToday() {
+    const now = new Date();
+    currentYear = now.getUTCFullYear(); currentMonth = now.getUTCMonth();
+    renderCalendar();
+  }
+
+  function renderCalendar() {
+    document.getElementById('monthLabel').textContent = `${MONTH_NAMES[currentMonth]} ${currentYear}`;
+    const grid = document.getElementById('calendarGrid');
+
+    // Remove old day cells (keep 7 headers)
+    while (grid.children.length > 7) grid.removeChild(grid.lastChild);
+
+    const firstDay = new Date(Date.UTC(currentYear, currentMonth, 1));
+    const lastDay = new Date(Date.UTC(currentYear, currentMonth + 1, 0));
+    // Monday=0 adjustment (JS: 0=Sun)
+    let startDow = firstDay.getUTCDay() - 1;
+    if (startDow < 0) startDow = 6;
+
+    const today = new Date();
+    const todayStr = formatDate(today);
+
+    // Fill leading days from previous month
+    const prevMonthLast = new Date(Date.UTC(currentYear, currentMonth, 0)).getUTCDate();
+    for (let i = startDow - 1; i >= 0; i--) {
+      const day = prevMonthLast - i;
+      const dateStr = formatDate(new Date(Date.UTC(currentYear, currentMonth - 1, day)));
+      grid.appendChild(createDayCell(day, dateStr, true));
+    }
+
+    // Current month days
+    for (let d = 1; d <= lastDay.getUTCDate(); d++) {
+      const dateStr = formatDate(new Date(Date.UTC(currentYear, currentMonth, d)));
+      const isToday = dateStr === todayStr;
+      grid.appendChild(createDayCell(d, dateStr, false, isToday));
+    }
+
+    // Fill trailing days
+    const totalCells = grid.children.length - 7;
+    const remaining = (7 - (totalCells % 7)) % 7;
+    for (let d = 1; d <= remaining; d++) {
+      const dateStr = formatDate(new Date(Date.UTC(currentYear, currentMonth + 1, d)));
+      grid.appendChild(createDayCell(d, dateStr, true));
+    }
+  }
+
+  function createDayCell(dayNum, dateStr, isOtherMonth, isToday) {
+    const cell = document.createElement('div');
+    cell.className = 'day-cell' + (isOtherMonth ? ' other-month' : '') + (isToday ? ' today' : '');
+    cell.innerHTML = `<div class="day-number">${dayNum}</div>`;
+
+    // Find events that span this date
+    eventsData.forEach(ev => {
+      if (ev.startDate && ev.endDate && dateStr >= ev.startDate && dateStr <= ev.endDate) {
+        const dot = document.createElement('span');
+        const colorClass = (ev.participationMethod || 'manual-entry').replace(' ', '-');
+        if (ev.eventName === 'Crypting Period' || ev.eventName === 'Forest Pass') {
+          // Multi-day period: show start/bar/end
+          if (dateStr === ev.startDate) {
+            dot.className = 'event-dot ' + colorClass;
+            dot.textContent = '▶ ' + ev.eventName;
+          } else if (dateStr === ev.endDate) {
+            dot.className = 'event-dot ' + colorClass + ' ev-ends';
+            dot.textContent = ev.eventName + ' ◀';
+          } else {
+            dot.className = 'event-dot ev-crypting-bar ' + colorClass.replace('ev-','ev-') ;
+            dot.title = ev.eventName;
+            dot.style.background = getComputedStyle(document.documentElement).getPropertyValue('--border') || '#d4c9b5';
+          }
+        } else if (ev.duration > 1 && dateStr === ev.startDate) {
+          dot.className = 'event-dot ' + colorClass;
+          dot.textContent = '▶ ' + ev.eventName;
+        } else if (ev.duration > 1 && dateStr === ev.endDate) {
+          dot.className = 'event-dot ' + colorClass + ' ev-ends';
+          dot.textContent = ev.eventName + ' ◀';
+        } else {
+          dot.className = 'event-dot ' + colorClass;
+          dot.textContent = ev.eventName;
+        }
+        dot.onclick = (e) => { e.stopPropagation(); showEventPopup(ev); };
+        cell.appendChild(dot);
+      }
+    });
+    return cell;
+  }
+
+  function formatDate(d) {
+    const y = d.getUTCFullYear();
+    const m = String(d.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(d.getUTCDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
+
+  // UPCOMING
+  function renderUpcoming() {
+    const list = document.getElementById('upcomingList');
+    const today = formatDate(new Date());
+    const upcoming = eventsData
+      .filter(ev => ev.endDate >= today)
+      .sort((a, b) => (a.startDate || '').localeCompare(b.startDate || ''));
+
+    if (upcoming.length === 0) {
+      list.innerHTML = '<div style="color:var(--text-muted); padding:10px;">No upcoming events</div>';
+      return;
+    }
+    list.innerHTML = upcoming.map(ev => `
+      <div class="upcoming-item" onclick="showEventPopup(${escapeJsonAttr(ev)})" style="cursor:pointer">
+        <span class="event-name">${escapeHtml(ev.eventName)}</span>
+        <span class="event-dates">${ev.startDate} → ${ev.endDate}</span>
+      </div>
+    `).join('');
+  }
+
+  // POPUP
+  function showEventPopup(ev) {
+    document.getElementById('popupTitle').textContent = ev.eventName;
+    document.getElementById('popupType').textContent = ev.eventType || '-';
+    document.getElementById('popupDates').textContent = `${ev.startDate} → ${ev.endDate}`;
+    document.getElementById('popupMethod').textContent = ev.participationMethod || '-';
+    document.getElementById('popupTarget').textContent = ev.targetPoints || '-';
+    document.getElementById('popupOverlay').style.display = 'block';
+    document.getElementById('eventPopup').style.display = 'block';
+  }
+  function closePopup() {
+    document.getElementById('popupOverlay').style.display = 'none';
+    document.getElementById('eventPopup').style.display = 'none';
+  }
+
+  // UTILITIES
+  function escapeHtml(str) { if (!str) return ''; const d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
+  function escapeJsonAttr(obj) {
+    return JSON.stringify(obj).replace(/'/g, '&#39;').replace(/"/g, "'");
+  }
+  function showToast(msg, type) {
+    const t = document.getElementById('toast'); t.textContent = msg;
+    t.className = 'toast ' + (type || ''); t.style.display = 'block';
+    setTimeout(() => { t.style.display = 'none'; }, 3000);
+  }
+</script>
+</body>
+</html>

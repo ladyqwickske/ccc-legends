@@ -1,0 +1,1525 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>cCc Legends - Events</title>
+  <link rel="icon" type="image/png" href="logo.png">
+  <script src="perf-debug.js"></script>
+  <script src="config.js"></script>
+  <script src="site-config.js"></script>
+  <script src="portal-shim.js"></script>
+  <style>
+    :root {
+      --primary: #1a7a6d; --primary-hover: #156b60; --accent: #c8a415; --accent-light: #e6d06c;
+      --bg-dark: #f5f0e4; --bg-card: rgba(255, 252, 245, 0.97);
+      --text: #2d2418; --text-muted: #6b5d4e; --success: #27ae60; --danger: #c0392b; --border: #d4c9b5;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: linear-gradient(135deg, #e8dfd0 0%, #f5f0e4 100%);
+      color: var(--text); min-height: 100vh; background-attachment: fixed;
+      padding: 60px 8px 80px 8px;
+    }
+    .tab-nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+      display: flex; justify-content: center; background: #fffcf5;
+      border-bottom: 2px solid var(--accent);
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    }
+    .tab-nav a {
+      color: var(--text-muted); text-decoration: none; padding: 12px 18px;
+      font-size: 0.95em; font-weight: 500; border-bottom: 3px solid transparent;
+    }
+    .tab-nav a:hover { color: var(--primary); }
+    .tab-nav a.active { color: var(--primary); border-bottom-color: var(--primary); }
+    .nav-icon { width: 18px; height: 18px; vertical-align: middle; margin-right: 4px; }
+    .login-bar {
+      position: fixed; top: 0; right: 8px; z-index: 1001;
+      display: flex; align-items: center; gap: 8px; padding: 8px;
+    }
+    .login-bar .user-email { font-size: 0.8em; color: var(--primary); }
+    .login-bar button {
+      background: var(--primary); color: #fff; border: none; border-radius: 6px;
+      padding: 6px 14px; cursor: pointer; font-weight: 600; font-size: 0.85em;
+    }
+    .login-bar .logout-btn { background: #c4b99a; color: var(--text); }
+    .container {
+      max-width: 1200px; margin: 0 auto; background: var(--bg-card);
+      border-radius: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); padding: 24px 16px;
+    }
+    h1 { color: var(--primary); text-align: center; margin-bottom: 4px; font-size: 1.8em; }
+    .site-logo { width: 64px; height: 64px; display: block; margin: 0 auto 8px auto; }
+    .subtitle { text-align: center; color: var(--text-muted); margin-bottom: 16px; font-size: 0.9em; }
+
+    /* Admin panel */
+    .admin-panel { display: none; background: #f8f4ea; border-radius: 12px; padding: 16px; margin-bottom: 20px; border: 1px solid var(--border); }
+    .admin-panel.visible { display: block; }
+    .admin-panel h3 { color: var(--primary); margin-bottom: 12px; font-size: 1em; }
+    .form-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+    .form-row input, .form-row select {
+      flex: 1; min-width: 120px; padding: 8px 12px;
+      background: #ffffff; border: 1px solid var(--border); border-radius: 8px;
+      color: var(--text); font-size: 0.9em;
+    }
+    .form-row input:focus, .form-row select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 2px rgba(26,122,109,0.15); }
+    .btn {
+      background: var(--primary); color: #fff; border: none; border-radius: 8px;
+      padding: 8px 16px; cursor: pointer; font-weight: 600; font-size: 0.9em;
+    }
+    .btn:hover { background: var(--primary-hover); }
+    .btn.danger { background: var(--danger); color: #fff; }
+    .btn.secondary { background: #c4b99a; color: var(--text); }
+
+    /* Tabs */
+    .sub-tabs { display: flex; gap: 4px; margin-bottom: 16px; }
+    .sub-tabs button {
+      background: #ede5d5; color: var(--text); border: 1px solid var(--border);
+      border-radius: 8px 8px 0 0; padding: 8px 16px; cursor: pointer; font-size: 0.9em;
+    }
+    .sub-tabs button.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+
+    /* Events Table */
+    .table-container { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.9em; }
+    th { background: #ede5d5; color: var(--primary); padding: 10px 8px; text-align: left; border-bottom: 2px solid var(--accent); cursor: pointer; user-select: none; }
+    th:hover { background: #ddd5c5; }
+    td { padding: 8px; border-bottom: 1px solid #eee; }
+    tr:hover { background: rgba(26,122,109,0.05); }
+
+    .method-badge {
+      display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 0.8em; font-weight: 600;
+    }
+    .method-chest { background: #d5f5e3; color: #1e8449; }
+    .method-manual { background: #d6eaf8; color: #2471a3; }
+    .method-period { background: #e8daef; color: #7d3c98; }
+
+    .filter-btn {
+      background: #ede5d5 !important; color: var(--text) !important; border: 1px solid var(--border) !important;
+      border-radius: 8px !important; padding: 5px 12px !important; font-size: 0.82em !important; font-weight: 500 !important;
+    }
+    .filter-btn.active { background: var(--primary) !important; color: #fff !important; border-color: var(--primary) !important; }
+
+    .event-actions button {
+      background: #ede5d5; color: var(--text); border: none; border-radius: 4px;
+      padding: 4px 8px; cursor: pointer; font-size: 0.8em; margin-right: 4px;
+    }
+    .event-actions button:hover { background: #ddd5c5; }
+
+    /* Participation Section */
+    .participation-section {
+      background: #f8f4ea; border-radius: 12px; padding: 16px; margin-top: 16px; border: 1px solid var(--border);
+    }
+    .participation-section h3 { color: var(--primary); margin-bottom: 12px; }
+
+    /* Chest Types Checkbox List */
+    .chest-types-section { margin-bottom: 12px; }
+    .chest-types-section label { display: block; font-weight: 600; color: var(--text); margin-bottom: 4px; font-size: 0.9em; }
+    .chest-types-section .note { font-size: 0.8em; color: var(--text-muted); margin-top: 4px; }
+    #chestTypesList {
+      max-height: 200px; overflow-y: auto;
+      border: 1px solid var(--border); border-radius: 6px;
+      padding: 8px; background: #fff;
+    }
+    .checkbox-item { display: flex; align-items: center; gap: 6px; padding: 4px 6px; border-radius: 4px; cursor: pointer; }
+    .checkbox-item:hover { background: #f5f0e4; }
+    .checkbox-item input[type="checkbox"] { cursor: pointer; accent-color: var(--primary); }
+    .checkbox-item label { margin: 0; font-weight: normal; color: var(--text); cursor: pointer; font-size: 0.9em; }
+
+    .sub-tabs { display: flex; gap: 4px; margin-bottom: 16px; flex-wrap: wrap; }
+    .tab-panel { display: block; }
+
+    .loading { text-align: center; padding: 40px; color: var(--text-muted); }
+    .spinner {
+      display: inline-block; width: 24px; height: 24px;
+      border: 3px solid var(--border); border-top-color: var(--primary);
+      border-radius: 50%; animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .toast {
+      position: fixed; bottom: 20px; right: 20px; z-index: 3000;
+      background: #fff; color: var(--text); padding: 12px 20px;
+      border-radius: 8px; font-size: 0.9em; display: none;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.12);
+    }
+    .toast.success { border-left: 4px solid var(--success); }
+    .toast.error { border-left: 4px solid var(--danger); }
+    .nav-links { display: flex; }
+    .hamburger {
+      display: none; background: none; border: none; cursor: pointer; padding: 8px;
+      flex-direction: column; gap: 4px;
+    }
+    .hamburger span {
+      display: block; width: 22px; height: 2px; background: var(--primary); border-radius: 2px;
+    }
+    @media (max-width: 600px) {
+      body { padding: 50px 4px 70px 4px; }
+      .tab-nav { flex-wrap: wrap; padding: 0 8px; align-items: center; }
+      .hamburger { display: flex; }
+      .login-bar {
+        position: static; flex: 1; justify-content: flex-end;
+        padding: 4px 0; gap: 6px;
+      }
+      .nav-links { display: none; width: 100%; flex-direction: column; order: 10; }
+      .nav-links.open { display: flex; }
+      .nav-links a { padding: 10px 12px; font-size: 0.9em; border-bottom: 1px solid var(--border); }
+    }
+  </style>
+</head>
+<body>
+
+<nav class="tab-nav">
+  <button class="hamburger" id="hamburgerBtn" onclick="document.getElementById('navLinks').classList.toggle('open')"><span></span><span></span><span></span></button>
+  <div class="login-bar">
+    <span class="user-email" id="userEmail" style="display:none"></span>
+    <button id="loginBtn" onclick="handleLogin()">🔑 Login</button>
+    <button id="logoutBtn" class="logout-btn" style="display:none" onclick="handleLogout()">Logout</button>
+  </div>
+  <div class="nav-links" id="navLinks">
+    <a href="dashboard.html"><img src="chest.png" class="nav-icon" alt=""> Dashboard</a>
+    <a href="events.html" class="active"><img src="events.png" class="nav-icon" alt=""> Events</a>
+    <a href="members.html"><img src="members.png" class="nav-icon" alt=""> Members</a>
+    <a href="profiling.html"><img src="profiling.png" class="nav-icon" alt=""> Profiling</a>
+    <a href="resources.html"><img src="resources.png" class="nav-icon" alt=""> Resources</a>
+    <a href="warnings.html"><img src="warning.png" class="nav-icon" alt=""> Warnings</a>
+    <a href="calendar.html"><img src="calendar.png" class="nav-icon" alt=""> Calendar</a>
+  </div>
+</nav>
+
+<div class="login-gate" id="loginGate" style="max-width:500px;margin:80px auto;text-align:center;background:var(--bg-card);border-radius:16px;padding:40px 24px;box-shadow:0 2px 12px rgba(0,0,0,0.08);">
+  <h2 style="color:var(--primary);margin-bottom:12px;">🔒 Login Required</h2>
+  <p style="color:var(--text-muted);margin-bottom:20px;">You need to be logged in to view the Events page.</p>
+  <button class="btn" onclick="handleLogin()" style="padding:12px 32px;font-size:1em;">🔑 Login</button>
+</div>
+
+<div class="container" id="mainContent" style="display:none">
+  <img src="logo.png" alt="cCc Legends" class="site-logo">
+  <h1>Events</h1>
+  <p class="subtitle">Event Management &amp; Participation Tracking</p>
+
+  <!-- Inner Tabs -->
+  <div class="sub-tabs" id="subTabs">
+    <button class="active" onclick="switchTab('manageTab', this)">📋 Manage</button>
+    <button onclick="switchTab('chestEventsTab', this)">📊 Chest Events</button>
+    <button onclick="switchTab('manualEventsTab', this)">✏️ Manual Events</button>
+    <button onclick="switchTab('troopEventsTab', this)">🎖️ Troop Events</button>
+    <button onclick="switchTab('createTab', this)">➕ Create Event</button>
+    <button onclick="switchTab('typesTab', this)">⚙️ Event Types</button>
+  </div>
+
+  <!-- ===== MANAGE EVENTS TAB ===== -->
+  <div class="tab-panel" id="manageTab">
+    <div style="display:flex; gap:4px; margin-bottom:12px; flex-wrap:wrap; align-items:center;">
+      <span style="font-size:0.85em; color:var(--text-muted); margin-right:4px;">Show:</span>
+      <button class="btn filter-btn active" onclick="setEventFilter('active', this)">🟢 Active</button>
+      <button class="btn filter-btn" onclick="setEventFilter('recent', this)">🕐 Recent</button>
+      <button class="btn filter-btn" onclick="setEventFilter('all', this)">📋 All</button>
+      <button class="btn filter-btn" onclick="setEventFilter('ended', this)">📁 Ended</button>
+      <span style="font-size:0.85em; color:var(--text-muted); margin-left:8px;">Type:</span>
+      <select id="eventTypeFilter" onchange="setEventTypeFilter(this.value)" style="background:var(--surface); color:var(--text); border:1px solid var(--border); border-radius:8px; padding:4px 8px; font-size:0.82em; cursor:pointer;">
+        <option value="">All Types</option>
+      </select>
+    </div>
+    <div class="loading" id="eventsLoading"><div class="spinner"></div><br>Loading events...</div>
+    <div class="table-container" id="eventsTableContainer" style="display:none">
+      <table>
+        <thead>
+          <tr>
+            <th onclick="sortEvents('eventName')">Event Name</th>
+            <th onclick="sortEvents('eventType')">Type</th>
+            <th onclick="sortEvents('startDate')">Start</th>
+            <th onclick="sortEvents('endDate')">End</th>
+            <th onclick="sortEvents('participationMethod')">Method</th>
+            <th onclick="sortEvents('targetPoints')">Target</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="eventsTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ===== CHEST EVENTS TAB ===== -->
+  <div class="tab-panel" id="chestEventsTab" style="display:none">
+    <h3 style="color:var(--primary); margin-bottom:12px;">📊 Chest-Based Events</h3>
+    <p style="margin-bottom:12px; color:var(--text-muted); font-size:0.9em;">Select an event to view or recalculate chest-based participation.</p>
+    <div class="form-row" style="margin-bottom:12px;">
+      <select id="chestEventSelect" onchange="onChestEventSelected()" style="flex:1; min-width:200px; padding:8px 12px; background:#fff; border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:0.9em;">
+        <option value="">-- Select Chest Event --</option>
+      </select>
+      <button class="btn" id="chestRecalcBtn" style="display:none" onclick="calculateParticipation()">🔄 Recalculate</button>
+      <button class="btn secondary" id="chestFillBtn" style="display:none" onclick="fillNonParticipants()">Fill Non-Participants</button>
+    </div>
+    <div class="participation-section" id="chestParticipationSection" style="display:none">
+      <h3 id="chestParticipationTitle">Participation</h3>
+      <div class="table-container">
+        <table>
+          <thead><tr id="chestParticipationHeaders"></tr></thead>
+          <tbody id="chestParticipationBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== MANUAL EVENTS TAB ===== -->
+  <div class="tab-panel" id="manualEventsTab" style="display:none">
+    <h3 style="color:var(--primary); margin-bottom:12px;">✏️ Manual Events</h3>
+    <p style="margin-bottom:12px; color:var(--text-muted); font-size:0.9em;">Manually track participation for events.</p>
+    <div class="form-row" style="margin-bottom:12px;">
+      <select id="manualEventSelect" onchange="onManualEventSelected()" style="flex:1; min-width:200px; padding:8px 12px; background:#fff; border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:0.9em;">
+        <option value="">-- Select Manual Event --</option>
+      </select>
+    </div>
+    <div id="manualEntryForm" style="display:none; margin-bottom:12px; padding:12px; background:#fff; border:1px solid var(--border); border-radius:8px;">
+      <h4 style="color:var(--primary); margin-bottom:8px;">Add Entry</h4>
+      <div class="form-row">
+        <select id="manualMember" style="flex:1; min-width:140px; padding:8px 12px; background:#fff; border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:0.9em;">
+          <option value="">Select member...</option>
+        </select>
+        <input type="number" id="manualPoints" placeholder="Points" style="flex:0.5; min-width:80px; padding:8px 12px; background:#fff; border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:0.9em;" onkeypress="if(event.key==='Enter'){var bp=document.getElementById('manualBatchPanel');if(bp&&bp.style.display!=='none'){addToManualBatch();}else{saveManualEntry();}}">
+        <button class="btn" onclick="var bp=document.getElementById('manualBatchPanel');if(bp&&bp.style.display!=='none'){addToManualBatch();}else{saveManualEntry();}">💾 Save</button>
+        <button class="btn" style="background:#7c3aed;" onclick="toggleManualBatch()">📋 Batch</button>
+        <button class="btn secondary" onclick="fillNonParticipants()">Fill Non-Participants</button>
+      </div>
+      <div id="manualEntryStatus" style="font-size:0.85em; margin-top:6px;"></div>
+      <!-- Manual Batch Panel -->
+      <div id="manualBatchPanel" style="display:none; margin-top:10px; padding:12px; border:1px solid var(--border); border-radius:8px; background:rgba(124,58,237,0.04);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <strong style="color:#7c3aed;">⚡ Batch Entry — <span id="manualBatchCount" style="color:var(--success);">0</span> queued</strong>
+          <div><button class="btn" style="background:var(--success); padding:4px 12px; font-size:0.85em;" onclick="saveManualBatch()">💾 Save All</button><button class="btn secondary" style="padding:4px 12px; font-size:0.85em; margin-left:4px;" onclick="toggleManualBatch()">✖ Close</button></div>
+        </div>
+        <p style="font-size:0.8em; color:var(--text-muted); margin-bottom:8px;">Use the Member dropdown & Points field above, press Enter to queue. Click Save All when done.</p>
+        <div id="manualBatchStatus" style="font-size:0.85em; margin-bottom:6px;"></div>
+        <div style="max-height:40vh; overflow-y:auto;"><table style="width:100%;">
+          <thead><tr><th style="text-align:left; padding:4px 8px;">Member</th><th style="text-align:center; padding:4px 8px; width:90px;">Queued Pts</th><th style="text-align:center; padding:4px 8px; width:40px;"></th></tr></thead>
+          <tbody id="manualBatchBody"></tbody>
+        </table></div>
+      </div>
+    </div>
+    <div class="participation-section" id="manualParticipationSection" style="display:none">
+      <h3 id="manualParticipationTitle">Participation</h3>
+      <div class="table-container">
+        <table>
+          <thead><tr id="manualParticipationHeaders"></tr></thead>
+          <tbody id="manualParticipationBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== TROOP EVENTS TAB ===== -->
+  <div class="tab-panel" id="troopEventsTab" style="display:none">
+    <h3 style="color:var(--primary); margin-bottom:12px;">🎖️ Troop-Based Events</h3>
+    <p style="margin-bottom:12px; color:var(--text-muted); font-size:0.9em;">Track participation for troop-based events. Enter points, then calculate to compare against troop-level targets.</p>
+    <div class="form-row" style="margin-bottom:12px;">
+      <select id="troopEventSelect" onchange="onTroopEventSelected()" style="flex:1; min-width:200px; padding:8px 12px; background:#fff; border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:0.9em;">
+        <option value="">-- Select Troop Event --</option>
+      </select>
+    </div>
+    <div id="troopEntryForm" style="display:none; margin-bottom:12px; padding:12px; background:#fff; border:1px solid var(--border); border-radius:8px;">
+      <h4 style="color:var(--primary); margin-bottom:8px;">Add Entry</h4>
+      <div class="form-row">
+        <select id="troopMember" style="flex:1; min-width:140px; padding:8px 12px; background:#fff; border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:0.9em;">
+          <option value="">Select member...</option>
+        </select>
+        <input type="number" id="troopPoints" placeholder="Points" style="flex:0.5; min-width:80px; padding:8px 12px; background:#fff; border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:0.9em;" onkeypress="if(event.key==='Enter'){var bp=document.getElementById('troopBatchPanel');if(bp&&bp.style.display!=='none'){addToTroopBatch();}else{saveTroopEntry();}}">
+        <button class="btn" onclick="var bp=document.getElementById('troopBatchPanel');if(bp&&bp.style.display!=='none'){addToTroopBatch();}else{saveTroopEntry();}">💾 Save</button>
+        <button class="btn" style="background:#7c3aed;" onclick="toggleTroopBatch()">📋 Batch</button>
+      </div>
+      <div class="form-row" style="margin-top:8px;">
+        <button class="btn" style="background:var(--primary);" onclick="calculateTroopParticipation()">🔄 Calculate Status</button>
+        <button class="btn secondary" onclick="fillTroopNonParticipants()">🙅 Fill Non-Participants</button>
+      </div>
+      <div id="troopEntryStatus" style="font-size:0.85em; margin-top:6px;"></div>
+      <!-- Troop Batch Panel -->
+      <div id="troopBatchPanel" style="display:none; margin-top:10px; padding:12px; border:1px solid var(--border); border-radius:8px; background:rgba(124,58,237,0.04);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <strong style="color:#7c3aed;">⚡ Batch Entry — <span id="troopBatchCount" style="color:var(--success);">0</span> queued</strong>
+          <div><button class="btn" style="background:var(--success); padding:4px 12px; font-size:0.85em;" onclick="saveTroopBatch()">💾 Save All</button><button class="btn secondary" style="padding:4px 12px; font-size:0.85em; margin-left:4px;" onclick="toggleTroopBatch()">✖ Close</button></div>
+        </div>
+        <p style="font-size:0.8em; color:var(--text-muted); margin-bottom:8px;">Use the Member dropdown & Points field above, press Enter to queue. Click Save All when done.</p>
+        <div id="troopBatchStatus" style="font-size:0.85em; margin-bottom:6px;"></div>
+        <div style="max-height:40vh; overflow-y:auto;"><table style="width:100%;">
+          <thead><tr><th style="text-align:left; padding:4px 8px;">Member</th><th style="text-align:center; padding:4px 8px; width:90px;">Queued Pts</th><th style="text-align:center; padding:4px 8px; width:40px;"></th></tr></thead>
+          <tbody id="troopBatchBody"></tbody>
+        </table></div>
+      </div>
+    </div>
+    <div id="troopTargetInfo" style="display:none; margin-bottom:12px; padding:10px 14px; background:rgba(26,122,109,0.06); border:1px solid var(--border); border-radius:8px;">
+      <strong style="color:var(--primary); font-size:0.85em;">🎯 Category Targets:</strong>
+      <span id="troopTargetSummary" style="font-size:0.85em; color:var(--text-muted);"></span>
+    </div>
+    <div class="participation-section" id="troopParticipationSection" style="display:none">
+      <h3 id="troopParticipationTitle">Participation</h3>
+      <div class="table-container">
+        <table>
+          <thead><tr id="troopParticipationHeaders"></tr></thead>
+          <tbody id="troopParticipationBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== CREATE EVENT TAB ===== -->
+  <div class="tab-panel" id="createTab" style="display:none">
+    <div class="admin-panel visible" id="adminPanel">
+      <h3 id="eventFormTitle">➕ Create New Event</h3>
+      <div class="form-row">
+        <input type="text" id="eventName" placeholder="Event Name">
+        <select id="eventType" onchange="onEventTypeChanged()"><option value="">Select type...</option></select>
+        <input type="date" id="eventStartDate">
+        <input type="date" id="eventEndDate">
+        <input type="number" id="eventTargetPoints" placeholder="Target Points">
+      </div>
+      <div id="eventTroopTargetSection" style="display:none; margin-bottom:12px; padding:12px; border:1px solid var(--border); border-radius:8px; background:rgba(26,122,109,0.04);">
+        <label style="font-weight:600; color:var(--primary); margin-bottom:8px; display:block;">🎯 Troop Category Targets</label>
+        <div class="note" style="margin-bottom:8px;">Set point targets per troop category. Categories match the highest troop level recorded for each member (e.g. G7 = Guard level 7).</div>
+        <div id="troopTargetRows"></div>
+        <button class="btn secondary" onclick="addTroopTargetRow()" style="margin-top:6px; font-size:0.8em;">+ Add Category</button>
+      </div>
+      <div class="form-row">
+        <button class="btn" onclick="saveEvent()">Save Event</button>
+        <button class="btn secondary" id="cancelEditBtn" style="display:none" onclick="cancelEdit()">Cancel</button>
+      </div>
+
+      <hr style="border:none; border-top:1px solid var(--border); margin:16px 0;">
+      <h3 style="color:var(--primary); margin-bottom:8px;">📅 Generate Upcoming Events from Calendar</h3>
+      <p style="margin-bottom:10px; color:var(--text-muted); font-size:0.85em;">Automatically create events based on the recurring calendar schedule.</p>
+      <div class="form-row" style="align-items:center;">
+        <button class="btn" id="generateEventsBtn" onclick="generateCalendarEvents()" style="background:var(--success); color:#fff;">📅 Generate Events</button>
+        <select id="generateDaysSelect" style="flex:0.5; min-width:140px; padding:8px 12px; background:#fff; border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:0.9em;">
+          <option value="7">Next 7 days</option>
+          <option value="14">Next 14 days</option>
+          <option value="30" selected>Next 30 days</option>
+          <option value="60">Next 60 days</option>
+        </select>
+      </div>
+      <div style="margin:8px 0; padding:8px 12px; background:#f8f4ea; border-radius:8px; border:1px solid var(--border);">
+        <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
+          <span style="font-size:0.85em; color:var(--text-muted); font-weight:600;">Generate for:</span>
+          <label style="font-size:0.8em; color:var(--text-muted); cursor:pointer;"><input type="checkbox" id="genSelectAll" checked onchange="document.querySelectorAll('.gen-type-cb').forEach(cb=>cb.checked=this.checked)"> All</label>
+        </div>
+        <div id="genEventTypes" style="display:flex; flex-wrap:wrap; gap:4px 12px;">
+          <label style="font-size:0.85em; color:var(--text); cursor:pointer;"><input type="checkbox" class="gen-type-cb" value="Active Period" checked> Active Period</label>
+          <label style="font-size:0.85em; color:var(--text); cursor:pointer;"><input type="checkbox" class="gen-type-cb" value="Ancients" checked> Ancients</label>
+          <label style="font-size:0.85em; color:var(--text); cursor:pointer;"><input type="checkbox" class="gen-type-cb" value="Ancients Tower" checked> Ancients Tower</label>
+          <label style="font-size:0.85em; color:var(--text); cursor:pointer;"><input type="checkbox" class="gen-type-cb" value="Ragnarok" checked> Ragnarok</label>
+          <label style="font-size:0.85em; color:var(--text); cursor:pointer;"><input type="checkbox" class="gen-type-cb" value="Forest Chests" checked> Forest Chests</label>
+        </div>
+      </div>
+      <div id="generateStatus" style="font-size:0.85em; margin-top:6px;"></div>
+    </div>
+  </div>
+
+  <!-- ===== EVENT TYPES TAB ===== -->
+  <div class="tab-panel" id="typesTab" style="display:none">
+    <div class="admin-panel visible" id="typeAdminPanel">
+      <h3 id="typeFormTitle">➕ Add Event Type</h3>
+      <div class="form-row">
+        <input type="text" id="typeName" placeholder="Type Name">
+        <select id="typeMethod" onchange="toggleMethodSections()">
+          <option value="chest-based">Chest-based</option>
+          <option value="troop-based">Troop-Based</option>
+          <option value="manual-entry">Manual Entry</option>
+          <option value="period-marker">Period Marker</option>
+        </select>
+      </div>
+      <div class="chest-types-section" id="chestTypesSection">
+        <label>Chest Types for This Event Type</label>
+        <div id="chestTypesList">
+          <div style="padding:12px; color:var(--text-muted); text-align:center;">Loading chest types...</div>
+        </div>
+        <div class="note">Select which chest types count for this event type.</div>
+      </div>
+      <div class="form-row">
+        <input type="text" id="typeDescription" placeholder="Description">
+        <input type="number" id="typeThreshold" placeholder="Threshold">
+        <button class="btn" onclick="saveEventType()">Save Type</button>
+        <button class="btn secondary" id="cancelTypeEditBtn" style="display:none" onclick="cancelTypeEdit()">Cancel</button>
+      </div>
+    </div>
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th onclick="sortTypes('name')">Type Name</th>
+            <th onclick="sortTypes('trackingMethod')">Method</th>
+            <th onclick="sortTypes('chestTypes')">Chest Types</th>
+            <th onclick="sortTypes('threshold')">Threshold</th>
+            <th id="typeActionsHeader" style="display:none">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="typesTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  let eventsData = [];
+  let eventTypesData = [];
+  let availableChestTypes = [];
+  let isLoggedIn = false;
+
+  // Category badge colors (shared across troop UI)
+  const CAT_COLORS = {
+    G4: { bg: '#c0c0c0', fg: '#333' }, G5: { bg: '#c0c0c0', fg: '#333' },
+    G6: { bg: '#fdd835', fg: '#333' }, G7: { bg: '#ff9800', fg: '#fff' },
+    T7: { bg: '#e53935', fg: '#fff' }, G8: { bg: '#00bcd4', fg: '#fff' },
+    T8: { bg: '#1565c0', fg: '#fff' }, G9: { bg: '#ba68c8', fg: '#fff' },
+    T9: { bg: '#7b1fa2', fg: '#fff' }
+  };
+  function catBadgeHtml(cat) {
+    const c = CAT_COLORS[cat] || { bg: '#9e9e9e', fg: '#fff' };
+    return `<span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:0.8em;font-weight:700;background:${c.bg};color:${c.fg}">${escapeHtml(cat)}</span>`;
+  }
+
+  // Sort state (null = default two-level: eventType asc, startDate desc)
+  let eventsSortField = null;
+  let eventsSortAsc = true;
+  let eventsFilter = 'active';
+  let eventsTypeFilter = '';
+
+  function setEventTypeFilter(type) {
+    eventsTypeFilter = type;
+    renderEvents();
+  }
+
+  function setEventFilter(filter, btn) {
+    eventsFilter = filter;
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    renderEvents();
+  }
+
+  // Find current & previous period-marker ranges (cached per render cycle)
+  let _periodRanges = null;
+  function getPeriodRanges_() {
+    if (_periodRanges) return _periodRanges;
+    const today = new Date(); today.setHours(0,0,0,0);
+    const periods = (eventsData || [])
+      .filter(e => e.participationMethod === 'period-marker')
+      .sort((a, b) => (a.startDate || '').localeCompare(b.startDate || ''));
+    let current = null, previous = null;
+    for (let i = 0; i < periods.length; i++) {
+      const s = periods[i].startDate ? new Date(periods[i].startDate + 'T00:00:00') : null;
+      const e = periods[i].endDate   ? new Date(periods[i].endDate   + 'T23:59:59') : null;
+      if (s && e && s <= today && e >= today) {
+        current = { start: s, end: e };
+        // Previous = the period-marker just before this one
+        for (let j = i - 1; j >= 0; j--) {
+          const ps = periods[j].startDate ? new Date(periods[j].startDate + 'T00:00:00') : null;
+          const pe = periods[j].endDate   ? new Date(periods[j].endDate   + 'T23:59:59') : null;
+          if (ps && pe) { previous = { start: ps, end: pe }; break; }
+        }
+        break;
+      }
+    }
+    if (!current) {
+      // Fallback: 14-day window
+      const cutoff = new Date(today); cutoff.setDate(cutoff.getDate() - 14);
+      current = { start: cutoff, end: today };
+    }
+    _periodRanges = { current, previous };
+    return _periodRanges;
+  }
+
+  // Classify an event relative to the current & previous periods
+  function classifyEvent(ev) {
+    const today = new Date(); today.setHours(0,0,0,0);
+    const { current, previous } = getPeriodRanges_();
+    const start = ev.startDate ? new Date(ev.startDate + 'T00:00:00') : null;
+    const end = ev.endDate ? new Date(ev.endDate + 'T23:59:59') : null;
+    if (!start || !end) return 'other';
+    // Period-marker events define the periods themselves — classify directly vs today
+    if (ev.participationMethod === 'period-marker') {
+      if (start > today) return 'future';
+      if (end < today) {
+        if (previous && end >= previous.start && start <= previous.end) return 'recent';
+        return 'ended';
+      }
+      return 'active';
+    }
+    if (start > current.end) return 'future';
+    // Active = overlaps with the current period
+    if (end >= current.start && start <= current.end) return 'active';
+    // Recent = overlaps with the previous period
+    if (previous && end >= previous.start && start <= previous.end) return 'recent';
+    return 'ended';
+  }
+  let typesSortField = 'name';
+  let typesSortAsc = true;
+  let partSortField = null;
+  let partSortAsc = true;
+  let lastPartData = [];
+  let lastPartHeaders = [];
+  function sortParticipation(field) {
+    if (partSortField === field) partSortAsc = !partSortAsc;
+    else { partSortField = field; partSortAsc = true; }
+    if (currentPartBodyId === 'troopParticipationBody') {
+      renderTroopParticipation(lastPartData, lastPartHeaders);
+    } else {
+      renderParticipation(lastPartData, lastPartHeaders);
+    }
+  }
+  function renderParticipation(data, headers) {
+    let sorted = [...data];
+    if (partSortField && headers.includes(partSortField)) {
+      sorted.sort((a, b) => {
+        let va = a[partSortField], vb = b[partSortField];
+        const na = Number(va), nb = Number(vb);
+        if (!isNaN(na) && !isNaN(nb)) return partSortAsc ? na - nb : nb - na;
+        return partSortAsc ? String(va || '').localeCompare(String(vb || '')) : String(vb || '').localeCompare(String(va || ''));
+      });
+    }
+    document.getElementById(currentPartBodyId).innerHTML = sorted.map(row =>
+      '<tr>' + headers.map(h => `<td>${escapeHtml(String(row[h] || ''))}</td>`).join('') + '</tr>'
+    ).join('');
+  }
+  let currentUser = null;
+  let editingEvent = null;
+  let editingType = null;
+  let selectedEvent = null;
+  let membersData = [];
+
+  document.addEventListener('DOMContentLoaded', () => {
+    checkLoginState();
+    toggleChestTypesSection();
+    if (isLoggedIn) {
+      document.getElementById('loginGate').style.display = 'none';
+      document.getElementById('mainContent').style.display = 'block';
+      loadEvents();
+      loadEventTypes();
+      loadMembers();
+    }
+  });
+
+  // AUTH
+  function checkLoginState() {
+    const stored = localStorage.getItem('leg_auth');
+    if (stored) {
+      try {
+        const auth = JSON.parse(stored);
+        if (auth.email && auth.allowed) { isLoggedIn = true; currentUser = auth; updateLoginUI(); }
+      } catch (e) {}
+    }
+  }
+  function handleLogin() {
+    if (!document.getElementById('gsi-script')) {
+      const s = document.createElement('script'); s.id = 'gsi-script';
+      s.src = 'https://accounts.google.com/gsi/client';
+      s.onload = () => { google.accounts.id.initialize({ client_id: SITE_CONFIG.googleClientId, callback: handleGoogleCallback }); google.accounts.id.prompt(); };
+      document.head.appendChild(s);
+    } else { google.accounts.id.prompt(); }
+  }
+  async function handleGoogleCallback(response) {
+    try {
+      const res = await fetch(window.GAS_WEB_APP_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idToken: response.credential }) });
+      const data = await res.json();
+      if (data.success && data.email) {
+        const vRes = await fetch(window.GAS_WEB_APP_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'api', fn: 'verifyGoogleLogin', args: [{ email: data.email }] }) });
+        const vData = await vRes.json();
+        const auth = vData.data || vData;
+        if (auth.success && auth.allowed) {
+          isLoggedIn = true; currentUser = { email: data.email, allowed: true };
+          localStorage.setItem('leg_auth', JSON.stringify(currentUser));
+          updateLoginUI(); showToast('Logged in', 'success');
+        } else { showToast('Access denied', 'error'); }
+      }
+    } catch (err) { showToast('Login error', 'error'); }
+  }
+  function handleLogout() { isLoggedIn = false; currentUser = null; localStorage.removeItem('leg_auth'); window.location.href = 'dashboard.html'; }
+  function updateLoginUI() {
+    document.getElementById('userEmail').textContent = isLoggedIn ? currentUser.email : '';
+    document.getElementById('userEmail').style.display = isLoggedIn ? 'inline' : 'none';
+    document.getElementById('loginBtn').style.display = isLoggedIn ? 'none' : 'inline';
+    document.getElementById('logoutBtn').style.display = isLoggedIn ? 'inline' : 'none';
+    // Show/hide main content based on login
+    document.getElementById('loginGate').style.display = isLoggedIn ? 'none' : 'block';
+    document.getElementById('mainContent').style.display = isLoggedIn ? 'block' : 'none';
+    if (isLoggedIn) {
+      document.getElementById('typeActionsHeader').style.display = '';
+      if (eventsData.length === 0) loadEvents();
+      if (eventTypesData.length === 0) loadEventTypes();
+      if (membersData.length === 0) loadMembers();
+      if (eventsData.length > 0) renderEvents();
+      if (eventTypesData.length > 0) renderEventTypes();
+    }
+  }
+
+  // TABS
+  function switchTab(tabId, btn) {
+    document.querySelectorAll('.sub-tabs button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.tab-panel').forEach(p => p.style.display = 'none');
+    document.getElementById(tabId).style.display = 'block';
+  }
+
+  // LOAD DATA
+  async function loadEvents() {
+    try {
+      const result = await callFunction('getAllEvents');
+      if (result && result.success) {
+        eventsData = result.events || [];
+        renderEvents();
+      }
+      document.getElementById('eventsLoading').style.display = 'none';
+      document.getElementById('eventsTableContainer').style.display = 'block';
+    } catch (err) {
+      document.getElementById('eventsLoading').innerHTML = '<span style="color:var(--danger)">Failed to load events</span>';
+    }
+  }
+
+  async function loadEventTypes() {
+    try {
+      const result = await callFunction('getAllEventTypes');
+      if (result && result.success) {
+        eventTypesData = result.eventTypes || [];
+        renderEventTypes();
+        populateEventTypeDropdown();
+      }
+      loadChestTypes();
+    } catch (err) { console.error(err); }
+  }
+
+  async function loadChestTypes() {
+    try {
+      const result = await callFunction('getAvailableChestTypes');
+      if (result && result.success) {
+        availableChestTypes = result.chestTypes || [];
+        renderChestTypesList();
+      }
+    } catch (err) { console.error('Failed to load chest types:', err); }
+  }
+
+  function renderChestTypesList() {
+    const container = document.getElementById('chestTypesList');
+    if (!availableChestTypes || availableChestTypes.length === 0) {
+      container.innerHTML = '<div style="padding:12px; color:var(--text-muted);">No chest types found</div>';
+      return;
+    }
+    container.innerHTML = availableChestTypes.map((type, index) =>
+      `<div class="checkbox-item">
+        <input type="checkbox" id="chest_${index}" value="${escapeHtml(type)}">
+        <label for="chest_${index}">${escapeHtml(type)}</label>
+      </div>`
+    ).join('');
+  }
+
+  function getSelectedChestTypes() {
+    const checkboxes = document.querySelectorAll('#chestTypesList input[type="checkbox"]:checked');
+    return Array.from(checkboxes).map(cb => cb.value);
+  }
+
+  function setSelectedChestTypes(typesStr) {
+    const types = (typesStr || '').split(',').map(t => t.trim()).filter(t => t);
+    document.querySelectorAll('#chestTypesList input[type="checkbox"]').forEach(cb => {
+      cb.checked = types.includes(cb.value);
+    });
+  }
+
+  function toggleChestTypesSection() { toggleMethodSections(); }
+  function toggleMethodSections() {
+    const method = document.getElementById('typeMethod').value;
+    document.getElementById('chestTypesSection').style.display = method === 'chest-based' ? 'block' : 'none';
+  }
+
+  // Show/hide troop targets on event form based on selected event type
+  function onEventTypeChanged() {
+    const selectedType = document.getElementById('eventType').value;
+    const et = eventTypesData.find(t => t.name === selectedType);
+    const isTroop = et && et.trackingMethod === 'troop-based';
+    document.getElementById('eventTroopTargetSection').style.display = isTroop ? 'block' : 'none';
+  }
+
+  // Troop target row management
+  const TROOP_CATEGORIES = ['G4','G5','G6','G7','T7','G8','T8','G9','T9'];
+
+  function addTroopTargetRow(category, points) {
+    const container = document.getElementById('troopTargetRows');
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex; gap:8px; align-items:center; margin-bottom:4px;';
+    const sel = document.createElement('select');
+    sel.className = 'troop-cat-select';
+    sel.style.cssText = 'padding:4px 6px; border:1px solid var(--border); border-radius:4px; font-size:0.85em;';
+    TROOP_CATEGORIES.forEach(c => {
+      const o = document.createElement('option');
+      o.value = c; o.textContent = c;
+      if (c === category) o.selected = true;
+      sel.appendChild(o);
+    });
+    const inp = document.createElement('input');
+    inp.type = 'number'; inp.placeholder = 'Points target';
+    inp.className = 'troop-pts-input';
+    inp.style.cssText = 'padding:4px 6px; border:1px solid var(--border); border-radius:4px; font-size:0.85em; width:120px;';
+    if (points) inp.value = points;
+    const btn = document.createElement('button');
+    btn.textContent = '✕'; btn.className = 'btn secondary';
+    btn.style.cssText = 'padding:2px 8px; font-size:0.8em;';
+    btn.onclick = () => row.remove();
+    row.appendChild(sel); row.appendChild(inp); row.appendChild(btn);
+    container.appendChild(row);
+  }
+
+  function getTroopTargetsJson() {
+    const rows = document.querySelectorAll('#troopTargetRows > div');
+    const targets = {};
+    rows.forEach(row => {
+      const cat = row.querySelector('.troop-cat-select')?.value;
+      const pts = Number(row.querySelector('.troop-pts-input')?.value) || 0;
+      if (cat && pts > 0) targets[cat] = pts;
+    });
+    return Object.keys(targets).length > 0 ? JSON.stringify(targets) : '';
+  }
+
+  function setTroopTargetsFromJson(jsonStr) {
+    document.getElementById('troopTargetRows').innerHTML = '';
+    if (!jsonStr) return;
+    try {
+      const targets = typeof jsonStr === 'string' ? JSON.parse(jsonStr) : jsonStr;
+      Object.entries(targets).forEach(([cat, pts]) => addTroopTargetRow(cat, pts));
+    } catch (e) { /* ignore invalid JSON */ }
+  }
+
+  function populateEventTypeDropdown() {
+    const select = document.getElementById('eventType');
+    select.innerHTML = '<option value="">Select type...</option>';
+    eventTypesData.forEach(et => {
+      const opt = document.createElement('option');
+      opt.value = et.name; opt.textContent = et.name;
+      select.appendChild(opt);
+    });
+  }
+
+  // RENDER
+  function sortEvents(field) {
+    if (eventsSortField === field) eventsSortAsc = !eventsSortAsc;
+    else { eventsSortField = field; eventsSortAsc = true; }
+    renderEvents();
+  }
+  function sortTypes(field) {
+    if (typesSortField === field) typesSortAsc = !typesSortAsc;
+    else { typesSortField = field; typesSortAsc = true; }
+    renderEventTypes();
+  }
+
+  function renderEvents() {
+    _periodRanges = null;         // bust period cache on each render
+    const tbody = document.getElementById('eventsTableBody');
+    tbody.innerHTML = '';
+
+    // Populate event type dropdown from all events
+    var typeSelect = document.getElementById('eventTypeFilter');
+    if (typeSelect) {
+      var types = []; var seen = {};
+      eventsData.forEach(function(e) { if (e.eventType && !seen[e.eventType]) { seen[e.eventType] = 1; types.push(e.eventType); } });
+      types.sort();
+      var prev = eventsTypeFilter;
+      typeSelect.innerHTML = '<option value="">All Types</option>' + types.map(function(t) { return '<option value="' + t + '"' + (t === prev ? ' selected' : '') + '>' + t + '</option>'; }).join('');
+    }
+
+    let filtered = [...eventsData];
+    if (eventsFilter !== 'all') {
+      filtered = filtered.filter(ev => {
+        const cls = classifyEvent(ev);
+        if (eventsFilter === 'active') return cls === 'active';
+        if (eventsFilter === 'recent') return cls === 'active' || cls === 'recent';
+        if (eventsFilter === 'ended') return cls === 'ended';
+        return true;
+      });
+    }
+    if (eventsTypeFilter) {
+      filtered = filtered.filter(ev => ev.eventType === eventsTypeFilter);
+    }
+    const sorted = filtered.sort((a, b) => {
+      // Default two-level sort: eventType asc, then startDate desc
+      if (!eventsSortField) {
+        const typeA = (a.eventType || '').toLowerCase(), typeB = (b.eventType || '').toLowerCase();
+        if (typeA !== typeB) return typeA.localeCompare(typeB);
+        return (b.startDate || '').localeCompare(a.startDate || '');
+      }
+      let va = a[eventsSortField] || '', vb = b[eventsSortField] || '';
+      if (eventsSortField === 'targetPoints') { va = Number(va) || 0; vb = Number(vb) || 0; }
+      if (typeof va === 'number') return eventsSortAsc ? va - vb : vb - va;
+      return eventsSortAsc ? String(va).localeCompare(String(vb)) : String(vb).localeCompare(String(va));
+    });
+    if (sorted.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--text-muted);">No events match this filter.</td></tr>';
+    }
+    sorted.forEach(ev => {
+      const methodClass = ev.participationMethod === 'chest-based' ? 'method-chest' :
+        ev.participationMethod === 'period-marker' ? 'method-period' : 'method-manual';
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><strong>${escapeHtml(ev.eventName)}</strong></td>
+        <td>${escapeHtml(ev.eventType)}</td>
+        <td>${ev.startDate || '-'}</td>
+        <td>${ev.endDate || '-'}</td>
+        <td><span class="method-badge ${methodClass}">${ev.participationMethod}</span></td>
+        <td>${ev.targetPoints || '-'}</td>
+        <td class="event-actions">
+          ${ev.participationMethod !== 'period-marker' ? `<button onclick="viewEvent('${escapeAttr(ev.eventName)}')" title="View participation">👁️</button>` : ''}
+          ${isLoggedIn ? `<button onclick="editEvent('${escapeAttr(ev.eventName)}')" title="Edit">✏️</button>
+          <button onclick="deleteEvent('${escapeAttr(ev.eventName)}')" title="Delete">🗑️</button>` : ''}
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    // Populate chest/manual event dropdowns
+    populateEventDropdowns();
+  }
+
+  function renderEventTypes() {
+    const tbody = document.getElementById('typesTableBody');
+    tbody.innerHTML = '';
+    const sorted = [...eventTypesData].sort((a, b) => {
+      let va = a[typesSortField] || '', vb = b[typesSortField] || '';
+      if (typesSortField === 'threshold') { va = Number(va) || 0; vb = Number(vb) || 0; }
+      if (typeof va === 'number') return typesSortAsc ? va - vb : vb - va;
+      return typesSortAsc ? String(va).localeCompare(String(vb)) : String(vb).localeCompare(String(va));
+    });
+    sorted.forEach(et => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><strong>${escapeHtml(et.name)}</strong></td>
+        <td>${et.trackingMethod}</td>
+        <td>${escapeHtml(et.chestTypes)}</td>
+        <td>${et.threshold || '-'}</td>
+        ${isLoggedIn ? `<td class="event-actions">
+          <button onclick="editEventType('${escapeAttr(et.name)}')">✏️</button>
+          <button onclick="deleteEventType('${escapeAttr(et.name)}')">🗑️</button>
+        </td>` : ''}
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  // EVENT CRUD
+  async function saveEvent() {
+    const name = document.getElementById('eventName').value.trim();
+    const type = document.getElementById('eventType').value;
+    const start = document.getElementById('eventStartDate').value;
+    const end = document.getElementById('eventEndDate').value;
+    const target = document.getElementById('eventTargetPoints').value;
+    if (!name || !type || !start || !end) { showToast('All fields required', 'error'); return; }
+
+    // Get troop targets if this is a troop-based event type
+    const et = eventTypesData.find(t => t.name === type);
+    const troopTargets = (et && et.trackingMethod === 'troop-based') ? getTroopTargetsJson() : '';
+
+    try {
+      let result;
+      if (editingEvent) {
+        result = await callFunction('updateEvent', [editingEvent, name, type, start, end, target ? Number(target) : null, troopTargets]);
+      } else {
+        result = await callFunction('addEvent', [name, type, start, end, target ? Number(target) : null, troopTargets]);
+      }
+      showToast(result?.message || 'Done', result?.success ? 'success' : 'error');
+      if (result?.success) { cancelEdit(); loadEvents(); }
+    } catch (err) { showToast('Error: ' + err.message, 'error'); }
+  }
+
+  function editEvent(name) {
+    const ev = eventsData.find(e => e.eventName === name);
+    if (!ev) return;
+    editingEvent = name;
+    document.getElementById('eventName').value = ev.eventName;
+    document.getElementById('eventType').value = ev.eventType;
+    document.getElementById('eventStartDate').value = ev.startDate;
+    document.getElementById('eventEndDate').value = ev.endDate;
+    document.getElementById('eventTargetPoints').value = ev.targetPoints || '';
+    // Show troop targets if troop-based
+    const et = eventTypesData.find(t => t.name === ev.eventType);
+    const isTroop = et && et.trackingMethod === 'troop-based';
+    document.getElementById('eventTroopTargetSection').style.display = isTroop ? 'block' : 'none';
+    setTroopTargetsFromJson(ev.troopTargets || '');
+    document.getElementById('eventFormTitle').textContent = '✏️ Edit Event';
+    document.getElementById('cancelEditBtn').style.display = 'inline';
+    // Switch to Create tab to show the form
+    const createBtn = document.querySelector('.sub-tabs button:nth-child(5)');
+    switchTab('createTab', createBtn);
+  }
+
+  function cancelEdit() {
+    editingEvent = null;
+    document.getElementById('eventName').value = '';
+    document.getElementById('eventType').value = '';
+    document.getElementById('eventStartDate').value = '';
+    document.getElementById('eventEndDate').value = '';
+    document.getElementById('eventTargetPoints').value = '';
+    document.getElementById('eventTroopTargetSection').style.display = 'none';
+    document.getElementById('troopTargetRows').innerHTML = '';
+    document.getElementById('eventFormTitle').textContent = '➕ Create New Event';
+    document.getElementById('cancelEditBtn').style.display = 'none';
+  }
+
+  async function deleteEvent(name) {
+    if (!confirm(`Delete event "${name}"?`)) return;
+    try {
+      const result = await callFunction('deleteEvent', [name]);
+      showToast(result?.message || 'Done', result?.success ? 'success' : 'error');
+      if (result?.success) loadEvents();
+    } catch (err) { showToast('Error: ' + err.message, 'error'); }
+  }
+
+  // EVENT TYPE CRUD
+  async function saveEventType() {
+    const name = document.getElementById('typeName').value.trim();
+    const method = document.getElementById('typeMethod').value;
+    const chestTypes = method === 'chest-based' ? getSelectedChestTypes().join(',') : '';
+    const description = document.getElementById('typeDescription').value;
+    const threshold = document.getElementById('typeThreshold').value;
+    if (!name || !method) { showToast('Name and method required', 'error'); return; }
+
+    try {
+      let result;
+      if (editingType) {
+        result = await callFunction('updateEventType', [editingType, name, method, chestTypes, description, threshold ? Number(threshold) : 0]);
+      } else {
+        result = await callFunction('addEventType', [name, method, chestTypes, description, threshold ? Number(threshold) : 0]);
+      }
+      showToast(result?.message || 'Done', result?.success ? 'success' : 'error');
+      if (result?.success) { cancelTypeEdit(); loadEventTypes(); }
+    } catch (err) { showToast('Error: ' + err.message, 'error'); }
+  }
+
+  function editEventType(name) {
+    const et = eventTypesData.find(t => t.name === name);
+    if (!et) return;
+    editingType = name;
+    document.getElementById('typeName').value = et.name;
+    document.getElementById('typeMethod').value = et.trackingMethod;
+    toggleMethodSections();
+    setSelectedChestTypes(et.chestTypes);
+    document.getElementById('typeDescription').value = et.description || '';
+    document.getElementById('typeThreshold').value = et.threshold || '';
+    document.getElementById('typeFormTitle').textContent = '✏️ Edit Event Type';
+    document.getElementById('cancelTypeEditBtn').style.display = 'inline';
+  }
+
+  function cancelTypeEdit() {
+    editingType = null;
+    document.getElementById('typeName').value = '';
+    document.getElementById('typeMethod').value = 'chest-based';
+    toggleMethodSections();
+    document.querySelectorAll('#chestTypesList input[type="checkbox"]').forEach(cb => { cb.checked = false; });
+    document.getElementById('typeDescription').value = '';
+    document.getElementById('typeThreshold').value = '';
+    document.getElementById('typeFormTitle').textContent = '➕ Add Event Type';
+    document.getElementById('cancelTypeEditBtn').style.display = 'none';
+  }
+
+  async function deleteEventType(name) {
+    if (!confirm(`Delete event type "${name}"?`)) return;
+    try {
+      const result = await callFunction('deleteEventType', [name]);
+      showToast(result?.message || 'Done', result?.success ? 'success' : 'error');
+      if (result?.success) loadEventTypes();
+    } catch (err) { showToast('Error: ' + err.message, 'error'); }
+  }
+
+  // VIEW EVENT — jump to the right tab
+  function viewEvent(name) {
+    const ev = eventsData.find(e => e.eventName === name);
+    if (!ev) return;
+    if (ev.participationMethod === 'chest-based') {
+      const btn = document.querySelector('.sub-tabs button:nth-child(2)');
+      switchTab('chestEventsTab', btn);
+      document.getElementById('chestEventSelect').value = name;
+      onChestEventSelected();
+    } else if (ev.participationMethod === 'troop-based') {
+      const btn = document.querySelector('.sub-tabs button:nth-child(4)');
+      switchTab('troopEventsTab', btn);
+      document.getElementById('troopEventSelect').value = name;
+      onTroopEventSelected();
+    } else if (ev.participationMethod === 'manual-entry') {
+      const btn = document.querySelector('.sub-tabs button:nth-child(3)');
+      switchTab('manualEventsTab', btn);
+      document.getElementById('manualEventSelect').value = name;
+      onManualEventSelected();
+    }
+  }
+
+  // POPULATE EVENT DROPDOWNS
+  function buildGroupedOptions(events, placeholder) {
+    const active = [], recent = [], older = [], future = [];
+    events.forEach(e => {
+      const cls = classifyEvent(e);
+      if (cls === 'active') active.push(e);
+      else if (cls === 'recent') recent.push(e);
+      else if (cls === 'future') future.push(e);
+      else older.push(e);
+    });
+    // Sort each group by start date descending
+    const byDateDesc = (a, b) => (b.startDate || '').localeCompare(a.startDate || '');
+    [active, recent, older, future].forEach(g => g.sort(byDateDesc));
+    const optionHtml = (e) => `<option value="${escapeAttr(e.eventName)}">${escapeHtml(e.eventName)} (${e.startDate} \u2192 ${e.endDate})</option>`;
+    let html = `<option value="">${placeholder}</option>`;
+    if (active.length) html += `<optgroup label="\ud83d\udfe2 Active">${active.map(optionHtml).join('')}</optgroup>`;
+    if (recent.length) html += `<optgroup label="\ud83d\udd50 Recent (prev. period)">${recent.map(optionHtml).join('')}</optgroup>`;
+    if (future.length) html += `<optgroup label="\ud83d\udcc5 Upcoming">${future.map(optionHtml).join('')}</optgroup>`;
+    if (older.length) html += `<optgroup label="\ud83d\udcc1 Older">${older.map(optionHtml).join('')}</optgroup>`;
+    return html;
+  }
+
+  function populateEventDropdowns() {
+    const chestEvents = eventsData.filter(e => e.participationMethod === 'chest-based');
+    const manualEvents = eventsData.filter(e => e.participationMethod === 'manual-entry');
+    const troopEvents = eventsData.filter(e => e.participationMethod === 'troop-based');
+    document.getElementById('chestEventSelect').innerHTML = buildGroupedOptions(chestEvents, '-- Select Chest Event --');
+    document.getElementById('manualEventSelect').innerHTML = buildGroupedOptions(manualEvents, '-- Select Manual Event --');
+    document.getElementById('troopEventSelect').innerHTML = buildGroupedOptions(troopEvents, '-- Select Troop Event --');
+  }
+
+  // CHEST EVENT TAB
+  function onChestEventSelected() {
+    const name = document.getElementById('chestEventSelect').value;
+    const ev = eventsData.find(e => e.eventName === name);
+    selectedEvent = ev || null;
+    document.getElementById('chestRecalcBtn').style.display = ev ? 'inline' : 'none';
+    document.getElementById('chestFillBtn').style.display = ev ? 'inline' : 'none';
+    if (ev) loadParticipationInto(ev, 'chestParticipationSection', 'chestParticipationTitle', 'chestParticipationHeaders', 'chestParticipationBody');
+    else document.getElementById('chestParticipationSection').style.display = 'none';
+  }
+
+  // MANUAL EVENT TAB
+  function onManualEventSelected() {
+    const name = document.getElementById('manualEventSelect').value;
+    const ev = eventsData.find(e => e.eventName === name);
+    selectedEvent = ev || null;
+    document.getElementById('manualEntryForm').style.display = ev ? 'block' : 'none';
+    document.getElementById('manualEntryStatus').textContent = '';
+    if (ev) loadParticipationInto(ev, 'manualParticipationSection', 'manualParticipationTitle', 'manualParticipationHeaders', 'manualParticipationBody');
+    else document.getElementById('manualParticipationSection').style.display = 'none';
+  }
+
+  // TROOP EVENT TAB
+  function onTroopEventSelected() {
+    const name = document.getElementById('troopEventSelect').value;
+    const ev = eventsData.find(e => e.eventName === name);
+    selectedEvent = ev || null;
+    document.getElementById('troopEntryForm').style.display = ev ? 'block' : 'none';
+    document.getElementById('troopEntryStatus').textContent = '';
+    populateTroopMemberSelect();
+    if (ev) {
+      // Show troop target summary
+      showTroopTargetInfo(ev);
+      loadTroopParticipation(ev);
+    } else {
+      document.getElementById('troopParticipationSection').style.display = 'none';
+      document.getElementById('troopTargetInfo').style.display = 'none';
+    }
+  }
+
+  function showTroopTargetInfo(ev) {
+    const info = document.getElementById('troopTargetInfo');
+    const summary = document.getElementById('troopTargetSummary');
+    let targets = {};
+    try { if (ev.troopTargets) targets = JSON.parse(ev.troopTargets); } catch (e) {}
+    const entries = Object.entries(targets);
+    if (entries.length > 0) {
+      summary.innerHTML = entries.map(([cat, pts]) =>
+        `${catBadgeHtml(cat)} ${Number(pts).toLocaleString()}`
+      ).join(' &nbsp;│&nbsp; ');
+      info.style.display = 'block';
+    } else {
+      info.style.display = 'none';
+    }
+  }
+
+  function populateTroopMemberSelect() {
+    const select = document.getElementById('troopMember');
+    if (!select) return;
+    const sorted = [...membersData].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+    select.innerHTML = '<option value="">Select member...</option>' +
+      sorted.map(m => `<option value="${escapeHtml(m.name)}">${escapeHtml(m.name)}</option>`).join('');
+  }
+
+  async function loadTroopParticipation(ev) {
+    const section = document.getElementById('troopParticipationSection');
+    section.style.display = 'block';
+    document.getElementById('troopParticipationTitle').textContent = `🎖️ ${ev.eventName} — Participation`;
+    const headersEl = document.getElementById('troopParticipationHeaders');
+    const bodyEl = document.getElementById('troopParticipationBody');
+    try {
+      const result = await callFunction('getEventParticipation', [ev.eventName]);
+      if (result && result.success && result.data && result.data.length > 0) {
+        // Use dedicated troop columns if calculated, otherwise show raw
+        const firstRow = result.data[0];
+        const hasTroopCols = 'Troop Category' in firstRow;
+        const displayHeaders = hasTroopCols
+          ? ['Member Name', 'Points', 'Troop Category', 'Target', 'Status']
+          : Object.keys(firstRow);
+
+        headersEl.innerHTML = displayHeaders.map(h =>
+          `<th onclick="sortParticipation('${escapeHtml(h)}')" style="cursor:pointer">${escapeHtml(h)}</th>`
+        ).join('');
+
+        lastPartData = result.data;
+        lastPartHeaders = displayHeaders;
+        currentPartBodyId = 'troopParticipationBody';
+        renderTroopParticipation(result.data, displayHeaders);
+      } else {
+        headersEl.innerHTML = '';
+        bodyEl.innerHTML = '<tr><td style="text-align:center;color:var(--text-muted);padding:20px">No participation data yet. Enter points and click Calculate.</td></tr>';
+      }
+    } catch (err) {
+      bodyEl.innerHTML = '<tr><td style="text-align:center;color:var(--danger)">Error loading participation</td></tr>';
+    }
+  }
+
+  function renderTroopParticipation(data, headers) {
+    let sorted = [...data];
+    if (partSortField && headers.includes(partSortField)) {
+      sorted.sort((a, b) => {
+        let va = a[partSortField], vb = b[partSortField];
+        const na = Number(va), nb = Number(vb);
+        if (!isNaN(na) && !isNaN(nb)) return partSortAsc ? na - nb : nb - na;
+        return partSortAsc ? String(va || '').localeCompare(String(vb || '')) : String(vb || '').localeCompare(String(va || ''));
+      });
+    }
+    const bodyEl = document.getElementById('troopParticipationBody');
+    bodyEl.innerHTML = sorted.map(row => {
+      return '<tr>' + headers.map(h => {
+        const val = String(row[h] || '');
+        // Style status column
+        if (h === 'Status') {
+          const icon = val === 'Pass' ? '✅' : val === 'Partial' ? '⚠️' : val === 'Fail' ? '❌' : '—';
+          const color = val === 'Pass' ? 'var(--success)' : val === 'Partial' ? '#f0a500' : val === 'Fail' ? 'var(--danger)' : 'var(--text-muted)';
+          return `<td style="text-align:center;color:${color};font-weight:600">${icon} ${escapeHtml(val)}</td>`;
+        }
+        // Style category badge
+        if (h === 'Troop Category') {
+          if (val && val !== 'Unknown' && val !== '-') {
+            return `<td style="text-align:center">${catBadgeHtml(val)}</td>`;
+          }
+          return `<td style="text-align:center;color:var(--text-muted)">—</td>`;
+        }
+        // Right-align numeric columns
+        if (h === 'Points' || h === 'Target') {
+          const num = Number(val);
+          return `<td style="text-align:right">${!isNaN(num) && val !== '-' ? num.toLocaleString() : val}</td>`;
+        }
+        return `<td>${escapeHtml(val)}</td>`;
+      }).join('') + '</tr>';
+    }).join('');
+  }
+
+  async function saveTroopEntry() {
+    const status = document.getElementById('troopEntryStatus');
+    status.textContent = '';
+    if (!selectedEvent) { status.textContent = 'No event selected.'; status.style.color = 'var(--danger)'; return; }
+    const memberName = document.getElementById('troopMember').value;
+    const points = parseInt(document.getElementById('troopPoints').value) || 0;
+    if (!memberName) { status.textContent = 'Please select a member.'; status.style.color = 'var(--danger)'; return; }
+    status.textContent = 'Saving...'; status.style.color = 'var(--text-muted)';
+    try {
+      const result = await callFunction('recordManualParticipation', [selectedEvent.eventName, memberName, points, '']);
+      if (result?.success) {
+        status.textContent = result.message || 'Saved!'; status.style.color = 'var(--success)';
+        document.getElementById('troopPoints').value = '';
+        document.getElementById('troopMember').value = '';
+        loadTroopParticipation(selectedEvent);
+      } else {
+        status.textContent = result?.message || 'Failed to save.'; status.style.color = 'var(--danger)';
+      }
+    } catch (err) { status.textContent = 'Error: ' + err.message; status.style.color = 'var(--danger)'; }
+  }
+
+  async function calculateTroopParticipation() {
+    if (!selectedEvent) return;
+    const status = document.getElementById('troopEntryStatus');
+    status.textContent = 'Calculating troop status...'; status.style.color = 'var(--text-muted)';
+    try {
+      const result = await callFunction('calculateTroopParticipation', [selectedEvent.eventName]);
+      status.textContent = result?.message || 'Done';
+      status.style.color = result?.success ? 'var(--success)' : 'var(--danger)';
+      if (result?.success) loadTroopParticipation(selectedEvent);
+    } catch (err) { status.textContent = 'Error: ' + err.message; status.style.color = 'var(--danger)'; }
+  }
+
+  async function fillTroopNonParticipants() {
+    if (!selectedEvent) return;
+    const status = document.getElementById('troopEntryStatus');
+    status.textContent = 'Filling non-participants...'; status.style.color = 'var(--text-muted)';
+    try {
+      const result = await callFunction('calculateManualNonParticipants', [selectedEvent.eventName]);
+      status.textContent = result?.message || 'Done';
+      status.style.color = result?.success ? 'var(--success)' : 'var(--danger)';
+      if (result?.success) loadTroopParticipation(selectedEvent);
+    } catch (err) { status.textContent = 'Error: ' + err.message; status.style.color = 'var(--danger)'; }
+  }
+
+  // GENERIC PARTICIPATION LOADER
+  async function loadParticipationInto(ev, sectionId, titleId, headersId, bodyId) {
+    const section = document.getElementById(sectionId);
+    section.style.display = 'block';
+    document.getElementById(titleId).textContent = `📊 ${ev.eventName} — Participation`;
+    try {
+      const result = await callFunction('getEventParticipation', [ev.eventName]);
+      if (result && result.success && result.data.length > 0) {
+        const headers = Object.keys(result.data[0]);
+        document.getElementById(headersId).innerHTML = headers.map(h => `<th onclick="sortParticipation('${escapeHtml(h)}')">${escapeHtml(h)}</th>`).join('');
+        lastPartData = result.data;
+        lastPartHeaders = headers;
+        // Use correct body id for rendering
+        currentPartBodyId = bodyId;
+        renderParticipation(result.data, headers);
+      } else {
+        document.getElementById(headersId).innerHTML = '';
+        document.getElementById(bodyId).innerHTML = '<tr><td style="text-align:center;color:var(--text-muted)">No participation data yet</td></tr>';
+      }
+    } catch (err) { showToast('Error loading participation', 'error'); }
+  }
+
+  let currentPartBodyId = 'chestParticipationBody';
+
+  async function calculateParticipation() {
+    if (!selectedEvent) return;
+    try {
+      const result = await callFunction('calculateChestParticipation', [selectedEvent.eventName, selectedEvent.startDate, selectedEvent.endDate, selectedEvent.eventType]);
+      showToast(result?.message || 'Done', result?.success ? 'success' : 'error');
+      if (result?.debugTrace) {
+        console.log('=== CHEST PARTICIPATION DEBUG TRACE ===');
+        result.debugTrace.forEach(line => console.log(line));
+        console.log('=== END TRACE ===');
+      }
+      if (result?.success) onChestEventSelected();
+    } catch (err) { showToast('Error: ' + err.message, 'error'); }
+  }
+
+  async function fillNonParticipants() {
+    if (!selectedEvent) return;
+    try {
+      const result = await callFunction('calculateManualNonParticipants', [selectedEvent.eventName]);
+      showToast(result?.message || 'Done', result?.success ? 'success' : 'error');
+      if (result?.success) onManualEventSelected();
+    } catch (err) { showToast('Error: ' + err.message, 'error'); }
+  }
+
+  // MEMBERS
+  async function loadMembers() {
+    try {
+      const result = await callFunction('getMembersList');
+      const list = result?.members || result?.data || result || [];
+      membersData = Array.isArray(list) ? list : [];
+      populateMemberSelect();
+    } catch (err) { console.error('Failed to load members:', err); membersData = []; }
+  }
+
+  function populateMemberSelect() {
+    const select = document.getElementById('manualMember');
+    if (!select) return;
+    const sorted = [...membersData].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+    select.innerHTML = '<option value="">Select member...</option>' +
+      sorted.map(m => `<option value="${escapeHtml(m.name)}">${escapeHtml(m.name)}</option>`).join('');
+  }
+
+  // MANUAL ENTRY
+  async function saveManualEntry() {
+    const status = document.getElementById('manualEntryStatus');
+    status.textContent = '';
+    if (!selectedEvent) { status.textContent = 'No event selected.'; status.style.color = 'var(--danger)'; return; }
+    const memberName = document.getElementById('manualMember').value;
+    const points = parseInt(document.getElementById('manualPoints').value) || 0;
+    if (!memberName) { status.textContent = 'Please select a member.'; status.style.color = 'var(--danger)'; return; }
+    status.textContent = 'Saving...'; status.style.color = 'var(--text-muted)';
+    try {
+      const result = await callFunction('recordManualParticipation', [selectedEvent.eventName, memberName, points, '']);
+      if (result?.success) {
+        status.textContent = result.message || 'Saved!'; status.style.color = 'var(--success)';
+        document.getElementById('manualPoints').value = '';
+        document.getElementById('manualMember').value = '';
+        onManualEventSelected();
+      } else {
+        status.textContent = result?.message || 'Failed to save.'; status.style.color = 'var(--danger)';
+      }
+    } catch (err) { status.textContent = 'Error: ' + err.message; status.style.color = 'var(--danger)'; }
+  }
+
+  // GENERATE EVENTS FROM CALENDAR
+  async function generateCalendarEvents() {
+    const btn = document.getElementById('generateEventsBtn');
+    const status = document.getElementById('generateStatus');
+    const daysAhead = Number(document.getElementById('generateDaysSelect').value);
+    const selectedTypes = Array.from(document.querySelectorAll('.gen-type-cb:checked')).map(cb => cb.value);
+    if (selectedTypes.length === 0) {
+      status.innerHTML = '⚠️ Please select at least one event type.';
+      status.style.color = 'var(--accent)';
+      return;
+    }
+    btn.disabled = true;
+    btn.textContent = '⏳ Generating...';
+    status.innerHTML = '';
+    try {
+      const result = await callFunction('generateCalendarEvents', [daysAhead, selectedTypes]);
+      btn.disabled = false;
+      btn.textContent = '📅 Generate Events';
+      if (result && result.success) {
+        const parts = [];
+        if (result.created && result.created.length > 0) parts.push('✅ Created ' + result.created.length + ': ' + result.created.join(', '));
+        if (result.skipped && result.skipped.length > 0) parts.push('⏭️ Skipped ' + result.skipped.length + ' existing');
+        if (result.errors && result.errors.length > 0) parts.push('❌ ' + result.errors.length + ' error(s)');
+        status.innerHTML = parts.join('<br>') || 'No events to generate in this range.';
+        status.style.color = (result.errors && result.errors.length > 0) ? 'var(--danger)' : 'var(--success)';
+        loadEvents();
+      } else {
+        status.innerHTML = '❌ ' + (result?.message || 'Generation failed.');
+        status.style.color = 'var(--danger)';
+      }
+    } catch (err) {
+      btn.disabled = false;
+      btn.textContent = '📅 Generate Events';
+      status.innerHTML = '❌ Error: ' + err.message;
+      status.style.color = 'var(--danger)';
+    }
+  }
+
+  // ── MANUAL BATCH ENTRY ──
+  let manualBatchQueue = {};
+
+  function toggleManualBatch() {
+    const panel = document.getElementById('manualBatchPanel');
+    if (!panel) return;
+    if (panel.style.display !== 'none') { panel.style.display = 'none'; return; }
+    panel.style.display = 'block';
+    manualBatchQueue = {};
+    document.getElementById('manualBatchStatus').textContent = '';
+    renderManualBatchTable();
+    document.getElementById('manualMember').focus();
+  }
+
+  function renderManualBatchTable() {
+    const tbody = document.getElementById('manualBatchBody');
+    const countEl = document.getElementById('manualBatchCount');
+    const keys = Object.keys(manualBatchQueue);
+    if (countEl) countEl.textContent = keys.length;
+    if (keys.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="3" style="text-align:center; padding:16px; color:var(--text-muted);">No entries queued. Use the form above.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = keys.map(k => {
+      const e = manualBatchQueue[k];
+      return '<tr><td style="padding:4px 8px;">' + escapeHtml(e.name) + '</td>'
+        + '<td style="text-align:center; padding:4px 8px; color:var(--success); font-weight:700;">' + e.points + '</td>'
+        + '<td style="text-align:center; padding:4px 8px;"><button class="btn secondary" style="padding:1px 6px; font-size:0.75em;" onclick="removeManualBatchEntry(\'' + escapeAttr(k) + '\')">✖</button></td></tr>';
+    }).join('');
+  }
+
+  function addToManualBatch() {
+    const status = document.getElementById('manualEntryStatus');
+    status.textContent = '';
+    const memberSel = document.getElementById('manualMember');
+    const pointsInput = document.getElementById('manualPoints');
+    const name = memberSel.value;
+    const pts = parseInt(pointsInput.value, 10);
+    if (!name) { status.textContent = 'Select a member.'; status.style.color = 'var(--danger)'; return; }
+    if (isNaN(pts)) { status.textContent = 'Enter points.'; status.style.color = 'var(--danger)'; return; }
+    manualBatchQueue[name.toLowerCase()] = { name: name, points: pts };
+    status.textContent = '✓ Queued: ' + name + ' → ' + pts + ' pts'; status.style.color = 'var(--success)';
+    pointsInput.value = ''; memberSel.value = ''; memberSel.focus();
+    renderManualBatchTable();
+  }
+
+  function removeManualBatchEntry(key) { delete manualBatchQueue[key]; renderManualBatchTable(); }
+
+  async function saveManualBatch() {
+    const status = document.getElementById('manualBatchStatus');
+    status.textContent = ''; status.style.color = '';
+    if (!selectedEvent) { status.textContent = 'No event selected.'; status.style.color = 'var(--danger)'; return; }
+    const keys = Object.keys(manualBatchQueue);
+    if (keys.length === 0) { status.textContent = 'No entries queued.'; status.style.color = 'var(--danger)'; return; }
+    const records = keys.map(k => ({ memberName: manualBatchQueue[k].name, points: manualBatchQueue[k].points, notes: '', extra: '' }));
+    status.textContent = 'Saving ' + records.length + ' entries...'; status.style.color = 'var(--text-muted)';
+    try {
+      const result = await callFunction('batchRecordManualParticipation', [selectedEvent.eventName, records]);
+      if (result && result.success !== false) {
+        status.textContent = 'Saved ' + (result.successCount || records.length) + ' entries!'; status.style.color = 'var(--success)';
+        manualBatchQueue = {}; renderManualBatchTable();
+        onManualEventSelected();
+      } else { status.textContent = result?.message || 'Failed.'; status.style.color = 'var(--danger)'; }
+    } catch (err) { status.textContent = 'Error: ' + err.message; status.style.color = 'var(--danger)'; }
+  }
+
+  // ── TROOP BATCH ENTRY ──
+  let troopBatchQueue = {};
+
+  function toggleTroopBatch() {
+    const panel = document.getElementById('troopBatchPanel');
+    if (!panel) return;
+    if (panel.style.display !== 'none') { panel.style.display = 'none'; return; }
+    panel.style.display = 'block';
+    troopBatchQueue = {};
+    document.getElementById('troopBatchStatus').textContent = '';
+    renderTroopBatchTable();
+    document.getElementById('troopMember').focus();
+  }
+
+  function renderTroopBatchTable() {
+    const tbody = document.getElementById('troopBatchBody');
+    const countEl = document.getElementById('troopBatchCount');
+    const keys = Object.keys(troopBatchQueue);
+    if (countEl) countEl.textContent = keys.length;
+    if (keys.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="3" style="text-align:center; padding:16px; color:var(--text-muted);">No entries queued. Use the form above.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = keys.map(k => {
+      const e = troopBatchQueue[k];
+      return '<tr><td style="padding:4px 8px;">' + escapeHtml(e.name) + '</td>'
+        + '<td style="text-align:center; padding:4px 8px; color:var(--success); font-weight:700;">' + e.points + '</td>'
+        + '<td style="text-align:center; padding:4px 8px;"><button class="btn secondary" style="padding:1px 6px; font-size:0.75em;" onclick="removeTroopBatchEntry(\'' + escapeAttr(k) + '\')">✖</button></td></tr>';
+    }).join('');
+  }
+
+  function addToTroopBatch() {
+    const status = document.getElementById('troopEntryStatus');
+    status.textContent = '';
+    const memberSel = document.getElementById('troopMember');
+    const pointsInput = document.getElementById('troopPoints');
+    const name = memberSel.value;
+    const pts = parseInt(pointsInput.value, 10);
+    if (!name) { status.textContent = 'Select a member.'; status.style.color = 'var(--danger)'; return; }
+    if (isNaN(pts)) { status.textContent = 'Enter points.'; status.style.color = 'var(--danger)'; return; }
+    troopBatchQueue[name.toLowerCase()] = { name: name, points: pts };
+    status.textContent = '✓ Queued: ' + name + ' → ' + pts + ' pts'; status.style.color = 'var(--success)';
+    pointsInput.value = ''; memberSel.value = ''; memberSel.focus();
+    renderTroopBatchTable();
+  }
+
+  function removeTroopBatchEntry(key) { delete troopBatchQueue[key]; renderTroopBatchTable(); }
+
+  async function saveTroopBatch() {
+    const status = document.getElementById('troopBatchStatus');
+    status.textContent = ''; status.style.color = '';
+    if (!selectedEvent) { status.textContent = 'No event selected.'; status.style.color = 'var(--danger)'; return; }
+    const keys = Object.keys(troopBatchQueue);
+    if (keys.length === 0) { status.textContent = 'No entries queued.'; status.style.color = 'var(--danger)'; return; }
+    const records = keys.map(k => ({ memberName: troopBatchQueue[k].name, points: troopBatchQueue[k].points, notes: '', extra: '' }));
+    status.textContent = 'Saving ' + records.length + ' entries...'; status.style.color = 'var(--text-muted)';
+    try {
+      const result = await callFunction('batchRecordManualParticipation', [selectedEvent.eventName, records]);
+      if (result && result.success !== false) {
+        status.textContent = 'Saved ' + (result.successCount || records.length) + ' entries!'; status.style.color = 'var(--success)';
+        troopBatchQueue = {}; renderTroopBatchTable();
+        loadTroopParticipation(selectedEvent);
+      } else { status.textContent = result?.message || 'Failed.'; status.style.color = 'var(--danger)'; }
+    } catch (err) { status.textContent = 'Error: ' + err.message; status.style.color = 'var(--danger)'; }
+  }
+
+  // UTILITIES
+  function escapeHtml(str) { if (!str) return ''; const d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
+  function escapeAttr(str) { return String(str || '').replace(/'/g, "\\'").replace(/"/g, '&quot;'); }
+  function showToast(msg, type) {
+    const t = document.getElementById('toast'); t.textContent = msg;
+    t.className = 'toast ' + (type || ''); t.style.display = 'block';
+    setTimeout(() => { t.style.display = 'none'; }, 3000);
+  }
+</script>
+</body>
+</html>

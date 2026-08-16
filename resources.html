@@ -1,0 +1,1306 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>cCc Legends - Resources</title>
+  <link rel="icon" type="image/png" href="logo.png">
+  <script src="perf-debug.js"></script>
+  <script src="config.js"></script>
+  <script src="site-config.js"></script>
+  <script src="portal-shim.js"></script>
+  <style>
+    :root {
+      --primary: #1a7a6d;
+      --primary-hover: #156b60;
+      --accent: #c8a415;
+      --accent-light: #e6d06c;
+      --bg-dark: #f5f0e4;
+      --bg-card: rgba(255, 252, 245, 0.97);
+      --text: #2d2418;
+      --text-muted: #6b5d4e;
+      --success: #27ae60;
+      --danger: #c0392b;
+      --border: #d4c9b5;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: linear-gradient(135deg, #e8dfd0 0%, #f5f0e4 100%);
+      color: var(--text); min-height: 100vh;
+      background-attachment: fixed; padding: 60px 8px 80px 8px;
+    }
+    .tab-nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+      display: flex; justify-content: center; gap: 0;
+      background: #fffcf5; border-bottom: 2px solid var(--accent);
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+      padding: 0;
+    }
+    .tab-nav a {
+      color: var(--text-muted); text-decoration: none;
+      padding: 12px 18px; font-size: 0.95em; font-weight: 500;
+      border-bottom: 3px solid transparent; transition: all 0.2s;
+    }
+    .tab-nav a:hover { color: var(--primary); }
+    .tab-nav a.active { color: var(--primary); border-bottom-color: var(--primary); }
+    .nav-icon { width: 18px; height: 18px; vertical-align: middle; margin-right: 4px; }
+    .login-bar {
+      position: fixed; top: 0; right: 8px; z-index: 1001;
+      display: flex; align-items: center; gap: 8px; padding: 8px;
+    }
+    .login-bar .user-email { font-size: 0.8em; color: var(--primary); }
+    .login-bar button {
+      background: var(--primary); color: #fff; border: none; border-radius: 6px;
+      padding: 6px 14px; cursor: pointer; font-weight: 600; font-size: 0.85em;
+    }
+    .login-bar button:hover { background: var(--primary-hover); }
+    .login-bar .logout-btn { background: #c4b99a; color: var(--text); }
+    .container {
+      max-width: 1200px; margin: 0 auto; background: var(--bg-card);
+      border-radius: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); padding: 24px 16px;
+    }
+    h1 { color: var(--primary); text-align: center; margin-bottom: 4px; font-size: 1.8em; }
+    .site-logo { width: 64px; height: 64px; display: block; margin: 0 auto 8px auto; }
+    .subtitle { text-align: center; color: var(--text-muted); margin-bottom: 16px; font-size: 0.9em; }
+
+    /* Filters */
+    .filters {
+      display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 16px;
+      padding: 14px 16px; background: #f8f4ea; border-radius: 12px;
+      border: 1px solid var(--border); align-items: flex-end;
+    }
+    .filter-group { display: flex; flex-direction: column; gap: 4px; min-width: 140px; flex: 1; }
+    .filter-group label { font-size: 0.75em; font-weight: 600; color: var(--primary); text-transform: uppercase; }
+    .filter-group input, .filter-group select {
+      padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px;
+      font-size: 0.9em; background: #fff; color: var(--text);
+    }
+    .filter-group input:focus, .filter-group select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 2px rgba(26,122,109,0.15); }
+    .btn {
+      background: var(--primary); color: #fff; border: none; border-radius: 6px;
+      padding: 5px 12px; cursor: pointer; font-weight: 600; font-size: 0.82em; white-space: nowrap;
+    }
+    .btn:hover { background: var(--primary-hover); }
+    .btn.secondary { background: #c4b99a; color: var(--text); }
+    .btn.secondary:hover { background: #b3a88a; }
+
+    /* Summary Cards */
+    .summary-cards {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px; margin-bottom: 20px;
+    }
+    .summary-card {
+      background: #fff; border-radius: 10px; padding: 12px 14px;
+      border: 1px solid var(--border); text-align: center;
+    }
+    .summary-card .card-label { font-size: 0.75em; text-transform: uppercase; font-weight: 600; color: var(--text-muted); margin-bottom: 4px; }
+    .summary-card .card-value { font-size: 1.4em; font-weight: 700; color: var(--primary); }
+    .summary-card .card-value.positive { color: var(--success); }
+    .summary-card .card-value.negative { color: var(--danger); }
+    .summary-card .card-sub { font-size: 0.7em; color: var(--text-muted); margin-top: 2px; }
+
+    /* Table */
+    .table-container { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.9em; }
+    th {
+      background: #ede5d5; color: var(--primary); padding: 10px 8px;
+      text-align: left; border-bottom: 2px solid var(--accent); cursor: pointer;
+      white-space: nowrap; user-select: none;
+    }
+    th:hover { background: #ddd5c5; }
+    th .sort-arrow { font-size: 0.7em; margin-left: 4px; }
+    td { padding: 8px; border-bottom: 1px solid #eee; }
+    tr:hover { background: rgba(26,122,109,0.05); }
+    .amount-positive { color: var(--success); font-weight: 600; }
+    .amount-negative { color: var(--danger); font-weight: 600; }
+    .resource-badge {
+      display: inline-block; padding: 2px 8px; border-radius: 4px;
+      font-size: 0.8em; font-weight: 600;
+    }
+    .resource-badge.dragon-coins { background: #fff3e0; color: #e65100; }
+    .resource-badge.magic-seeds { background: #e8f5e9; color: #2e7d32; }
+    .resource-badge.forest-essence { background: #e3f2fd; color: #1565c0; }
+    .resource-badge.scientific-tractate { background: #f3e5f5; color: #7b1fa2; }
+
+    /* Player Summary */
+    .player-summary-section { margin-top: 20px; }
+    .player-summary-section h3 { color: var(--primary); margin-bottom: 10px; font-size: 1.1em; }
+    .player-summary-table td { font-size: 0.85em; }
+    .player-summary-table th { font-size: 0.8em; }
+
+    /* Pagination */
+    .pagination {
+      display: flex; justify-content: center; align-items: center; gap: 8px;
+      margin-top: 12px; flex-wrap: wrap;
+    }
+    .pagination button {
+      background: #ede5d5; color: var(--text); border: none; border-radius: 4px;
+      padding: 6px 12px; cursor: pointer; font-size: 0.85em;
+    }
+    .pagination button:hover { background: #ddd5c5; }
+    .pagination button.active { background: var(--primary); color: #fff; }
+    .pagination button:disabled { opacity: 0.5; cursor: default; }
+    .pagination .page-info { font-size: 0.85em; color: var(--text-muted); }
+
+    .loading { text-align: center; padding: 40px; color: var(--text-muted); }
+    .spinner {
+      display: inline-block; width: 24px; height: 24px;
+      border: 3px solid var(--border); border-top-color: var(--primary);
+      border-radius: 50%; animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .toast {
+      position: fixed; bottom: 20px; right: 20px; z-index: 3000;
+      background: #fff; color: var(--text); padding: 12px 20px;
+      border-radius: 8px; font-size: 0.9em; display: none;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.12);
+    }
+    .toast.success { border-left: 4px solid var(--success); }
+    .toast.error { border-left: 4px solid var(--danger); }
+
+    .nav-links { display: flex; }
+    .hamburger {
+      display: none; background: none; border: none; cursor: pointer; padding: 8px;
+      flex-direction: column; gap: 4px;
+    }
+    .hamburger span {
+      display: block; width: 22px; height: 2px; background: var(--primary); border-radius: 2px;
+    }
+
+    /* Tabs */
+    .view-tabs { display: flex; gap: 4px; margin-bottom: 16px; border-bottom: 2px solid var(--border); padding-bottom: 8px; }
+    .view-tab-btn { padding: 8px 14px; background: none; border: none; color: var(--text-muted); font-size: 0.85em; font-weight: 600; border-bottom: 2px solid transparent; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
+    .view-tab-btn:hover { color: var(--primary); }
+    .view-tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+    @media (max-width: 600px) {
+      body { padding: 50px 4px 70px 4px; }
+      .tab-nav { flex-wrap: wrap; padding: 0 8px; align-items: center; }
+      .hamburger { display: flex; }
+      .login-bar { position: static; flex: 1; justify-content: flex-end; padding: 4px 0; gap: 6px; }
+      .nav-links { display: none; width: 100%; flex-direction: column; order: 10; }
+      .nav-links.open { display: flex; }
+      .nav-links a { padding: 10px 12px; font-size: 0.9em; border-bottom: 1px solid var(--border); }
+      .filters { flex-direction: column; }
+      .filter-group { min-width: 100%; }
+      .summary-cards { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<nav class="tab-nav">
+  <button class="hamburger" id="hamburgerBtn" onclick="document.getElementById('navLinks').classList.toggle('open')"><span></span><span></span><span></span></button>
+  <div class="login-bar" id="loginBar">
+    <span class="user-email" id="userEmail" style="display:none"></span>
+    <button id="loginBtn" onclick="handleLogin()">🔑 Login</button>
+    <button id="logoutBtn" class="logout-btn" style="display:none" onclick="handleLogout()">Logout</button>
+  </div>
+  <div class="nav-links" id="navLinks">
+    <a href="dashboard.html"><img src="chest.png" class="nav-icon" alt=""> Dashboard</a>
+    <a href="events.html"><img src="events.png" class="nav-icon" alt=""> Events</a>
+    <a href="members.html"><img src="members.png" class="nav-icon" alt=""> Members</a>
+    <a href="profiling.html"><img src="profiling.png" class="nav-icon" alt=""> Profiling</a>
+    <a href="resources.html" class="active"><img src="resources.png" class="nav-icon" alt=""> Resources</a>
+    <a href="warnings.html"><img src="warning.png" class="nav-icon" alt=""> Warnings</a>
+    <a href="calendar.html"><img src="calendar.png" class="nav-icon" alt=""> Calendar</a>
+  </div>
+</nav>
+
+<div class="login-gate" id="loginGate" style="max-width:500px;margin:80px auto;text-align:center;background:var(--bg-card);border-radius:16px;padding:40px 24px;box-shadow:0 2px 12px rgba(0,0,0,0.08);">
+  <h2 style="color:var(--primary);margin-bottom:12px;">🔒 Login Required</h2>
+  <p style="color:var(--text-muted);margin-bottom:20px;">You need to be logged in to view the Resources page.</p>
+  <button class="btn" onclick="handleLogin()" style="padding:12px 32px;font-size:1em;">🔑 Login</button>
+</div>
+
+<div class="container" id="mainContent" style="display:none">
+  <img src="logo.png" alt="cCc Legends" class="site-logo">
+  <h1>Clan Resources</h1>
+  <p class="subtitle">Resource contributions and distributions</p>
+
+  <!-- Filters -->
+  <div class="filters">
+    <div class="filter-group">
+      <label>Member</label>
+      <select id="filterMember">
+        <option value="">All Members</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label>Resource</label>
+      <select id="filterResource">
+        <option value="">All Resources</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label>Direction</label>
+      <select id="filterDirection">
+        <option value="">All</option>
+        <option value="sent">Sent (contributed)</option>
+        <option value="received">Received (distributed)</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label>Date From</label>
+      <input type="date" id="filterDateFrom">
+    </div>
+    <div class="filter-group">
+      <label>Date To</label>
+      <input type="date" id="filterDateTo">
+    </div>
+    <div class="filter-group" style="justify-content:flex-end; flex-direction:row; gap:6px; min-width:auto; flex:0;">
+      <button class="btn" onclick="applyFilters()">🔍 Filter</button>
+      <button class="btn secondary" onclick="resetFilters()">↻ Reset</button>
+    </div>
+  </div>
+
+  <!-- Summary Cards -->
+  <div class="summary-cards" id="summaryCards">
+    <div class="summary-card">
+      <div class="card-label">🌿 Forest Essence</div>
+      <div class="card-value" id="sumForestEssence">—</div>
+      <div class="card-sub" id="subForestEssence"></div>
+    </div>
+    <div class="summary-card">
+      <div class="card-label">🐉 Dragon Coins</div>
+      <div class="card-value" id="sumDragonCoins">—</div>
+      <div class="card-sub" id="subDragonCoins"></div>
+    </div>
+    <div class="summary-card">
+      <div class="card-label">🌱 Magic Seeds</div>
+      <div class="card-value" id="sumMagicSeeds">—</div>
+      <div class="card-sub" id="subMagicSeeds"></div>
+    </div>
+    <div class="summary-card">
+      <div class="card-label">📜 Scientific Tractate</div>
+      <div class="card-value" id="sumScientificTractate">—</div>
+      <div class="card-sub" id="subScientificTractate"></div>
+    </div>
+  </div>
+
+  <!-- View Tabs -->
+  <div class="view-tabs">
+    <button class="view-tab-btn active" onclick="switchView('transactions', this)">📋 Transactions</button>
+    <button class="view-tab-btn" onclick="switchView('playerSummary', this)">👥 By Player</button>
+    <button class="view-tab-btn" onclick="switchView('resourceSummary', this)">📦 By Resource</button>
+    <button class="view-tab-btn" onclick="switchView('dailyDonors', this)">🌿 Daily Donors</button>
+    <button class="view-tab-btn" onclick="switchView('dragonPayouts', this)">🐉 Dragon Coins</button>
+  </div>
+
+  <!-- Transactions View -->
+  <div id="transactionsView">
+    <div class="loading" id="loadingDiv"><div class="spinner"></div><br>Loading resource data...</div>
+    <div class="table-container" id="tableContainer" style="display:none">
+      <table>
+        <thead>
+          <tr>
+            <th onclick="sortTable('date')">Date <span class="sort-arrow" id="sort-date">▼</span></th>
+            <th onclick="sortTable('member')">Member <span class="sort-arrow" id="sort-member"></span></th>
+            <th onclick="sortTable('resource')">Resource <span class="sort-arrow" id="sort-resource"></span></th>
+            <th onclick="sortTable('amount')">Amount <span class="sort-arrow" id="sort-amount"></span></th>
+            <th>Type</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+    <div class="pagination" id="pagination"></div>
+  </div>
+
+  <!-- Player Summary View -->
+  <div id="playerSummaryView" style="display:none" class="player-summary-section">
+    <div class="table-container">
+      <table class="player-summary-table">
+        <thead>
+          <tr>
+            <th onclick="sortSummary('player', 'member')">Member</th>
+            <th onclick="sortSummary('player', 'contributed')">Contributed</th>
+            <th onclick="sortSummary('player', 'received')">Received</th>
+            <th onclick="sortSummary('player', 'net')">Net</th>
+            <th onclick="sortSummary('player', 'count')">Transactions</th>
+          </tr>
+        </thead>
+        <tbody id="playerSummaryBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Resource Summary View -->
+  <div id="resourceSummaryView" style="display:none" class="player-summary-section">
+    <div class="table-container">
+      <table class="player-summary-table">
+        <thead>
+          <tr>
+            <th onclick="sortSummary('resource', 'name')">Resource</th>
+            <th onclick="sortSummary('resource', 'contributed')">Total Contributed</th>
+            <th onclick="sortSummary('resource', 'received')">Total Distributed</th>
+            <th onclick="sortSummary('resource', 'net')">Net</th>
+            <th onclick="sortSummary('resource', 'members')">Members Involved</th>
+          </tr>
+        </thead>
+        <tbody id="resourceSummaryBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Daily Donors View -->
+  <div id="dailyDonorsView" style="display:none" class="player-summary-section">
+    <div style="margin-bottom:12px;padding:10px 14px;background:#fff8e1;border:1px solid #ffe082;border-radius:8px;font-size:0.85em;color:#6d4c00;">
+      🌿 Shows players who donated <strong>less than 4,000 Forest Essence</strong> on any day with recorded activity. Players with no Forest Essence donations at all on a given day are highlighted in red.
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:12px;">
+      <div class="filter-group" style="min-width:140px;">
+        <label>Date</label>
+        <select id="ddDateFilter" onchange="renderDailyDonors()">
+          <option value="">All Dates</option>
+        </select>
+      </div>
+      <div class="filter-group" style="min-width:140px;">
+        <label>Show</label>
+        <select id="ddShowFilter" onchange="renderDailyDonors()">
+          <option value="below">Below target only</option>
+          <option value="all">All players</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Worst Performers Card -->
+    <div id="worstPerformersCard" style="margin-bottom:16px;background:#fff;border:1px solid var(--border);border-radius:10px;padding:14px 16px;">
+      <h3 style="margin:0 0 10px;color:var(--danger);font-size:1em;">🏚️ Bottom 10 — Lowest Forest Essence Contributors</h3>
+      <p style="font-size:0.78em;color:var(--text-muted);margin-bottom:10px;">Average daily donation across all recorded days. Members with zero donations are listed first.</p>
+      <div id="worstPerformersContent" style="font-size:0.88em;">Loading...</div>
+    </div>
+
+    <!-- Top Performers Card -->
+    <div id="topPerformersCard" style="margin-bottom:16px;background:#fff;border:1px solid var(--border);border-radius:10px;padding:14px 16px;">
+      <h3 style="margin:0 0 10px;color:var(--success);font-size:1em;">🏆 Top 10 — Highest Forest Essence Contributors</h3>
+      <p style="font-size:0.78em;color:var(--text-muted);margin-bottom:10px;">Average daily donation across all recorded days.</p>
+      <div id="topPerformersContent" style="font-size:0.88em;">Loading...</div>
+    </div>
+
+    <!-- Unmatched Resource Names -->
+    <div id="unmatchedNamesCard" style="display:none;margin-bottom:16px;background:#fff;border:1px solid #ffcdd2;border-radius:10px;padding:14px 16px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;" onclick="document.getElementById('unmatchedNamesBody').style.display=document.getElementById('unmatchedNamesBody').style.display==='none'?'block':'none';">
+        <h3 style="margin:0;color:var(--danger);font-size:1em;">⚠️ Unmatched Resource Names</h3>
+        <span style="font-size:0.8em;color:var(--text-muted);">click to expand ▾</span>
+      </div>
+      <p style="font-size:0.78em;color:var(--text-muted);margin-top:4px;">These names appear in the Resource Contributions sheet but don't match any current member. They are excluded from Daily Donors tracking.</p>
+      <div id="unmatchedNamesBody" style="display:none;margin-top:10px;"></div>
+    </div>
+
+    <div class="table-container">
+      <table class="player-summary-table">
+        <thead>
+          <tr>
+            <th onclick="sortSummary('daily','member')">Member</th>
+            <th onclick="sortSummary('daily','date')">Date</th>
+            <th onclick="sortSummary('daily','donated')">Forest Essence Donated</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="dailyDonorsBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Dragon Coins Payouts View -->
+  <div id="dragonPayoutsView" style="display:none" class="player-summary-section">
+    <div style="margin-bottom:12px;padding:10px 14px;background:#fff3e0;border:1px solid #ffe0b2;border-radius:8px;font-size:0.85em;color:#e65100;">
+      🐉 Dragon Coins are distributed the day after they are contributed. This view shows each player's <strong>last 7 days</strong> balance (contributed − received back). Positive balance = still owed coins.
+    </div>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px;">
+      <div class="summary-card" style="flex:1;min-width:160px;">
+        <div class="card-label">Contributed (7d)</div>
+        <div class="card-value positive" id="dcContributed">—</div>
+      </div>
+      <div class="summary-card" style="flex:1;min-width:160px;">
+        <div class="card-label">Paid Out (7d)</div>
+        <div class="card-value negative" id="dcPaidOut">—</div>
+      </div>
+      <div class="summary-card" style="flex:1;min-width:160px;">
+        <div class="card-label">Total Still Owed</div>
+        <div class="card-value" id="dcOwed">—</div>
+      </div>
+      <div class="summary-card" style="flex:1;min-width:160px;">
+        <div class="card-label">Players Pending</div>
+        <div class="card-value" id="dcPending">—</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:12px;">
+      <div class="filter-group" style="min-width:140px;">
+        <label>Show</label>
+        <select id="dcShowFilter" onchange="renderDragonPayouts()">
+          <option value="owed">Owed only (balance > 0)</option>
+          <option value="all">All players</option>
+        </select>
+      </div>
+    </div>
+    <div class="table-container">
+      <table class="player-summary-table">
+        <thead>
+          <tr>
+            <th onclick="sortSummary('dragon','member')">Member</th>
+            <th onclick="sortSummary('dragon','balance')">Balance (Owed)</th>
+            <th onclick="sortSummary('dragon','contributed')">Total Contributed</th>
+            <th onclick="sortSummary('dragon','paidOut')">Total Paid Out</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="dragonPayoutsBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  let allData = [];
+  let filteredData = [];
+  let sortField = 'date';
+  let sortAsc = false;
+  let currentPage = 1;
+  const PAGE_SIZE = 50;
+  let isLoggedIn = false;
+  let currentUser = null;
+  let currentView = 'transactions';
+  let summarySortField = { player: 'net', resource: 'contributed', daily: 'date', dragon: 'balance' };
+  let summarySortAsc = { player: false, resource: false, daily: false, dragon: false };
+  let membersList = [];
+  let membersJoinDates = {}; // { lowerName: 'YYYY-MM-DD' }
+  let formerMembersList = [];
+
+  document.addEventListener('DOMContentLoaded', () => {
+    checkLoginState();
+    if (isLoggedIn) {
+      document.getElementById('loginGate').style.display = 'none';
+      document.getElementById('mainContent').style.display = 'block';
+      loadResourceData();
+    }
+  });
+
+  // ===========================
+  // AUTH
+  // ===========================
+  function checkLoginState() {
+    const stored = localStorage.getItem('leg_auth');
+    if (stored) {
+      try {
+        const auth = JSON.parse(stored);
+        if (auth.email && auth.allowed) {
+          isLoggedIn = true;
+          currentUser = auth;
+          updateLoginUI();
+        }
+      } catch (e) {}
+    }
+  }
+
+  function handleLogin() {
+    if (!document.getElementById('gsi-script')) {
+      const script = document.createElement('script');
+      script.id = 'gsi-script';
+      script.src = 'https://accounts.google.com/gsi/client';
+      script.onload = () => initGoogleLogin();
+      document.head.appendChild(script);
+    } else { initGoogleLogin(); }
+  }
+
+  function initGoogleLogin() {
+    google.accounts.id.initialize({ client_id: SITE_CONFIG.googleClientId, callback: handleGoogleCallback });
+    google.accounts.id.prompt();
+  }
+
+  async function handleGoogleCallback(response) {
+    try {
+      const res = await fetch(window.GAS_WEB_APP_URL, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idToken: response.credential })
+      });
+      const data = await res.json();
+      if (data.success && data.email) {
+        const verifyRes = await fetch(window.GAS_WEB_APP_URL, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'api', fn: 'verifyGoogleLogin', args: [{ email: data.email }] })
+        });
+        const verifyData = await verifyRes.json();
+        const authResult = verifyData.data || verifyData;
+        if (authResult.success && authResult.allowed) {
+          isLoggedIn = true;
+          currentUser = { email: data.email, allowed: true };
+          localStorage.setItem('leg_auth', JSON.stringify(currentUser));
+          updateLoginUI();
+          showToast('Logged in as ' + data.email, 'success');
+        } else { showToast('Access denied', 'error'); }
+      }
+    } catch (err) { showToast('Login error', 'error'); }
+  }
+
+  function handleLogout() {
+    isLoggedIn = false; currentUser = null;
+    localStorage.removeItem('leg_auth');
+    window.location.href = 'dashboard.html';
+  }
+
+  function updateLoginUI() {
+    document.getElementById('userEmail').textContent = isLoggedIn ? currentUser.email : '';
+    document.getElementById('userEmail').style.display = isLoggedIn ? 'inline' : 'none';
+    document.getElementById('loginBtn').style.display = isLoggedIn ? 'none' : 'inline';
+    document.getElementById('logoutBtn').style.display = isLoggedIn ? 'inline' : 'none';
+    document.getElementById('loginGate').style.display = isLoggedIn ? 'none' : 'block';
+    document.getElementById('mainContent').style.display = isLoggedIn ? 'block' : 'none';
+    if (isLoggedIn && allData.length === 0) loadResourceData();
+  }
+
+  // ===========================
+  // DATA LOADING
+  // ===========================
+  const DEFAULT_DAYS = 10;
+
+  async function loadResourceData() {
+    try {
+      const [result, members] = await Promise.all([
+        callFunction('getResourceContributions', [DEFAULT_DAYS]),
+        callFunction('getMembersList').catch(() => [])
+      ]);
+      if (result && result.success) {
+        allData = result.data || [];
+        membersList = Array.isArray(members) ? members.map(m => m.name || m) : [];
+        membersJoinDates = {};
+        if (Array.isArray(members)) {
+          members.forEach(m => {
+            const name = (m.name || m || '').toString().trim();
+            const jd = (m.joinDate || '').toString().trim();
+            if (name && jd) membersJoinDates[name.toLowerCase()] = jd;
+          });
+        }
+        formerMembersList = Array.isArray(result.formerMembers) ? result.formerMembers : [];
+        populateFilters(result.resources || [], result.members || []);
+        populateDailyDonorsDates();
+        // Set Date From to match loaded window
+        const cutoff = new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), new Date().getUTCDate() - DEFAULT_DAYS));
+        document.getElementById('filterDateFrom').value = cutoff.toISOString().split('T')[0];
+        applyFilters();
+        document.getElementById('loadingDiv').style.display = 'none';
+        document.getElementById('tableContainer').style.display = 'block';
+      } else {
+        throw new Error(result?.message || 'Failed to load');
+      }
+    } catch (err) {
+      console.error(err);
+      document.getElementById('loadingDiv').innerHTML = '<span style="color:var(--danger)">Failed to load resource data: ' + escapeHtml(err.message) + '</span>';
+    }
+  }
+
+  function populateDailyDonorsDates() {
+    const dates = [...new Set(allData.filter(r => r.resource === 'Forest Essence' && r.amount > 0).map(r => r.date))].sort().reverse();
+    const sel = document.getElementById('ddDateFilter');
+    sel.innerHTML = '<option value="">All Dates</option>';
+    dates.forEach(d => { const o = document.createElement('option'); o.value = d; o.textContent = d; sel.appendChild(o); });
+  }
+
+  function populateFilters(resources, members) {
+    const resSel = document.getElementById('filterResource');
+    resSel.innerHTML = '<option value="">All Resources</option>';
+    resources.forEach(r => {
+      const o = document.createElement('option');
+      o.value = r; o.textContent = r;
+      resSel.appendChild(o);
+    });
+
+    const memSel = document.getElementById('filterMember');
+    memSel.innerHTML = '<option value="">All Members</option>';
+    members.forEach(m => {
+      const o = document.createElement('option');
+      o.value = m; o.textContent = m;
+      memSel.appendChild(o);
+    });
+  }
+
+  // ===========================
+  // FILTERS
+  // ===========================
+  function applyFilters() {
+    const member = document.getElementById('filterMember').value;
+    const resource = document.getElementById('filterResource').value;
+    const direction = document.getElementById('filterDirection').value;
+    const dateFrom = document.getElementById('filterDateFrom').value;
+    const dateTo = document.getElementById('filterDateTo').value;
+
+    filteredData = allData.filter(row => {
+      if (member && row.member !== member) return false;
+      if (resource && row.resource !== resource) return false;
+      if (direction === 'sent' && row.amount < 0) return false;
+      if (direction === 'received' && row.amount > 0) return false;
+      if (dateFrom && row.date < dateFrom) return false;
+      if (dateTo && row.date > dateTo) return false;
+      return true;
+    });
+
+    currentPage = 1;
+    applySorting();
+    updateSummaryCards();
+    renderCurrentView();
+  }
+
+  function resetFilters() {
+    document.getElementById('filterMember').value = '';
+    document.getElementById('filterResource').value = '';
+    document.getElementById('filterDirection').value = '';
+    document.getElementById('filterDateFrom').value = '';
+    document.getElementById('filterDateTo').value = '';
+    applyFilters();
+  }
+
+  // ===========================
+  // SORTING
+  // ===========================
+  function sortTable(field) {
+    if (sortField === field) sortAsc = !sortAsc;
+    else { sortField = field; sortAsc = field === 'member' || field === 'resource'; }
+    applySorting();
+    renderTransactionsTable();
+    updateSortArrows();
+  }
+
+  function applySorting() {
+    filteredData.sort((a, b) => {
+      let va, vb;
+      switch (sortField) {
+        case 'date': va = a.date; vb = b.date; break;
+        case 'member': va = a.member.toLowerCase(); vb = b.member.toLowerCase(); break;
+        case 'resource': va = a.resource.toLowerCase(); vb = b.resource.toLowerCase(); break;
+        case 'amount': va = a.amount; vb = b.amount; break;
+        default: va = a.date; vb = b.date;
+      }
+      if (typeof va === 'string') return sortAsc ? va.localeCompare(vb) : vb.localeCompare(va);
+      return sortAsc ? va - vb : vb - va;
+    });
+  }
+
+  function updateSortArrows() {
+    document.querySelectorAll('.sort-arrow').forEach(el => el.textContent = '');
+    const arrow = document.getElementById('sort-' + sortField);
+    if (arrow) arrow.textContent = sortAsc ? '▲' : '▼';
+  }
+
+  function sortSummary(type, field) {
+    if (summarySortField[type] === field) summarySortAsc[type] = !summarySortAsc[type];
+    else { summarySortField[type] = field; summarySortAsc[type] = false; }
+    renderCurrentView();
+  }
+
+  // ===========================
+  // SUMMARY CARDS
+  // ===========================
+  function updateSummaryCards() {
+    const resMap = {};
+    const topByRes = {}; // track per-player totals per resource
+    filteredData.forEach(r => {
+      const key = r.resource;
+      if (!resMap[key]) resMap[key] = {in:0,out:0,n:0};
+      if (r.amount > 0) { resMap[key].in += r.amount; }
+      else { resMap[key].out += Math.abs(r.amount); }
+      resMap[key].n++;
+      // Track top contributor (positive only)
+      if (r.amount > 0) {
+        if (!topByRes[key]) topByRes[key] = {};
+        topByRes[key][r.member] = (topByRes[key][r.member] || 0) + r.amount;
+      }
+    });
+    const ids = { 'Forest Essence':'ForestEssence', 'Dragon Coins':'DragonCoins', 'Magic Seeds':'MagicSeeds', 'Scientific Tractate':'ScientificTractate' };
+    Object.entries(ids).forEach(([res, id]) => {
+      const d = resMap[res] || {in:0,out:0,n:0};
+      const el = document.getElementById('sum' + id);
+      const sub = document.getElementById('sub' + id);
+      if (res === 'Dragon Coins') {
+        const net = d.in - d.out;
+        el.textContent = (net >= 0 ? '+' : '') + formatNumber(net);
+        el.className = 'card-value ' + (net >= 0 ? 'positive' : 'negative');
+        sub.textContent = '▲ ' + formatNumber(d.in) + '  ▼ ' + formatNumber(d.out);
+      } else {
+        el.textContent = formatNumber(d.in);
+        el.className = 'card-value positive';
+        // Find top contributor
+        const players = topByRes[res] || {};
+        const top = Object.entries(players).sort((a,b) => b[1] - a[1])[0];
+        sub.textContent = top ? '👑 ' + top[0] + ' — ' + formatNumber(top[1]) : d.n + ' records';
+      }
+    });
+  }
+
+  // ===========================
+  // VIEW SWITCHING
+  // ===========================
+  function switchView(view, btn) {
+    currentView = view;
+    document.querySelectorAll('.view-tab-btn').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    document.getElementById('transactionsView').style.display = view === 'transactions' ? 'block' : 'none';
+    document.getElementById('playerSummaryView').style.display = view === 'playerSummary' ? 'block' : 'none';
+    document.getElementById('resourceSummaryView').style.display = view === 'resourceSummary' ? 'block' : 'none';
+    document.getElementById('dailyDonorsView').style.display = view === 'dailyDonors' ? 'block' : 'none';
+    document.getElementById('dragonPayoutsView').style.display = view === 'dragonPayouts' ? 'block' : 'none';
+    renderCurrentView();
+  }
+
+  function renderCurrentView() {
+    switch (currentView) {
+      case 'transactions': renderTransactionsTable(); break;
+      case 'playerSummary': renderPlayerSummary(); break;
+      case 'resourceSummary': renderResourceSummary(); break;
+      case 'dailyDonors': renderDailyDonors(); break;
+      case 'dragonPayouts': renderDragonPayouts(); break;
+    }
+  }
+
+  // ===========================
+  // TRANSACTIONS TABLE
+  // ===========================
+  function renderTransactionsTable() {
+    const tbody = document.getElementById('tableBody');
+    const start = (currentPage - 1) * PAGE_SIZE;
+    const pageData = filteredData.slice(start, start + PAGE_SIZE);
+
+    tbody.innerHTML = '';
+    if (pageData.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--text-muted);">No records found</td></tr>';
+    } else {
+      pageData.forEach(row => {
+        const tr = document.createElement('tr');
+        const isPositive = row.amount > 0;
+        tr.innerHTML = `
+          <td>${escapeHtml(row.date)}</td>
+          <td><strong>${escapeHtml(row.member)}</strong></td>
+          <td>${resourceBadge(row.resource)}</td>
+          <td class="${isPositive ? 'amount-positive' : 'amount-negative'}">${isPositive ? '+' : ''}${formatNumber(row.amount)}</td>
+          <td style="font-size:0.85em;color:var(--text-muted);">${isPositive ? '📤 Sent' : '📥 Received'}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+    renderPagination();
+  }
+
+  function renderPagination() {
+    const container = document.getElementById('pagination');
+    const totalPages = Math.ceil(filteredData.length / PAGE_SIZE);
+    if (totalPages <= 1) { container.innerHTML = ''; return; }
+
+    let html = '';
+    html += `<button onclick="goToPage(1)" ${currentPage === 1 ? 'disabled' : ''}>«</button>`;
+    html += `<button onclick="goToPage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>‹</button>`;
+
+    const startPage = Math.max(1, currentPage - 2);
+    const endPage = Math.min(totalPages, currentPage + 2);
+    for (let i = startPage; i <= endPage; i++) {
+      html += `<button onclick="goToPage(${i})" class="${i === currentPage ? 'active' : ''}">${i}</button>`;
+    }
+
+    html += `<button onclick="goToPage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>›</button>`;
+    html += `<button onclick="goToPage(${totalPages})" ${currentPage === totalPages ? 'disabled' : ''}>»</button>`;
+    html += `<span class="page-info">${currentPage} / ${totalPages}</span>`;
+    container.innerHTML = html;
+  }
+
+  function goToPage(page) {
+    const totalPages = Math.ceil(filteredData.length / PAGE_SIZE);
+    currentPage = Math.max(1, Math.min(page, totalPages));
+    renderTransactionsTable();
+  }
+
+  // ===========================
+  // PLAYER SUMMARY VIEW
+  // ===========================
+  function renderPlayerSummary() {
+    const map = {};
+    filteredData.forEach(row => {
+      if (!map[row.member]) map[row.member] = { contributed: 0, received: 0, count: 0 };
+      if (row.amount > 0) map[row.member].contributed += row.amount;
+      else map[row.member].received += Math.abs(row.amount);
+      map[row.member].count++;
+    });
+
+    let entries = Object.entries(map).map(([member, data]) => ({
+      member, ...data, net: data.contributed - data.received
+    }));
+
+    const field = summarySortField.player;
+    const asc = summarySortAsc.player;
+    entries.sort((a, b) => {
+      let va = a[field], vb = b[field];
+      if (field === 'member') { va = va.toLowerCase(); vb = vb.toLowerCase(); }
+      if (typeof va === 'string') return asc ? va.localeCompare(vb) : vb.localeCompare(va);
+      return asc ? va - vb : vb - va;
+    });
+
+    const tbody = document.getElementById('playerSummaryBody');
+    tbody.innerHTML = entries.map(e => `
+      <tr>
+        <td><strong>${escapeHtml(e.member)}</strong></td>
+        <td class="amount-positive">+${formatNumber(e.contributed)}</td>
+        <td class="amount-negative">-${formatNumber(e.received)}</td>
+        <td class="${e.net >= 0 ? 'amount-positive' : 'amount-negative'}">${e.net >= 0 ? '+' : ''}${formatNumber(e.net)}</td>
+        <td style="text-align:center">${e.count}</td>
+      </tr>
+    `).join('');
+  }
+
+  // ===========================
+  // RESOURCE SUMMARY VIEW
+  // ===========================
+  function renderResourceSummary() {
+    const map = {};
+    filteredData.forEach(row => {
+      if (!map[row.resource]) map[row.resource] = { contributed: 0, received: 0, members: new Set() };
+      if (row.amount > 0) map[row.resource].contributed += row.amount;
+      else map[row.resource].received += Math.abs(row.amount);
+      map[row.resource].members.add(row.member);
+    });
+
+    let entries = Object.entries(map).map(([name, data]) => ({
+      name, contributed: data.contributed, received: data.received,
+      net: data.contributed - data.received, members: data.members.size
+    }));
+
+    const field = summarySortField.resource;
+    const asc = summarySortAsc.resource;
+    entries.sort((a, b) => {
+      let va = a[field], vb = b[field];
+      if (field === 'name') { va = va.toLowerCase(); vb = vb.toLowerCase(); }
+      if (typeof va === 'string') return asc ? va.localeCompare(vb) : vb.localeCompare(va);
+      return asc ? va - vb : vb - va;
+    });
+
+    const tbody = document.getElementById('resourceSummaryBody');
+    tbody.innerHTML = entries.map(e => `
+      <tr>
+        <td>${resourceBadge(e.name)}</td>
+        <td class="amount-positive">+${formatNumber(e.contributed)}</td>
+        <td class="amount-negative">-${formatNumber(e.received)}</td>
+        <td class="${e.net >= 0 ? 'amount-positive' : 'amount-negative'}">${e.net >= 0 ? '+' : ''}${formatNumber(e.net)}</td>
+        <td style="text-align:center">${e.members}</td>
+      </tr>
+    `).join('');
+  }
+
+  // ===========================
+  // DAILY DONORS VIEW
+  // ===========================
+  function renderDailyDonors() {
+    const TARGET = 4000;
+    const dateFilter = document.getElementById('ddDateFilter').value;
+    const showFilter = document.getElementById('ddShowFilter').value;
+
+    // Get all Forest Essence sent (positive) entries from the full dataset (ignores main filters)
+    const feRows = allData.filter(r => r.resource === 'Forest Essence' && r.amount > 0);
+
+    // Get all dates that have any Forest Essence activity
+    let dates = [...new Set(feRows.map(r => r.date))].sort();
+    if (dateFilter) dates = dates.filter(d => d === dateFilter);
+
+    // Sum per player per date
+    const playerDateMap = {}; // { member: { date: totalDonated } }
+    feRows.forEach(r => {
+      if (dateFilter && r.date !== dateFilter) return;
+      if (!playerDateMap[r.member]) playerDateMap[r.member] = {};
+      playerDateMap[r.member][r.date] = (playerDateMap[r.member][r.date] || 0) + r.amount;
+    });
+
+    // Build members list — only current roster members
+    const membersLower = new Set(membersList.map(m => m.toLowerCase()));
+    const currentMembers = membersList.length > 0
+      ? [...membersList].sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()))
+      : [...new Set(Object.keys(playerDateMap))].sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
+
+    // Find unmatched names (in resource data but not in current or former member roster)
+    const resourceNames = [...new Set(allData.map(r => r.member))];
+    const formerLower = new Set(formerMembersList.map(m => m.toLowerCase()));
+    const unmatchedNames = membersList.length > 0
+      ? resourceNames.filter(n => !membersLower.has(n.toLowerCase()) && !formerLower.has(n.toLowerCase())).sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()))
+      : [];
+    renderUnmatchedNames(unmatchedNames);
+
+    // ── Worst Performers Card ──
+    renderWorstPerformers(currentMembers, playerDateMap, dates, TARGET);
+
+    // ── Top Performers Card ──
+    renderTopPerformers(currentMembers, playerDateMap, dates, TARGET);
+
+    let rows = [];
+    dates.forEach(date => {
+      currentMembers.forEach(member => {
+        const donated = (playerDateMap[member] && playerDateMap[member][date]) || 0;
+        rows.push({ member, date, donated });
+      });
+    });
+
+    // Apply show filter
+    if (showFilter === 'below') {
+      rows = rows.filter(r => r.donated < TARGET);
+    }
+
+    // Sort
+    const field = summarySortField.daily;
+    const asc = summarySortAsc.daily;
+    rows.sort((a, b) => {
+      let va, vb;
+      switch (field) {
+        case 'member': va = a.member.toLowerCase(); vb = b.member.toLowerCase(); break;
+        case 'date': va = a.date; vb = b.date; break;
+        case 'donated': va = a.donated; vb = b.donated; break;
+        default: va = a.donated; vb = b.donated;
+      }
+      if (typeof va === 'string') return asc ? va.localeCompare(vb) : vb.localeCompare(va);
+      return asc ? va - vb : vb - va;
+    });
+
+    const tbody = document.getElementById('dailyDonorsBody');
+    if (rows.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:20px;color:var(--text-muted);">All players met the 4,000 Forest Essence target! 🎉</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = rows.map(r => {
+      const pct = Math.round((r.donated / TARGET) * 100);
+      let statusHtml, rowStyle;
+      if (r.donated === 0) {
+        statusHtml = '<span style="color:var(--danger);font-weight:700;">❌ No donation</span>';
+        rowStyle = 'background:rgba(192,57,43,0.06);';
+      } else if (r.donated < TARGET) {
+        statusHtml = `<span style="color:#e65100;font-weight:600;">⚠️ ${pct}% of target</span>`;
+        rowStyle = 'background:rgba(230,81,0,0.04);';
+      } else {
+        statusHtml = '<span style="color:var(--success);font-weight:600;">✅ Met target</span>';
+        rowStyle = '';
+      }
+      return `<tr style="${rowStyle}">
+        <td><strong>${escapeHtml(r.member)}</strong>${newMemberBadge(r.member)}</td>
+        <td>${escapeHtml(r.date)}</td>
+        <td class="${r.donated >= TARGET ? 'amount-positive' : r.donated > 0 ? 'amount-negative' : ''}" style="${r.donated === 0 ? 'color:var(--danger);font-weight:600;' : ''}">${formatNumber(r.donated)}</td>
+        <td>${statusHtml}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  // ===========================
+  // UNMATCHED NAMES
+  // ===========================
+  function renderUnmatchedNames(unmatched) {
+    const card = document.getElementById('unmatchedNamesCard');
+    const body = document.getElementById('unmatchedNamesBody');
+    if (!card || !body) return;
+    if (unmatched.length === 0) {
+      card.style.display = 'none';
+      return;
+    }
+    card.style.display = 'block';
+    card.querySelector('h3').textContent = `⚠️ Unmatched Resource Names (${unmatched.length})`;
+
+    // For each unmatched name, show total contributions across all resources
+    const stats = unmatched.map(name => {
+      const rows = allData.filter(r => r.member === name);
+      let sent = 0, received = 0;
+      rows.forEach(r => { if (r.amount > 0) sent += r.amount; else received += Math.abs(r.amount); });
+      const resources = [...new Set(rows.map(r => r.resource))].join(', ');
+      return { name, sent, received, count: rows.length, resources };
+    });
+    stats.sort((a, b) => b.count - a.count);
+
+    let html = '<table style="width:100%;border-collapse:collapse;font-size:0.85em;">';
+    html += '<tr style="border-bottom:2px solid var(--border);"><th style="text-align:left;padding:5px 8px;">Name in Resources</th><th style="text-align:left;padding:5px 8px;">Resources</th><th style="text-align:right;padding:5px 8px;">Sent</th><th style="text-align:right;padding:5px 8px;">Received</th><th style="text-align:center;padding:5px 8px;">Records</th></tr>';
+    stats.forEach(s => {
+      html += `<tr style="border-bottom:1px solid #eee;">
+        <td style="padding:4px 8px;font-weight:600;color:var(--danger);">${escapeHtml(s.name)}</td>
+        <td style="padding:4px 8px;color:var(--text-muted);font-size:0.9em;">${escapeHtml(s.resources)}</td>
+        <td style="padding:4px 8px;text-align:right;" class="amount-positive">+${formatNumber(s.sent)}</td>
+        <td style="padding:4px 8px;text-align:right;" class="amount-negative">-${formatNumber(s.received)}</td>
+        <td style="padding:4px 8px;text-align:center;">${s.count}</td>
+      </tr>`;
+    });
+    html += '</table>';
+    body.innerHTML = html;
+  }
+
+  // ===========================
+  // WORST PERFORMERS CARD
+  // ===========================
+  function renderWorstPerformers(allMembers, playerDateMap, allDates, target) {
+    const container = document.getElementById('worstPerformersContent');
+    if (!container || allDates.length === 0) {
+      if (container) container.innerHTML = '<span style="color:var(--text-muted);">No Forest Essence data available.</span>';
+      return;
+    }
+
+    const totalDays = allDates.length;
+
+    // For each member: total donated, days donated, days missed, avg per day
+    const stats = allMembers.map(member => {
+      let totalDonated = 0;
+      let daysDonated = 0;
+      let daysMissed = 0;
+      allDates.forEach(date => {
+        const amt = (playerDateMap[member] && playerDateMap[member][date]) || 0;
+        totalDonated += amt;
+        if (amt >= target) daysDonated++;
+        else daysMissed++;
+      });
+      return {
+        member,
+        totalDonated,
+        avgPerDay: Math.round(totalDonated / totalDays),
+        daysMissed,
+        daysDonated,
+        totalDays
+      };
+    });
+
+    // Sort: lowest avg first, then by most days missed
+    stats.sort((a, b) => a.avgPerDay - b.avgPerDay || b.daysMissed - a.daysMissed);
+
+    const bottom10 = stats.slice(0, 10);
+
+    let html = '<table style="width:100%;border-collapse:collapse;">';
+    html += '<tr style="border-bottom:2px solid var(--accent);">';
+    html += '<th style="text-align:left;padding:6px 8px;font-size:0.8em;color:var(--primary);">#</th>';
+    html += '<th style="text-align:left;padding:6px 8px;font-size:0.8em;color:var(--primary);">Member</th>';
+    html += '<th style="text-align:right;padding:6px 8px;font-size:0.8em;color:var(--primary);">Total Donated</th>';
+    html += '<th style="text-align:right;padding:6px 8px;font-size:0.8em;color:var(--primary);">Avg / Day</th>';
+    html += '<th style="text-align:center;padding:6px 8px;font-size:0.8em;color:var(--primary);">Days Below Target</th>';
+    html += '<th style="text-align:center;padding:6px 8px;font-size:0.8em;color:var(--primary);">Days Met</th>';
+    html += '</tr>';
+
+    bottom10.forEach((s, i) => {
+      const avgColor = s.avgPerDay === 0 ? 'var(--danger)' : s.avgPerDay < target ? '#e65100' : 'var(--success)';
+      const missedPct = Math.round((s.daysMissed / s.totalDays) * 100);
+      const rowBg = s.totalDonated === 0 ? 'rgba(192,57,43,0.06)' : i % 2 === 0 ? '#fafafa' : '#fff';
+      html += `<tr style="background:${rowBg};border-bottom:1px solid #eee;">
+        <td style="padding:5px 8px;font-weight:700;color:var(--text-muted);">${i + 1}</td>
+        <td style="padding:5px 8px;font-weight:600;">${escapeHtml(s.member)}${newMemberBadge(s.member)}${s.totalDonated === 0 ? ' <span style="color:var(--danger);font-size:0.75em;">⛔ ZERO</span>' : ''}</td>
+        <td style="padding:5px 8px;text-align:right;font-weight:600;color:${s.totalDonated === 0 ? 'var(--danger)' : 'var(--text)'};">${formatNumber(s.totalDonated)}</td>
+        <td style="padding:5px 8px;text-align:right;font-weight:700;color:${avgColor};">${formatNumber(s.avgPerDay)}</td>
+        <td style="padding:5px 8px;text-align:center;color:${s.daysMissed > 0 ? 'var(--danger)' : 'var(--success)'};">${s.daysMissed} / ${s.totalDays} (${missedPct}%)</td>
+        <td style="padding:5px 8px;text-align:center;color:var(--success);">${s.daysDonated}</td>
+      </tr>`;
+    });
+
+    html += '</table>';
+    html += `<p style="font-size:0.75em;color:var(--text-muted);margin-top:8px;">Based on ${totalDays} day(s) of Forest Essence activity: ${allDates[0]} → ${allDates[allDates.length - 1]}</p>`;
+    container.innerHTML = html;
+  }
+
+  // ===========================
+  // TOP PERFORMERS CARD
+  // ===========================
+  function renderTopPerformers(allMembers, playerDateMap, allDates, target) {
+    const container = document.getElementById('topPerformersContent');
+    if (!container || allDates.length === 0) {
+      if (container) container.innerHTML = '<span style="color:var(--text-muted);">No Forest Essence data available.</span>';
+      return;
+    }
+
+    const totalDays = allDates.length;
+
+    const stats = allMembers.map(member => {
+      let totalDonated = 0;
+      let daysDonated = 0;
+      allDates.forEach(date => {
+        const amt = (playerDateMap[member] && playerDateMap[member][date]) || 0;
+        totalDonated += amt;
+        if (amt >= target) daysDonated++;
+      });
+      return {
+        member,
+        totalDonated,
+        avgPerDay: Math.round(totalDonated / totalDays),
+        daysDonated,
+        totalDays
+      };
+    });
+
+    // Sort: highest avg first
+    stats.sort((a, b) => b.avgPerDay - a.avgPerDay || b.daysDonated - a.daysDonated);
+
+    const top10 = stats.slice(0, 10);
+
+    let html = '<table style="width:100%;border-collapse:collapse;">';
+    html += '<tr style="border-bottom:2px solid var(--accent);">';
+    html += '<th style="text-align:left;padding:6px 8px;font-size:0.8em;color:var(--primary);">#</th>';
+    html += '<th style="text-align:left;padding:6px 8px;font-size:0.8em;color:var(--primary);">Member</th>';
+    html += '<th style="text-align:right;padding:6px 8px;font-size:0.8em;color:var(--primary);">Total Donated</th>';
+    html += '<th style="text-align:right;padding:6px 8px;font-size:0.8em;color:var(--primary);">Avg / Day</th>';
+    html += '<th style="text-align:center;padding:6px 8px;font-size:0.8em;color:var(--primary);">Days Met Target</th>';
+    html += '</tr>';
+
+    const medals = ['🥇', '🥈', '🥉'];
+    top10.forEach((s, i) => {
+      const metPct = Math.round((s.daysDonated / s.totalDays) * 100);
+      const rowBg = i % 2 === 0 ? '#f0faf0' : '#fff';
+      const medal = medals[i] || '';
+      html += `<tr style="background:${rowBg};border-bottom:1px solid #eee;">
+        <td style="padding:5px 8px;font-weight:700;color:var(--text-muted);">${medal || (i + 1)}</td>
+        <td style="padding:5px 8px;font-weight:600;">${escapeHtml(s.member)}${newMemberBadge(s.member)}</td>
+        <td style="padding:5px 8px;text-align:right;font-weight:600;color:var(--success);">${formatNumber(s.totalDonated)}</td>
+        <td style="padding:5px 8px;text-align:right;font-weight:700;color:var(--success);">${formatNumber(s.avgPerDay)}</td>
+        <td style="padding:5px 8px;text-align:center;color:var(--success);">${s.daysDonated} / ${s.totalDays} (${metPct}%)</td>
+      </tr>`;
+    });
+
+    html += '</table>';
+    html += `<p style="font-size:0.75em;color:var(--text-muted);margin-top:8px;">Based on ${totalDays} day(s) of Forest Essence activity: ${allDates[0]} → ${allDates[allDates.length - 1]}</p>`;
+    container.innerHTML = html;
+  }
+
+  // ===========================
+  // DRAGON COINS PAYOUTS
+  // ===========================
+  function renderDragonPayouts() {
+    const showFilter = document.getElementById('dcShowFilter').value;
+
+    // Only current members
+    const membersLower = new Set(membersList.map(m => m.toLowerCase()));
+
+    // Date window: last 7 days up to yesterday (today not recorded yet)
+    const now = new Date();
+    const yesterdayDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 1));
+    const yesterday = yesterdayDate.toISOString().split('T')[0];
+
+    const windowStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 7));
+    const windowStartStr = windowStart.toISOString().split('T')[0];
+
+    // Dragon Coins entries for current members within the last 7 days
+    const dcRows = allData.filter(r =>
+      r.resource === 'Dragon Coins' && membersLower.has(r.member.toLowerCase())
+      && r.date >= windowStartStr && r.date <= yesterday
+    );
+
+    const playerMap = {}; // { member: { contributed, paidOut } }
+
+    dcRows.forEach(r => {
+      if (!playerMap[r.member]) playerMap[r.member] = { contributed: 0, paidOut: 0 };
+      if (r.amount > 0) {
+        playerMap[r.member].contributed += r.amount;
+      } else if (r.amount < 0) {
+        playerMap[r.member].paidOut += Math.abs(r.amount);
+      }
+    });
+
+    let entries = Object.entries(playerMap).map(([member, data]) => ({
+      member,
+      contributed: data.contributed,
+      paidOut: data.paidOut,
+      balance: data.contributed - data.paidOut
+    }));
+
+    // Summary totals
+    let totalContributed = 0, totalPaidOut = 0;
+    entries.forEach(e => { totalContributed += e.contributed; totalPaidOut += e.paidOut; });
+    const totalOwed = totalContributed - totalPaidOut;
+    const pendingCount = entries.filter(e => e.balance > 0).length;
+
+    document.getElementById('dcContributed').textContent = formatNumber(totalContributed);
+    document.getElementById('dcPaidOut').textContent = formatNumber(totalPaidOut);
+    const owedEl = document.getElementById('dcOwed');
+    owedEl.textContent = formatNumber(Math.max(0, totalOwed));
+    owedEl.className = 'card-value ' + (totalOwed > 0 ? 'negative' : 'positive');
+    document.getElementById('dcPending').textContent = pendingCount;
+
+    // Filter
+    if (showFilter === 'owed') {
+      entries = entries.filter(e => e.balance > 0);
+    }
+
+    // Sort
+    const field = summarySortField.dragon;
+    const asc = summarySortAsc.dragon;
+    entries.sort((a, b) => {
+      let va, vb;
+      switch (field) {
+        case 'member': va = a.member.toLowerCase(); vb = b.member.toLowerCase(); break;
+        case 'contributed': va = a.contributed; vb = b.contributed; break;
+        case 'paidOut': va = a.paidOut; vb = b.paidOut; break;
+        case 'balance': va = a.balance; vb = b.balance; break;
+        default: va = a.balance; vb = b.balance;
+      }
+      if (typeof va === 'string') return asc ? va.localeCompare(vb) : vb.localeCompare(va);
+      return asc ? va - vb : vb - va;
+    });
+
+    const tbody = document.getElementById('dragonPayoutsBody');
+    if (entries.length === 0) {
+      const msg = showFilter === 'owed'
+        ? 'No outstanding Dragon Coins in the last 7 days! All balances are settled. 🎉'
+        : 'No Dragon Coins activity found for current members in the last 7 days.';
+      tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--text-muted);">${msg}</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = entries.map(e => {
+      let statusHtml, rowStyle;
+      if (e.balance <= 0 && e.contributed > 0) {
+        statusHtml = '<span style="color:var(--success);font-weight:600;">✅ Settled</span>';
+        rowStyle = '';
+      } else if (e.balance > 0 && e.paidOut > 0) {
+        const pct = Math.round((e.paidOut / e.contributed) * 100);
+        statusHtml = `<span style="color:#e65100;font-weight:600;">⏳ Partial (${pct}%)</span>`;
+        rowStyle = 'background:rgba(230,81,0,0.04);';
+      } else if (e.balance > 0) {
+        statusHtml = '<span style="color:var(--danger);font-weight:700;">❌ Not paid</span>';
+        rowStyle = 'background:rgba(192,57,43,0.06);';
+      } else {
+        statusHtml = '<span style="color:var(--text-muted);">—</span>';
+        rowStyle = '';
+      }
+      return `<tr style="${rowStyle}">
+        <td><strong>${escapeHtml(e.member)}</strong>${newMemberBadge(e.member)}</td>
+        <td style="font-weight:700;color:${e.balance > 0 ? 'var(--danger)' : 'var(--success)'}">${formatNumber(e.balance)}</td>
+        <td class="amount-positive">+${formatNumber(e.contributed)}</td>
+        <td class="${e.paidOut > 0 ? 'amount-negative' : ''}">${e.paidOut > 0 ? '-' : ''}${formatNumber(e.paidOut)}</td>
+        <td>${statusHtml}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  // ===========================
+  // UTILITIES
+  // ===========================
+  function newMemberBadge(memberName) {
+    const jd = membersJoinDates[(memberName || '').toLowerCase()];
+    if (!jd) return '';
+    const joinDate = new Date(jd + 'T00:00:00Z');
+    if (isNaN(joinDate.getTime())) return '';
+    const now = new Date();
+    const diffDays = Math.floor((now - joinDate) / 86400000);
+    if (diffDays <= 7) {
+      return ` <span style="font-size:0.7em;background:#e3f2fd;color:#1565c0;padding:1px 6px;border-radius:4px;font-weight:600;" title="Joined ${jd}">🆕 ${jd}</span>`;
+    }
+    return '';
+  }
+
+  function resourceBadge(name) {
+    const cls = name.toLowerCase().replace(/\s+/g, '-');
+    return `<span class="resource-badge ${cls}">${escapeHtml(name)}</span>`;
+  }
+
+  function formatNumber(n) {
+    return Number(n).toLocaleString();
+  }
+
+  function escapeHtml(str) {
+    if (!str) return '';
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  function showToast(message, type) {
+    const toast = document.getElementById('toast');
+    toast.textContent = message;
+    toast.className = 'toast ' + (type || '');
+    toast.style.display = 'block';
+    setTimeout(() => { toast.style.display = 'none'; }, 3000);
+  }
+</script>
+</body>
+</html>

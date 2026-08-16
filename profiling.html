@@ -1,0 +1,640 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>cCc Legends - Profiling</title>
+  <link rel="icon" type="image/png" href="logo.png">
+  <script src="perf-debug.js"></script>
+  <script src="config.js"></script>
+  <script src="site-config.js"></script>
+  <script src="portal-shim.js"></script>
+  <style>
+    :root {
+      --primary: #1a7a6d;
+      --primary-hover: #156b60;
+      --accent: #c8a415;
+      --accent-light: #e6d06c;
+      --bg-dark: #f5f0e4;
+      --bg-card: rgba(255, 252, 245, 0.97);
+      --text: #2d2418;
+      --text-muted: #6b5d4e;
+      --success: #27ae60;
+      --danger: #c0392b;
+      --border: #d4c9b5;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: linear-gradient(135deg, #e8dfd0 0%, #f5f0e4 100%);
+      color: var(--text); min-height: 100vh;
+      background-attachment: fixed; padding: 60px 8px 80px 8px;
+    }
+
+    /* Nav */
+    .tab-nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+      display: flex; justify-content: center; gap: 0;
+      background: #fffcf5; border-bottom: 2px solid var(--accent);
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08); padding: 0;
+    }
+    .tab-nav a { color: var(--text-muted); text-decoration: none; padding: 12px 18px; font-size: 0.95em; font-weight: 500; border-bottom: 3px solid transparent; transition: all 0.2s; }
+    .tab-nav a:hover { color: var(--primary); }
+    .tab-nav a.active { color: var(--primary); border-bottom-color: var(--primary); }
+    .nav-icon { width: 18px; height: 18px; vertical-align: middle; margin-right: 4px; }
+    .login-bar { position: fixed; top: 0; right: 8px; z-index: 1001; display: flex; align-items: center; gap: 8px; padding: 8px; }
+    .login-bar .user-email { font-size: 0.8em; color: var(--primary); }
+    .login-bar button { background: var(--primary); color: #fff; border: none; border-radius: 6px; padding: 6px 14px; cursor: pointer; font-weight: 600; font-size: 0.85em; }
+    .login-bar button:hover { background: var(--primary-hover); }
+    .login-bar .logout-btn { background: #c4b99a; color: var(--text); }
+    .nav-links { display: flex; }
+    .hamburger { display: none; background: none; border: none; cursor: pointer; padding: 8px; flex-direction: column; gap: 4px; }
+    .hamburger span { display: block; width: 22px; height: 2px; background: var(--primary); border-radius: 2px; }
+
+    /* Toast */
+    .toast {
+      position: fixed; bottom: 20px; right: 20px; z-index: 3000;
+      background: #fff; color: var(--text); padding: 12px 20px;
+      border-radius: 8px; font-size: 0.9em; display: none;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.12);
+    }
+    .toast.success { border-left: 4px solid var(--success); }
+    .toast.error { border-left: 4px solid var(--danger); }
+
+    /* Button */
+    .btn {
+      background: var(--primary); color: #fff; border: none; border-radius: 8px;
+      padding: 8px 16px; cursor: pointer; font-weight: 600; font-size: 0.9em;
+    }
+    .btn:hover { background: var(--primary-hover); }
+
+    /* Container */
+    .container { max-width: 1000px; margin: 0 auto; background: var(--bg-card); border-radius: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); padding: 24px 16px; }
+    h1 { color: var(--primary); text-align: center; margin-bottom: 4px; font-size: 1.8em; }
+    .site-logo { width: 64px; height: 64px; display: block; margin: 0 auto 8px auto; }
+    .subtitle { text-align: center; color: var(--text-muted); margin-bottom: 16px; font-size: 0.9em; }
+    h2 { font-size: 1.1em; font-weight: 600; color: var(--primary); margin: 20px 0 10px 0; }
+
+    /* Sub-tabs */
+    .sub-tabs { display: flex; gap: 4px; margin: 16px 0 8px 0; border-bottom: 2px solid var(--border); }
+    .sub-tab { padding: 10px 18px; background: none; border: none; color: var(--text-muted); font-size: 0.9em; font-weight: 600; cursor: pointer; border-bottom: 3px solid transparent; transition: all 0.2s; border-radius: 6px 6px 0 0; }
+    .sub-tab:hover { color: var(--primary); background: rgba(26,122,109,0.05); }
+    .sub-tab.active { color: var(--primary); border-bottom-color: var(--primary); background: rgba(26,122,109,0.08); }
+
+    /* Member Selector */
+    .selector-container { display: flex; gap: 12px; align-items: center; margin: 12px 0; flex-wrap: wrap; }
+    .selector-container select { flex: 1; min-width: 220px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.95em; background: #fff; color: var(--text); }
+    .selector-container select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 2px rgba(26,122,109,0.15); }
+
+    /* Score Ring */
+    .score-section { display: flex; align-items: center; gap: 24px; margin: 16px 0; flex-wrap: wrap; }
+    .score-ring-container { position: relative; width: 130px; height: 130px; flex-shrink: 0; }
+    .score-ring-container svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+    .score-ring-bg { fill: none; stroke: #e0dbd0; stroke-width: 10; }
+    .score-ring-fill { fill: none; stroke-width: 10; stroke-linecap: round; transition: stroke-dashoffset 0.8s ease; }
+    .score-ring-label { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; }
+    .score-ring-label .score-value { font-size: 32px; font-weight: 700; }
+    .score-ring-label .score-rating { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+    .score-breakdown { flex: 1; min-width: 200px; }
+    .breakdown-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+    .breakdown-row .label { font-size: 0.8em; color: var(--text-muted); width: 140px; }
+    .breakdown-row .bar-bg { flex: 1; height: 8px; background: #e0dbd0; border-radius: 4px; overflow: hidden; }
+    .breakdown-row .bar-fill { height: 100%; border-radius: 4px; transition: width 0.6s ease; }
+    .breakdown-row .bar-value { font-size: 0.75em; color: var(--text); width: 36px; text-align: right; font-weight: 600; }
+
+    /* Info Cards */
+    .info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin: 12px 0; }
+    .info-card { background: #f8f4ea; border-radius: 8px; padding: 12px; border: 1px solid var(--border); }
+    .info-card .card-label { font-size: 0.7em; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+    .info-card .card-value { font-size: 1.2em; font-weight: 700; color: var(--text); }
+    .info-card .card-sub { font-size: 0.7em; color: var(--text-muted); margin-top: 2px; }
+
+    /* Rankings */
+    .ranking-card { background: #f8f4ea; border-radius: 10px; padding: 12px 16px; border: 1px solid var(--border); display: flex; align-items: center; gap: 14px; margin-bottom: 8px; transition: transform 0.15s, box-shadow 0.15s; }
+    .ranking-card:hover { transform: translateX(4px); box-shadow: 0 2px 10px rgba(26,122,109,0.12); }
+    .ranking-rank { font-size: 1.2em; font-weight: 700; color: var(--primary); width: 36px; text-align: center; flex-shrink: 0; }
+    .ranking-rank.top1 { color: #d4a017; }
+    .ranking-rank.top2 { color: #8a8a8a; }
+    .ranking-rank.top3 { color: #cd7f32; }
+    .ranking-info { flex: 1; min-width: 0; }
+    .ranking-name { font-size: 0.95em; font-weight: 600; color: var(--text); cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .ranking-name:hover { color: var(--primary); text-decoration: underline; }
+    .ranking-meta { font-size: 0.7em; color: var(--text-muted); margin-top: 2px; }
+    .ranking-score-pill { padding: 6px 12px; border-radius: 20px; font-size: 0.95em; font-weight: 700; flex-shrink: 0; }
+    .ranking-bars { display: flex; gap: 3px; align-items: center; margin-top: 4px; }
+    .ranking-bar { height: 5px; border-radius: 3px; }
+    .ranking-section-title { font-size: 1em; font-weight: 600; color: var(--primary); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+
+    /* Badges */
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 0.75em; font-weight: 600; }
+    .badge-green { background: rgba(39,174,96,0.15); color: #27ae60; }
+    .badge-orange { background: rgba(230,126,34,0.15); color: #e67e22; }
+    .badge-red { background: rgba(192,57,43,0.15); color: #c0392b; }
+    .badge-blue { background: rgba(52,152,219,0.15); color: #2980b9; }
+    .badge-gray { background: rgba(127,140,141,0.15); color: #7f8c8d; }
+
+    /* Table */
+    .table-container { overflow-x: auto; margin: 12px 0; border-radius: 8px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; background: #fff; }
+    th { padding: 10px 8px; font-size: 0.7em; color: var(--primary); text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 2px solid var(--border); text-align: left; background: #f8f4ea; }
+    td { padding: 10px 8px; border-bottom: 1px solid #eee; font-size: 0.85em; color: var(--text); }
+    tr:hover { background: rgba(26,122,109,0.04); }
+
+    /* Loading & Empty */
+    .loading { text-align: center; padding: 40px; color: var(--text-muted); }
+    .spinner { display: inline-block; width: 28px; height: 28px; border: 3px solid var(--border); border-top-color: var(--primary); border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .empty-state { text-align: center; padding: 40px; color: var(--text-muted); font-size: 0.9em; }
+
+    /* Mobile */
+    @media (max-width: 600px) {
+      body { padding: 50px 4px 70px 4px; }
+      .tab-nav { flex-wrap: wrap; padding: 0 8px; align-items: center; }
+      .hamburger { display: flex; }
+      .login-bar { position: static; flex: 1; justify-content: flex-end; padding: 4px 0; gap: 6px; }
+      .nav-links { display: none; width: 100%; flex-direction: column; order: 10; }
+      .nav-links.open { display: flex; }
+      .nav-links a { padding: 10px 12px; font-size: 0.9em; border-bottom: 1px solid var(--border); }
+      .score-section { flex-direction: column; align-items: center; }
+      .info-grid { grid-template-columns: 1fr 1fr; }
+      .sub-tabs { flex-wrap: wrap; }
+    }
+  </style>
+</head>
+<body>
+
+<nav class="tab-nav">
+  <button class="hamburger" id="hamburgerBtn" onclick="document.getElementById('navLinks').classList.toggle('open')"><span></span><span></span><span></span></button>
+  <div class="login-bar">
+    <span class="user-email" id="userEmail" style="display:none"></span>
+    <button id="loginBtn" onclick="handleLogin()">🔑 Login</button>
+    <button id="logoutBtn" class="logout-btn" style="display:none" onclick="handleLogout()">Logout</button>
+  </div>
+  <div class="nav-links" id="navLinks">
+    <a href="dashboard.html"><img src="chest.png" class="nav-icon" alt=""> Dashboard</a>
+    <a href="events.html"><img src="events.png" class="nav-icon" alt=""> Events</a>
+    <a href="members.html"><img src="members.png" class="nav-icon" alt=""> Members</a>
+    <a href="profiling.html" class="active"><img src="profiling.png" class="nav-icon" alt=""> Profiling</a>
+    <a href="resources.html"><img src="resources.png" class="nav-icon" alt=""> Resources</a>
+    <a href="warnings.html"><img src="warning.png" class="nav-icon" alt=""> Warnings</a>
+    <a href="calendar.html"><img src="calendar.png" class="nav-icon" alt=""> Calendar</a>
+  </div>
+</nav>
+
+<div class="login-gate" id="loginGate" style="max-width:500px;margin:80px auto;text-align:center;background:var(--bg-card);border-radius:16px;padding:40px 24px;box-shadow:0 2px 12px rgba(0,0,0,0.08);">
+  <h2 style="color:var(--primary);margin-bottom:12px;">🔒 Login Required</h2>
+  <p style="color:var(--text-muted);margin-bottom:20px;">You need to be logged in to view the Profiling page.</p>
+  <button class="btn" onclick="handleLogin()" style="padding:12px 32px;font-size:1em;">🔑 Login</button>
+</div>
+
+<div class="container" id="mainContent" style="display:none">
+  <img src="logo.png" alt="cCc Legends" class="site-logo">
+  <h1>Member Profiling</h1>
+  <p class="subtitle">Performance scoring based on Tower, Tinman, Crypts, Ragnarok, Essence, Carter & Hero growth</p>
+
+  <!-- Sub-tabs -->
+  <div class="sub-tabs">
+    <button class="sub-tab active" data-tab="rankings" onclick="switchSubTab('rankings')">🏆 Rankings</button>
+    <button class="sub-tab" data-tab="individual" onclick="switchSubTab('individual')">👤 Individual</button>
+  </div>
+
+  <!-- Rankings Tab -->
+  <div id="tabRankings">
+    <div id="rankingsLoading" class="loading" style="display:none;"><div class="spinner"></div><p>Loading profiling data...</p></div>
+    <div id="rankingsContent"></div>
+  </div>
+
+  <!-- Individual Tab -->
+  <div id="tabIndividual" style="display:none;">
+    <div class="selector-container">
+      <select id="memberSelect" onchange="showIndividual()">
+        <option value="">— Select a member —</option>
+      </select>
+    </div>
+    <div id="individualEmpty" class="empty-state"><p>Select a member above to view their profile.</p></div>
+    <div id="individualContent" style="display:none;">
+
+      <!-- Score Ring + Breakdown -->
+      <h2>Performance Score</h2>
+      <div class="score-section">
+        <div class="score-ring-container">
+          <svg viewBox="0 0 120 120">
+            <circle class="score-ring-bg" cx="60" cy="60" r="50"/>
+            <circle class="score-ring-fill" id="scoreRing" cx="60" cy="60" r="50" stroke-dasharray="314.16" stroke-dashoffset="314.16"/>
+          </svg>
+          <div class="score-ring-label">
+            <div class="score-value" id="scoreValue">—</div>
+            <div class="score-rating" id="scoreRating"></div>
+          </div>
+        </div>
+        <div class="score-breakdown" id="scoreBreakdown"></div>
+      </div>
+
+      <!-- Metric Detail Cards -->
+      <h2>Metric Details</h2>
+      <div class="info-grid" id="metricCards"></div>
+
+      <!-- Breakdown Table -->
+      <h2>Full Breakdown</h2>
+      <div class="table-container">
+        <table>
+          <thead><tr><th>Metric</th><th>Score</th><th>Weight</th><th>Detail</th></tr></thead>
+          <tbody id="breakdownBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+  let profilingData = null; // cached bundle
+  let isLoggedIn = false;
+  let currentUser = null;
+
+  document.addEventListener('DOMContentLoaded', () => {
+    // Set initial history state for rankings tab
+    history.replaceState({ tab: 'rankings' }, '', '#rankings');
+    checkLoginState();
+    if (isLoggedIn) {
+      document.getElementById('loginGate').style.display = 'none';
+      document.getElementById('mainContent').style.display = 'block';
+      loadProfilingData();
+    }
+  });
+
+  // AUTH
+  function checkLoginState() {
+    const stored = localStorage.getItem('leg_auth');
+    if (stored) {
+      try {
+        const auth = JSON.parse(stored);
+        if (auth.email && auth.allowed) { isLoggedIn = true; currentUser = auth; updateLoginUI(); }
+      } catch (e) {}
+    }
+  }
+  function handleLogin() {
+    if (!document.getElementById('gsi-script')) {
+      const s = document.createElement('script'); s.id = 'gsi-script';
+      s.src = 'https://accounts.google.com/gsi/client';
+      s.onload = () => { google.accounts.id.initialize({ client_id: SITE_CONFIG.googleClientId, callback: handleGoogleCallback }); google.accounts.id.prompt(); };
+      document.head.appendChild(s);
+    } else { google.accounts.id.prompt(); }
+  }
+  async function handleGoogleCallback(response) {
+    try {
+      const res = await fetch(window.GAS_WEB_APP_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idToken: response.credential }) });
+      const data = await res.json();
+      if (data.success && data.email) {
+        const vRes = await fetch(window.GAS_WEB_APP_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'api', fn: 'verifyGoogleLogin', args: [{ email: data.email }] }) });
+        const vData = await vRes.json();
+        const auth = vData.data || vData;
+        if (auth.success && auth.allowed) {
+          isLoggedIn = true; currentUser = { email: data.email, allowed: true };
+          localStorage.setItem('leg_auth', JSON.stringify(currentUser));
+          updateLoginUI(); showToast('Logged in', 'success');
+        } else { showToast('Access denied', 'error'); }
+      }
+    } catch (err) { showToast('Login error', 'error'); }
+  }
+  function handleLogout() { isLoggedIn = false; currentUser = null; localStorage.removeItem('leg_auth'); window.location.href = 'dashboard.html'; }
+  function updateLoginUI() {
+    document.getElementById('userEmail').textContent = isLoggedIn ? currentUser.email : '';
+    document.getElementById('userEmail').style.display = isLoggedIn ? 'inline' : 'none';
+    document.getElementById('loginBtn').style.display = isLoggedIn ? 'none' : 'inline';
+    document.getElementById('logoutBtn').style.display = isLoggedIn ? 'inline' : 'none';
+    document.getElementById('loginGate').style.display = isLoggedIn ? 'none' : 'block';
+    document.getElementById('mainContent').style.display = isLoggedIn ? 'block' : 'none';
+    if (isLoggedIn && !profilingData) loadProfilingData();
+  }
+  function showToast(message, type) {
+    const toast = document.getElementById('toast');
+    toast.textContent = message;
+    toast.className = 'toast ' + (type || '');
+    toast.style.display = 'block';
+    setTimeout(() => { toast.style.display = 'none'; }, 3000);
+  }
+
+  async function loadProfilingData() {
+    const loading = document.getElementById('rankingsLoading');
+    const content = document.getElementById('rankingsContent');
+    loading.style.display = 'block';
+    content.innerHTML = '';
+
+    try {
+      const res = await callFunction('getProfilingBundle');
+      if (res && res.success) {
+        profilingData = res;
+        populateSelect();
+        renderRankings();
+      } else {
+        content.innerHTML = '<div class="empty-state"><p>Failed to load profiling data: ' + (res?.message || 'Unknown error') + '</p></div>';
+      }
+    } catch (e) {
+      content.innerHTML = '<div class="empty-state"><p>Error: ' + e.message + '</p></div>';
+    } finally {
+      loading.style.display = 'none';
+    }
+  }
+
+  function callFunction(fn, args) {
+    const payload = { action: 'api', fn, args: args || [] };
+    return fetch(window.GAS_WEB_APP_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    })
+      .then(r => r.json())
+      .then(r => r.data !== undefined ? r.data : r);
+  }
+
+  function populateSelect() {
+    const select = document.getElementById('memberSelect');
+    if (!profilingData || !profilingData.members) return;
+    const sorted = [...profilingData.members].sort((a, b) => a.name.localeCompare(b.name));
+    sorted.forEach(m => {
+      const opt = document.createElement('option');
+      opt.value = m.name;
+      opt.textContent = m.name;
+      select.appendChild(opt);
+    });
+  }
+
+  // ─── Tab switching (with browser history so Back button works) ───
+  function switchSubTab(tab, pushHistory) {
+    document.querySelectorAll('.sub-tab').forEach(btn => btn.classList.toggle('active', btn.dataset.tab === tab));
+    document.getElementById('tabRankings').style.display = tab === 'rankings' ? '' : 'none';
+    document.getElementById('tabIndividual').style.display = tab === 'individual' ? '' : 'none';
+    if (pushHistory !== false) {
+      history.pushState({ tab: tab }, '', '#' + tab);
+    }
+  }
+
+  window.addEventListener('popstate', function(e) {
+    if (e.state && e.state.tab) {
+      switchSubTab(e.state.tab, false);
+    } else {
+      switchSubTab('rankings', false);
+    }
+  });
+
+  // ─── Score color ───
+  function scoreColor(score) {
+    if (score >= 90) return '#27ae60';
+    if (score >= 75) return '#2ecc71';
+    if (score >= 60) return '#2980b9';
+    if (score >= 40) return '#e67e22';
+    if (score >= 20) return '#d35400';
+    return '#c0392b';
+  }
+  function scoreBg(score) {
+    const c = scoreColor(score);
+    return c + '18';
+  }
+
+  // ─── Rankings ───
+  function renderRankings() {
+    if (!profilingData || !profilingData.members || profilingData.members.length === 0) {
+      document.getElementById('rankingsContent').innerHTML = '<div class="empty-state"><p>No profiling data available yet.</p></div>';
+      return;
+    }
+
+    const sorted = [...profilingData.members].sort((a, b) => b.overallScore - a.overallScore);
+    const W = profilingData.weights || {};
+    const metaNote = profilingData.lastUpdated ? '<span style="font-size:0.75em;color:var(--text-muted);font-weight:400;margin-left:8px;">Updated: ' + profilingData.lastUpdated + '</span>' : '';
+    const eventNote = profilingData.eventCounts
+      ? '<span style="font-size:0.75em;color:var(--text-muted);font-weight:400;display:block;margin-top:4px;">Events tracked: Tower (' + profilingData.eventCounts.tower + ') · Tinman (' + profilingData.eventCounts.tinman + ') · Ragnarok (' + (profilingData.eventCounts.ragnarok || 0) + ') · Rag Pts (' + (profilingData.eventCounts.ragnarokPts || 0) + ')</span>'
+      : '';
+
+    // Build a ranking card HTML helper
+    function rankingCardHtml(m, rank) {
+      const rankClass = rank === 1 ? 'top1' : rank === 2 ? 'top2' : rank === 3 ? 'top3' : '';
+      const medal = rank <= 3 ? ['🥇','🥈','🥉'][rank - 1] + ' ' : '';
+      const b = m.breakdown || {};
+      const barHtml = [
+        { score: b.tower?.score, color: '#8e44ad', title: 'Tower' },
+        { score: b.tinman?.score, color: '#2980b9', title: 'Tinman' },
+        { score: b.crypts?.score, color: '#c0392b', title: 'Crypts' },
+        { score: b.ragnarok?.score, color: '#e74c3c', title: 'Ragnarok' },
+        { score: b.ragnarokPts?.score, color: '#9b59b6', title: 'Rag Pts' },
+        { score: b.essence?.score, color: '#27ae60', title: 'Essence' },
+        { score: b.carter?.score, color: '#e67e22', title: 'Carter' },
+        { score: b.hero?.score, color: '#f39c12', title: 'Hero' }
+      ].map(bar => {
+        const w = bar.score !== null && bar.score !== undefined ? Math.max(2, bar.score * 0.5) : 0;
+        return w > 0 ? '<div class="ranking-bar" style="background:' + bar.color + '44;width:' + w + 'px;" title="' + bar.title + ': ' + (bar.score ?? '—') + '"></div>' : '';
+      }).join('');
+      const metaParts = [m.rating];
+      if (m.joinDate) metaParts.push('Joined ' + m.joinDate);
+      if (b.tower?.total > 0) metaParts.push('Tower ' + b.tower.participated + '/' + b.tower.total);
+      if (b.tinman?.total > 0) metaParts.push('Tinman ' + b.tinman.participated + '/' + b.tinman.total);
+      return '<div class="ranking-card">'
+        + '<div class="ranking-rank ' + rankClass + '">#' + rank + '</div>'
+        + '<div class="ranking-info">'
+        + '<div class="ranking-name" onclick="jumpToProfile(\'' + escapeAttr(m.name) + '\')">' + medal + escapeHtml(m.name) + '</div>'
+        + '<div class="ranking-meta">' + metaParts.join(' · ') + '</div>'
+        + '<div class="ranking-bars">' + barHtml + '</div>'
+        + '</div>'
+        + '<div class="ranking-score-pill" style="background:' + scoreBg(m.overallScore) + ';color:' + scoreColor(m.overallScore) + ';">' + m.overallScore + '</div>'
+        + '</div>';
+    }
+
+    const HIGHLIGHT_COUNT = 5;
+    const NEW_MEMBER_DAYS = 5; // exclude members who joined < 5 days ago from top/bottom lists
+    const today = new Date();
+    const seasoned = sorted.filter(m => {
+      if (!m.joinDate) return true; // no join date = include
+      const jd = new Date(m.joinDate + 'T00:00:00Z');
+      return (today - jd) / 86400000 >= NEW_MEMBER_DAYS;
+    });
+    const top = seasoned.slice(0, HIGHLIGHT_COUNT);
+    const bottom = seasoned.length > HIGHLIGHT_COUNT ? seasoned.slice(-HIGHLIGHT_COUNT).reverse() : [];
+
+    // ── Top Performers ──
+    let html = '<div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:20px;">';
+    html += '<div style="flex:1;min-width:280px;">'
+      + '<div class="ranking-section-title">🏆 Top Performers' + metaNote + '</div>' + eventNote;
+    top.forEach((m, i) => { html += rankingCardHtml(m, i + 1); });
+    html += '</div>';
+
+    // ── Needs Attention ──
+    if (bottom.length > 0) {
+      html += '<div style="flex:1;min-width:280px;">'
+        + '<div class="ranking-section-title">⚠️ Needs Attention</div>';
+      bottom.forEach((m) => {
+        const globalRank = sorted.indexOf(m) + 1;
+        html += rankingCardHtml(m, globalRank);
+      });
+      html += '</div>';
+    }
+    html += '</div>';
+
+    // ── Full Rankings ──
+    html += '<details style="margin-top:8px;"><summary style="cursor:pointer;font-size:0.95em;font-weight:600;color:var(--primary);padding:8px 0;">📋 Full Rankings (' + sorted.length + ' members)</summary>'
+      + '<div style="margin-top:8px;">';
+    sorted.forEach((m, i) => { html += rankingCardHtml(m, i + 1); });
+    html += '</div></details>';
+
+    document.getElementById('rankingsContent').innerHTML = html;
+  }
+
+  function jumpToProfile(name) {
+    const select = document.getElementById('memberSelect');
+    select.value = name;
+    switchSubTab('individual');
+    showIndividual();
+  }
+
+  // ─── Individual Profile ───
+  function showIndividual() {
+    const name = document.getElementById('memberSelect').value;
+    if (!name || !profilingData) {
+      document.getElementById('individualContent').style.display = 'none';
+      document.getElementById('individualEmpty').style.display = 'block';
+      return;
+    }
+
+    const member = profilingData.members.find(m => m.name === name);
+    if (!member) {
+      document.getElementById('individualContent').style.display = 'none';
+      document.getElementById('individualEmpty').style.display = 'block';
+      return;
+    }
+
+    document.getElementById('individualEmpty').style.display = 'none';
+    renderIndividual(member);
+    document.getElementById('individualContent').style.display = 'block';
+  }
+
+  function renderIndividual(m) {
+    const W = profilingData.weights || {};
+    const b = m.breakdown || {};
+
+    // Score ring
+    const ring = document.getElementById('scoreRing');
+    const circumference = 314.16;
+    const offset = circumference - (m.overallScore / 100) * circumference;
+    ring.style.strokeDashoffset = offset;
+    ring.style.stroke = scoreColor(m.overallScore);
+    document.getElementById('scoreValue').textContent = m.overallScore;
+    document.getElementById('scoreValue').style.color = scoreColor(m.overallScore);
+    document.getElementById('scoreRating').textContent = m.rating;
+
+    // Breakdown bars
+    const items = [
+      { label: 'Tower (' + W.tower + '%)', score: b.tower?.score, color: '#8e44ad' },
+      { label: 'Tinman (' + W.tinman + '%)', score: b.tinman?.score, color: '#2980b9' },
+      { label: 'Crypts (' + W.crypts + '%)', score: b.crypts?.score, color: '#c0392b' },
+      { label: 'Ragnarok (' + W.ragnarok + '%)', score: b.ragnarok?.score, color: '#e74c3c' },
+      { label: 'Rag Pts (' + W.ragnarokPts + '%)', score: b.ragnarokPts?.score, color: '#9b59b6' },
+      { label: 'Essence (' + W.essence + '%)', score: b.essence?.score, color: '#27ae60' },
+      { label: 'Carter (' + W.carter + '%)', score: b.carter?.score, color: '#e67e22' },
+      { label: 'Hero (' + W.hero + '%)', score: b.hero?.score, color: '#f39c12' }
+    ];
+    document.getElementById('scoreBreakdown').innerHTML = items.map(item => {
+      const val = item.score !== null && item.score !== undefined ? item.score : 0;
+      const display = item.score !== null && item.score !== undefined ? item.score : '—';
+      return '<div class="breakdown-row">'
+        + '<span class="label">' + item.label + '</span>'
+        + '<div class="bar-bg"><div class="bar-fill" style="width:' + val + '%;background:' + item.color + '"></div></div>'
+        + '<span class="bar-value">' + display + '</span>'
+        + '</div>';
+    }).join('');
+
+    // Metric detail cards
+    const cards = [];
+    // Tower
+    if (b.tower) {
+      const rate = b.tower.total > 0 ? Math.round((b.tower.participated / b.tower.total) * 100) + '%' : 'N/A';
+      cards.push(card('🏰 Tower', rate, b.tower.participated + ' of ' + b.tower.total + ' events'));
+    }
+    // Tinman
+    if (b.tinman) {
+      const rate = b.tinman.total > 0 ? Math.round((b.tinman.participated / b.tinman.total) * 100) + '%' : 'N/A';
+      cards.push(card('🤖 Tinman', rate, b.tinman.participated + ' of ' + b.tinman.total + ' events'));
+    }
+    // Crypts
+    if (b.crypts) {
+      const cSub = b.crypts.periods > 0
+        ? b.crypts.score + '% avg target across ' + b.crypts.periods + ' period' + (b.crypts.periods !== 1 ? 's' : '')
+        : 'No completed periods';
+      cards.push(card('🏚️ Crypts', formatNumber(b.crypts.points) + ' pts', cSub));
+    }
+    // Ragnarok
+    if (b.ragnarok) {
+      const rate = b.ragnarok.total > 0 ? Math.round((b.ragnarok.participated / b.ragnarok.total) * 100) + '%' : 'N/A';
+      cards.push(card('⚔️ Ragnarok', rate, b.ragnarok.participated + ' of ' + b.ragnarok.total + ' events'));
+    }
+    // Ragnarok Points
+    if (b.ragnarokPts) {
+      const rate = b.ragnarokPts.total > 0 ? Math.round((b.ragnarokPts.participated / b.ragnarokPts.total) * 100) + '%' : 'N/A';
+      cards.push(card('🗡️ Ragnarok Pts', rate, b.ragnarokPts.participated + ' of ' + b.ragnarokPts.total + ' events'));
+    }
+    // Essence
+    if (b.essence) {
+      cards.push(card('✨ Essence', formatNumber(b.essence.total), 'Avg ' + formatNumber(b.essence.dailyAvg) + '/day'));
+    }
+    // Carter
+    if (b.carter) {
+      const lvl = b.carter.currentLevel !== null ? 'Lvl ' + b.carter.currentLevel : 'No data';
+      const growth = b.carter.growth > 0 ? '+' + b.carter.growth : (b.carter.growth === 0 && b.carter.currentLevel !== null ? '±0' : '—');
+      cards.push(card('🏗️ Carter (C)', lvl, 'Growth: ' + growth));
+    }
+    // Hero
+    if (b.hero) {
+      const lvl = b.hero.currentLevel !== null ? 'Lvl ' + b.hero.currentLevel : 'No data';
+      const growth = b.hero.growth > 0 ? '+' + b.hero.growth : (b.hero.growth === 0 && b.hero.currentLevel !== null ? '±0' : '—');
+      cards.push(card('🦸 Hero', lvl, 'Growth: ' + growth));
+    }
+    if (m.joinDate) {
+      cards.push(card('📅 Joined', m.joinDate, ''));
+    }
+    document.getElementById('metricCards').innerHTML = cards.join('');
+
+    // Breakdown table
+    const rows = [
+      metricRow('Tower Registration', b.tower, W.tower, b.tower ? b.tower.participated + '/' + b.tower.total + ' events' : '—'),
+      metricRow('Tinman Performance', b.tinman, W.tinman, b.tinman ? b.tinman.participated + '/' + b.tinman.total + ' events' : '—'),
+      metricRow('Crypt Contribution', b.crypts, W.crypts, b.crypts ? formatNumber(b.crypts.points) + ' pts (' + (b.crypts.periods || 0) + ' period' + ((b.crypts.periods || 0) !== 1 ? 's' : '') + ', ' + (b.crypts.score ?? '—') + '% avg)' : '—'),
+      metricRow('Ragnarok', b.ragnarok, W.ragnarok, b.ragnarok ? b.ragnarok.participated + '/' + b.ragnarok.total + ' events' : '—'),
+      metricRow('Ragnarok Points', b.ragnarokPts, W.ragnarokPts, b.ragnarokPts ? b.ragnarokPts.participated + '/' + b.ragnarokPts.total + ' events' : '—'),
+      metricRow('Essence', b.essence, W.essence, b.essence ? formatNumber(b.essence.total) + ' total (' + formatNumber(b.essence.dailyAvg) + '/day)' : '—'),
+      metricRow('Carter (C) Growth', b.carter, W.carter, b.carter && b.carter.currentLevel !== null ? 'Lvl ' + (b.carter.startLevel ?? '?') + ' → ' + b.carter.currentLevel + ' (+' + b.carter.growth + ')' : '—'),
+      metricRow('Hero Level Growth', b.hero, W.hero, b.hero && b.hero.currentLevel !== null ? 'Lvl ' + (b.hero.startLevel ?? '?') + ' → ' + b.hero.currentLevel + ' (+' + b.hero.growth + ')' : '—')
+    ];
+    document.getElementById('breakdownBody').innerHTML = rows.join('');
+  }
+
+  function metricRow(label, metric, weight, detail) {
+    const score = metric && metric.score !== null && metric.score !== undefined ? metric.score : '—';
+    const badgeClass = typeof score === 'number'
+      ? (score >= 75 ? 'badge-green' : score >= 40 ? 'badge-orange' : 'badge-red')
+      : 'badge-gray';
+    return '<tr>'
+      + '<td>' + label + '</td>'
+      + '<td><span class="badge ' + badgeClass + '">' + score + '</span></td>'
+      + '<td style="text-align:center;">' + weight + '%</td>'
+      + '<td style="font-size:0.8em;color:var(--text-muted);">' + detail + '</td>'
+      + '</tr>';
+  }
+
+  // ─── Helpers ───
+  function card(label, value, sub) {
+    return '<div class="info-card"><div class="card-label">' + label + '</div><div class="card-value">' + value + '</div>' + (sub ? '<div class="card-sub">' + sub + '</div>' : '') + '</div>';
+  }
+  function formatNumber(n) {
+    if (n == null) return '—';
+    return Number(n).toLocaleString();
+  }
+  function escapeHtml(text) {
+    const div = document.createElement('div'); div.textContent = text; return div.innerHTML;
+  }
+  function escapeAttr(str) {
+    return String(str || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+  }
+</script>
+
+</body>
+</html>
