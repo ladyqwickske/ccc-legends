@@ -11,17 +11,17 @@
   <script src="portal-shim.js"></script>
   <style>
     :root {
-      --primary: #1fc1e6;
+      --primary: #55d9f3;
       --primary-hover: #076b88;
-      --accent: #c57a00;
+      --accent: #c5c200;
       --accent-light: #fff49a;
-      --bg-dark: #f5f0e4;
-      --bg-card: rgba(255, 252, 245, 0.97);
-      --text: #0b3d59;
-      --text-muted: #6b5d4e;
+      --bg-dark: #372763;
+      --bg-card: rgba(76, 71, 146, 0.97);
+      --text: #dadcdd;
+      --text-muted: #b0aebf;
       --success: #27ae60;
       --danger: #c0392b;
-      --border: #d4c9b5;
+      --border: #b5b5d4;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -245,7 +245,7 @@
     <a href="members.html" id="navMembers" style="display:none"><img src="members.png" class="nav-icon" alt=""> Members</a>
     <a href="profiling.html" id="navProfiling" style="display:none"><img src="profiling.png" class="nav-icon" alt=""> Profiling</a>
     <a href="resources.html" id="navResources" style="display:none"><img src="resources.png" class="nav-icon" alt=""> Resources</a>
-    <a href="warnings.html"><img src="warning.png" class="nav-icon" alt=""> Warnings</a>
+    <a href="warnings.html" id="navWarnings" style="display:none"><img src="warning.png" class="nav-icon" alt=""> Warnings</a>
     <a href="calendar.html"><img src="calendar.png" class="nav-icon" alt=""> Calendar</a>
   </div>
 </nav>
@@ -253,7 +253,7 @@
 <div class="container">
   <img src="logo.png" alt="cCc Legends" class="site-logo">
   <h1>cCc Legends</h1>
-  <p class="subtitle">Seasonal Kingdom Clan Dashboard</p>
+  <p class="subtitle">Clan Dashboard</p>
 
   <!-- Period Selector -->
   <div class="period-selector">
@@ -442,6 +442,7 @@
     document.getElementById('navMembers').style.display = isLoggedIn ? '' : 'none';
     document.getElementById('navProfiling').style.display = isLoggedIn ? '' : 'none';
     document.getElementById('navResources').style.display = isLoggedIn ? '' : 'none';
+    document.getElementById('navWarnings').style.display = isLoggedIn ? '' : 'none';
   }
 
   // ===========================
