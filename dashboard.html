@@ -662,7 +662,15 @@
       }
     });
     const sortedTypes = Object.entries(typeData)
-      .sort((a, b) => b[1].total - a[1].total)
+      .sort((a, b) => {
+        const CHEST_ORDER = ['Epic Crypt', 'Rare Crypt', 'Common Crypt'];
+        const idxA = CHEST_ORDER.indexOf(a[0]);
+        const idxB = CHEST_ORDER.indexOf(b[0]);
+        const orderA = idxA >= 0 ? idxA : CHEST_ORDER.length;
+        const orderB = idxB >= 0 ? idxB : CHEST_ORDER.length;
+        if (orderA !== orderB) return orderA - orderB;
+        return a[0].localeCompare(b[0]);
+      })
       .map(([name, data]) => ({
         name,
         levels: Array.from(data.levels).map(l => parseInt(l)).sort((a, b) => a - b)
