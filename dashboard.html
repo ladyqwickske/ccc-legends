@@ -673,7 +673,7 @@
       })
       .map(([name, data]) => ({
         name,
-        levels: Array.from(data.levels).map(l => parseInt(l)).sort((a, b) => a - b)
+        levels: Array.from(data.levels).map(String).sort((a, b) => { const aNum = Number(a); const bNum = Number(b); if (Number.isFinite(aNum) && Number.isFinite(bNum)) return aNum - bNum; if (Number.isFinite(aNum)) return -1; if (Number.isFinite(bNum)) return 1; return a.localeCompare(b); })
       }));
 
     // Build header
@@ -686,7 +686,8 @@
     sortedTypes.forEach(type => {
       headerHtml += `<div class="header-cell type-total-header${expandedTypes.has(type.name) ? ' expanded' : ''}" onclick="toggleType('${escapeHtml(type.name)}')" data-type="${escapeHtml(type.name)}"><span class="toggle-icon">▶</span>${escapeHtml(type.name)}</div>`;
       type.levels.forEach(level => {
-        headerHtml += `<div class="header-cell level-header${expandedTypes.has(type.name) ? ' visible' : ''}" data-type="${escapeHtml(type.name)}" data-level="${level}">Lvl ${level}</div>`;
+        const levelLabel = /^\d+$/.test(String(level)) ? `Lvl ${level}` : level;
+        headerHtml += `<div class="header-cell level-header${expandedTypes.has(type.name) ? ' visible' : ''}" data-type="${escapeHtml(type.name)}" data-level="${escapeHtml(String(level))}">${escapeHtml(String(levelLabel))}</div>`;
       });
     });
     headerHtml += '</div>';
