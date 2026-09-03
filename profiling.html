@@ -197,7 +197,7 @@
 <div class="container" id="mainContent" style="display:none">
   <img src="logo.png" alt="cCc Legends" class="site-logo">
   <h1>Member Profiling</h1>
-  <p class="subtitle">Performance scoring based on Tower, Tinman, Crypts, Ragnarok, Essence, Carter & Hero growth</p>
+  <p class="subtitle">Performance scoring based on target achievement, event participation, consistency & warnings</p>
 
   <!-- Sub-tabs -->
   <div class="sub-tabs">
@@ -421,22 +421,21 @@
       const medal = rank <= 3 ? ['🥇','🥈','🥉'][rank - 1] + ' ' : '';
       const b = m.breakdown || {};
       const barHtml = [
-        { score: b.tower?.score, color: '#8e44ad', title: 'Tower' },
-        { score: b.tinman?.score, color: '#2980b9', title: 'Tinman' },
-        { score: b.crypts?.score, color: '#c0392b', title: 'Crypts' },
+        { score: b.targetHitRate?.score, color: '#8bc34a', title: 'Target' },
+        { score: b.ancients?.score, color: '#42a5f5', title: 'Ancients' },
         { score: b.ragnarok?.score, color: '#e74c3c', title: 'Ragnarok' },
-        { score: b.ragnarokPts?.score, color: '#9b59b6', title: 'Rag Pts' },
-        { score: b.essence?.score, color: '#27ae60', title: 'Essence' },
-        { score: b.carter?.score, color: '#e67e22', title: 'Carter' },
-        { score: b.hero?.score, color: '#f39c12', title: 'Hero' }
+        { score: b.olympusDO?.score, color: '#ab47bc', title: 'Olympus/DO' },
+        { score: b.other?.score, color: '#78909c', title: 'Other' },
+        { score: b.consistency?.score, color: '#ff9800', title: 'Consistency' },
+        { score: b.warnings?.score, color: '#ef5350', title: 'Warnings' }
       ].map(bar => {
         const w = bar.score !== null && bar.score !== undefined ? Math.max(2, bar.score * 0.5) : 0;
         return w > 0 ? '<div class="ranking-bar" style="background:' + bar.color + '44;width:' + w + 'px;" title="' + bar.title + ': ' + (bar.score ?? '—') + '"></div>' : '';
       }).join('');
       const metaParts = [m.rating];
       if (m.joinDate) metaParts.push('Joined ' + m.joinDate);
-      if (b.tower?.total > 0) metaParts.push('Tower ' + b.tower.participated + '/' + b.tower.total);
-      if (b.tinman?.total > 0) metaParts.push('Tinman ' + b.tinman.participated + '/' + b.tinman.total);
+      if (b.targetHitRate?.total > 0) metaParts.push(b.targetHitRate.met + '/' + b.targetHitRate.total + ' targets met');
+      if (b.warnings?.count > 0) metaParts.push('⚠️ ' + b.warnings.count + ' warning' + (b.warnings.count > 1 ? 's' : ''));
       return '<div class="ranking-card">'
         + '<div class="ranking-rank ' + rankClass + '">#' + rank + '</div>'
         + '<div class="ranking-info">'
@@ -531,14 +530,13 @@
 
     // Breakdown bars
     const items = [
-      { label: 'Tower (' + W.tower + '%)', score: b.tower?.score, color: '#8e44ad' },
-      { label: 'Tinman (' + W.tinman + '%)', score: b.tinman?.score, color: '#2980b9' },
-      { label: 'Crypts (' + W.crypts + '%)', score: b.crypts?.score, color: '#c0392b' },
+      { label: 'Target Achievement (' + W.target + '%)', score: b.targetHitRate?.score, color: '#8bc34a' },
+      { label: 'Ancients (' + W.ancients + '%)', score: b.ancients?.score, color: '#42a5f5' },
       { label: 'Ragnarok (' + W.ragnarok + '%)', score: b.ragnarok?.score, color: '#e74c3c' },
-      { label: 'Rag Pts (' + W.ragnarokPts + '%)', score: b.ragnarokPts?.score, color: '#9b59b6' },
-      { label: 'Essence (' + W.essence + '%)', score: b.essence?.score, color: '#27ae60' },
-      { label: 'Carter (' + W.carter + '%)', score: b.carter?.score, color: '#e67e22' },
-      { label: 'Hero (' + W.hero + '%)', score: b.hero?.score, color: '#f39c12' }
+      { label: 'Olympus & Dark Omens (' + W.olympusDO + '%)', score: b.olympusDO?.score, color: '#ab47bc' },
+      { label: 'Other Events (' + W.other + '%)', score: b.other?.score, color: '#78909c' },
+      { label: 'Consistency (' + W.consistency + '%)', score: b.consistency?.score, color: '#ff9800' },
+      { label: 'Warnings (' + W.warnings + '%)', score: b.warnings?.score, color: '#ef5350' }
     ];
     document.getElementById('scoreBreakdown').innerHTML = items.map(item => {
       const val = item.score !== null && item.score !== undefined ? item.score : 0;
@@ -550,51 +548,20 @@
         + '</div>';
     }).join('');
 
-    // Metric detail cards
     const cards = [];
-    // Tower
-    if (b.tower) {
-      const rate = b.tower.total > 0 ? Math.round((b.tower.participated / b.tower.total) * 100) + '%' : 'N/A';
-      cards.push(card('🏰 Tower', rate, b.tower.participated + ' of ' + b.tower.total + ' events'));
-    }
-    // Tinman
-    if (b.tinman) {
-      const rate = b.tinman.total > 0 ? Math.round((b.tinman.participated / b.tinman.total) * 100) + '%' : 'N/A';
-      cards.push(card('🤖 Tinman', rate, b.tinman.participated + ' of ' + b.tinman.total + ' events'));
-    }
-    // Crypts
-    if (b.crypts) {
-      const cSub = b.crypts.periods > 0
-        ? b.crypts.score + '% avg target across ' + b.crypts.periods + ' period' + (b.crypts.periods !== 1 ? 's' : '')
-        : 'No completed periods';
-      cards.push(card('🏚️ Crypts', formatNumber(b.crypts.points) + ' pts', cSub));
-    }
-    // Ragnarok
-    if (b.ragnarok) {
-      const rate = b.ragnarok.total > 0 ? Math.round((b.ragnarok.participated / b.ragnarok.total) * 100) + '%' : 'N/A';
-      cards.push(card('⚔️ Ragnarok', rate, b.ragnarok.participated + ' of ' + b.ragnarok.total + ' events'));
-    }
-    // Ragnarok Points
-    if (b.ragnarokPts) {
-      const rate = b.ragnarokPts.total > 0 ? Math.round((b.ragnarokPts.participated / b.ragnarokPts.total) * 100) + '%' : 'N/A';
-      cards.push(card('🗡️ Ragnarok Pts', rate, b.ragnarokPts.participated + ' of ' + b.ragnarokPts.total + ' events'));
-    }
-    // Essence
-    if (b.essence) {
-      cards.push(card('✨ Essence', formatNumber(b.essence.total), 'Avg ' + formatNumber(b.essence.dailyAvg) + '/day'));
-    }
-    // Carter
-    if (b.carter) {
-      const lvl = b.carter.currentLevel !== null ? 'Lvl ' + b.carter.currentLevel : 'No data';
-      const growth = b.carter.growth > 0 ? '+' + b.carter.growth : (b.carter.growth === 0 && b.carter.currentLevel !== null ? '±0' : '—');
-      cards.push(card('🏗️ Carter (C)', lvl, 'Growth: ' + growth));
-    }
-    // Hero
-    if (b.hero) {
-      const lvl = b.hero.currentLevel !== null ? 'Lvl ' + b.hero.currentLevel : 'No data';
-      const growth = b.hero.growth > 0 ? '+' + b.hero.growth : (b.hero.growth === 0 && b.hero.currentLevel !== null ? '±0' : '—');
-      cards.push(card('🦸 Hero', lvl, 'Growth: ' + growth));
-    }
+    const metricLabels = { targetHitRate: '🎯 Target Achievement', ancients: '🏛️ Ancients', ragnarok: '⚔️ Ragnarok', olympusDO: '🔮 Olympus & Dark Omens', other: '📋 Other Events', consistency: '📆 Consistency', warnings: '⚠️ Warnings' };
+    Object.keys(metricLabels).forEach(function(key) {
+      const metric = b[key];
+      if (!metric) return;
+      const detail = key === 'targetHitRate'
+        ? metric.met + ' of ' + metric.total + ' targets met'
+        : key === 'consistency'
+          ? metric.activePeriods + ' of ' + metric.checkedPeriods + ' periods active'
+          : key === 'warnings'
+            ? metric.count + ' warning' + (metric.count === 1 ? '' : 's')
+            : metric.participated + ' of ' + metric.applicable + ' events';
+      cards.push(card(metricLabels[key], metric.score + '%', detail));
+    });
     if (m.joinDate) {
       cards.push(card('📅 Joined', m.joinDate, ''));
     }
@@ -602,14 +569,13 @@
 
     // Breakdown table
     const rows = [
-      metricRow('Tower Registration', b.tower, W.tower, b.tower ? b.tower.participated + '/' + b.tower.total + ' events' : '—'),
-      metricRow('Tinman Performance', b.tinman, W.tinman, b.tinman ? b.tinman.participated + '/' + b.tinman.total + ' events' : '—'),
-      metricRow('Crypt Contribution', b.crypts, W.crypts, b.crypts ? formatNumber(b.crypts.points) + ' pts (' + (b.crypts.periods || 0) + ' period' + ((b.crypts.periods || 0) !== 1 ? 's' : '') + ', ' + (b.crypts.score ?? '—') + '% avg)' : '—'),
-      metricRow('Ragnarok', b.ragnarok, W.ragnarok, b.ragnarok ? b.ragnarok.participated + '/' + b.ragnarok.total + ' events' : '—'),
-      metricRow('Ragnarok Points', b.ragnarokPts, W.ragnarokPts, b.ragnarokPts ? b.ragnarokPts.participated + '/' + b.ragnarokPts.total + ' events' : '—'),
-      metricRow('Essence', b.essence, W.essence, b.essence ? formatNumber(b.essence.total) + ' total (' + formatNumber(b.essence.dailyAvg) + '/day)' : '—'),
-      metricRow('Carter (C) Growth', b.carter, W.carter, b.carter && b.carter.currentLevel !== null ? 'Lvl ' + (b.carter.startLevel ?? '?') + ' → ' + b.carter.currentLevel + ' (+' + b.carter.growth + ')' : '—'),
-      metricRow('Hero Level Growth', b.hero, W.hero, b.hero && b.hero.currentLevel !== null ? 'Lvl ' + (b.hero.startLevel ?? '?') + ' → ' + b.hero.currentLevel + ' (+' + b.hero.growth + ')' : '—')
+      metricRow('Target Achievement', b.targetHitRate, W.target, b.targetHitRate ? b.targetHitRate.met + '/' + b.targetHitRate.total + ' targets met' : '—'),
+      metricRow('Ancients', b.ancients, W.ancients, b.ancients ? b.ancients.participated + '/' + b.ancients.applicable + ' events' : '—'),
+      metricRow('Ragnarok', b.ragnarok, W.ragnarok, b.ragnarok ? b.ragnarok.participated + '/' + b.ragnarok.applicable + ' events' : '—'),
+      metricRow('Olympus & Dark Omens', b.olympusDO, W.olympusDO, b.olympusDO ? b.olympusDO.participated + '/' + b.olympusDO.applicable + ' events' : '—'),
+      metricRow('Other Events', b.other, W.other, b.other ? b.other.participated + '/' + b.other.applicable + ' events' : '—'),
+      metricRow('Consistency', b.consistency, W.consistency, b.consistency ? b.consistency.activePeriods + '/' + b.consistency.checkedPeriods + ' periods active' : '—'),
+      metricRow('Warnings', b.warnings, W.warnings, b.warnings ? b.warnings.count + ' warning(s)' : '—')
     ];
     document.getElementById('breakdownBody').innerHTML = rows.join('');
   }
