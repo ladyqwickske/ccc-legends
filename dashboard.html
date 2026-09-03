@@ -141,6 +141,15 @@
     .player-red { color: var(--danger); font-weight: 500; }
     .player-orange { color: #e67e22; font-weight: 500; }
     .player-green { color: var(--success); font-weight: 600; }
+    .troop-category { font-size: 10px; font-style: normal; font-weight: 700; letter-spacing: 0.5px; }
+    .troop-category.cat-G4, .troop-category.cat-G5 { color: #777; }
+    .troop-category.cat-G6 { color: #b88600; }
+    .troop-category.cat-G7 { color: #ff9800; }
+    .troop-category.cat-T7 { color: #e53935; }
+    .troop-category.cat-G8 { color: #0097a7; }
+    .troop-category.cat-T8 { color: #1565c0; }
+    .troop-category.cat-G9 { color: #ab47bc; }
+    .troop-category.cat-T9 { color: #7b1fa2; }
     .table-container { overflow-x: auto; }
 
     /* Chest Points Reference Popup */
@@ -341,6 +350,7 @@
   let targetPoints = 3000;
   let playerTargets = {}; // per-member custom targets: { name: points }
   let currentSplits = {};
+  let troopCategoriesByPlayer = {};
   const expandedTypes = new Set();
 
   // ===========================
@@ -508,11 +518,12 @@
       document.getElementById('loadingDiv').style.display = 'block';
       document.getElementById('playerList').style.display = 'none';
 
-      const [periodResult, statsResult, playerResult, splitsResult] = await Promise.all([
+      const [periodResult, statsResult, playerResult, splitsResult, troopCategoriesResult] = await Promise.all([
         callFunction(currentPeriod === 'active' ? 'getActivePeriodDates' : 'getPreviousPeriodDates'),
         callFunction('getStatsSummary', [currentPeriod]),
         callFunction('getPlayerStats', [currentPeriod]),
-        callFunction('getSplits', [currentPeriod])
+        callFunction('getSplits', [currentPeriod]),
+        callFunction('getTroopCategories')
       ]);
 
       // Update period info
@@ -554,6 +565,12 @@
 
       // Store splits
       currentSplits = splitsResult || {};
+      troopCategoriesByPlayer = {};
+      const troopRows = Array.isArray(troopCategoriesResult?.data) ? troopCategoriesResult.data : [];
+      troopRows.forEach(row => {
+        const name = String(row?.playerName || '').trim().toLowerCase();
+        if (name && row.category) troopCategoriesByPlayer[name] = row.category;
+      });
 
       // Update player table
       if (playerResult && Array.isArray(playerResult)) {
@@ -689,10 +706,11 @@
       const isExpandable = expandableTypes.has(type.name);
       const toggleIcon = isExpandable ? `<span class="toggle-icon" onclick="event.stopPropagation(); toggleType('${escapeHtml(type.name)}')">▶</span>` : '';
       headerHtml += `<div class="header-cell type-total-header sortable" data-sort="chest-${chestCellIndex}" data-type="${escapeHtml(type.name)}">${toggleIcon}${escapeHtml(type.name)} ${sortIcon()}</div>`;
-      chestCellIndex += 1 + type.levels.length;
+      chestCellIndex++;
       type.levels.forEach(level => {
         const levelLabel = /^\d+$/.test(String(level)) ? `Lvl ${level}` : level;
-        headerHtml += `<div class="header-cell level-header${expandedTypes.has(type.name) ? ' visible' : ''}" data-type="${escapeHtml(type.name)}" data-level="${escapeHtml(String(level))}">${escapeHtml(String(levelLabel))}</div>`;
+        headerHtml += `<div class="header-cell level-header sortable${expandedTypes.has(type.name) ? ' visible' : ''}" data-sort="chest-${chestCellIndex}" data-type="${escapeHtml(type.name)}" data-level="${escapeHtml(String(level))}">${escapeHtml(String(levelLabel))} ${sortIcon()}</div>`;
+        chestCellIndex++;
       });
     });
     headerHtml += '</div>';
@@ -728,10 +746,14 @@
       }
 
       const rowClass = isNewMember ? 'player-row new-member-row' : 'player-row';
+      const troopCategory = troopCategoriesByPlayer[String(playerName || '').trim().toLowerCase()];
+      const troopLabel = troopCategory
+        ? ` <span class="troop-category cat-${escapeHtml(troopCategory)}">${escapeHtml(troopCategory)}</span>`
+        : '';
       const customTargetLabel = (effectiveTarget !== targetPoints) ? ` <span title="Custom target: ${effectiveTarget.toLocaleString()}" style="font-size:10px;opacity:0.7;">🎯${effectiveTarget.toLocaleString()}</span>` : '';
       rowsHtml += `<div class="${rowClass}">`;
       rowsHtml += `<div class="cell rank-col">${idx + 1}</div>`;
-      rowsHtml += `<div class="cell ${pointsClass}">${escapeHtml(playerName)}${joinDateLabel}${customTargetLabel}</div>`;
+      rowsHtml += `<div class="cell ${pointsClass}">${escapeHtml(playerName)}${troopLabel}${customTargetLabel}${joinDateLabel}</div>`;
       rowsHtml += `<div class="cell">${totalPointsVal.toLocaleString()}</div>`;
       rowsHtml += `<div class="cell">${totalChests || '-'}</div>`;
 
