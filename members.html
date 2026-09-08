@@ -609,7 +609,6 @@
           <button title="Edit troops" onclick="quickEditTroop('${escapeAttr(m.name)}')">&nbsp;⚔️&nbsp;</button>
           <button title="Edit hero" onclick="quickEditHero('${escapeAttr(m.name)}')">&nbsp;🦸&nbsp;</button>
           <button title="Rename" onclick="renameMember('${escapeAttr(m.name)}')">&nbsp;✏️&nbsp;</button>
-          <button class="remove-btn" title="Remove" onclick="removeMember('${escapeAttr(m.name)}')">&nbsp;🗑️&nbsp;</button>
         </td>` : ''}
       `;
       tbody.appendChild(tr);
@@ -843,14 +842,6 @@
         renderTable();
       }
     } catch (err) { showToast('Error: ' + err.message, 'error'); }
-  }
-
-  // REMOVE MEMBER (quick action jumps to the Remove Member tab, prefilled)
-  function removeMember(name) {
-    document.getElementById('removeMemberSelect').value = name;
-    const btns = document.querySelectorAll('.tab-btn-inner');
-    const removeBtn = [...btns].find(b => b.textContent.includes('Remove Member'));
-    switchTab('removeMemberTab', removeBtn);
   }
 
   async function submitRemoveMember() {
