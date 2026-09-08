@@ -51,7 +51,7 @@
     link.id = 'myProfileTabBtn';
     if (currentPage() === 'myprofile.html') link.className = 'active';
     link.style.display = 'none';
-    link.innerHTML = '<img src="members.png" class="nav-icon" alt=""> My Profile';
+    link.innerHTML = '<img src="member_profile.png" class="nav-icon" alt=""> My Profile';
     nav.appendChild(link);
   }
 
@@ -90,7 +90,7 @@
       + 'background:rgba(255,255,255,0.95);border:1px solid #55d9f3;border-radius:16px;text-align:center;'
       + 'font-family:Segoe UI,Arial,sans-serif;color:#0b3d59;box-shadow:0 12px 30px rgba(11,61,89,0.12);">'
       + '<h1 style="color:#1fc1e6;font-size:22px;margin-bottom:12px;">Restricted page</h1>'
-      + '<p style="color:#076b88;font-size:14px;margin-bottom:20px;">This page is only available to clan officers.</p>'
+      + '<p style="color:#076b88;font-size:14px;margin-bottom:20px;">This page is only available to clan superiors.</p>'
       + '<a href="dashboard.html" style="display:inline-block;padding:10px 18px;background:#1fc1e6;color:#fff;'
       + 'border-radius:8px;font-weight:700;text-decoration:none;">Back to dashboard</a> '
       + '<a href="myprofile.html" style="display:inline-block;margin-left:8px;padding:10px 18px;background:#fff49a;'
