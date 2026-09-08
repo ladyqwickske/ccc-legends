@@ -224,6 +224,7 @@
       <button class="tab-btn-inner" onclick="switchTab('exemptTab', this)">🛡️ Exemptions</button>
       <button class="tab-btn-inner" onclick="switchTab('accountsTab', this)">🔐 Login Accounts</button>
       <button class="tab-btn-inner" onclick="switchTab('addMemberTab', this)">➕ Add Member</button>
+      <button class="tab-btn-inner" onclick="switchTab('removeMemberTab', this)">🚪 Remove Member</button>
     </div>
 
     <div id="troopTab" class="tab-panel active">
@@ -322,6 +323,19 @@
       <div id="addMemberStatus" class="status"></div>
     </div>
 
+    <div id="removeMemberTab" class="tab-panel">
+      <h3 style="margin:0 0 10px;color:var(--primary)">Remove Member</h3>
+      <div class="form-row">
+        <select id="removeMemberSelect"></select>
+        <input type="date" id="removeEndDateInput">
+      </div>
+      <div class="form-row">
+        <input type="text" id="removeReasonInput" placeholder="Reason (optional, e.g. inactive, requested to leave)">
+      </div>
+      <button class="btn danger" onclick="submitRemoveMember()">🚪 Remove Member</button>
+      <div id="removeMemberStatus" class="status"></div>
+    </div>
+
     <div id="exemptTab" class="tab-panel">
       <h3 style="margin:0 0 10px;color:var(--primary)">Penalty Exemptions</h3>
       <p style="font-size:0.82em;color:var(--text-muted);margin-bottom:12px;">Members selected here are excluded from automated penalties and period-end underperformer reports.</p>
@@ -397,7 +411,7 @@
 
   function setTodayDefaults() {
     const today = new Date().toISOString().split('T')[0];
-    ['troopDateInput', 'heroDateInput', 'carterDateInput', 'newMemberJoinDate'].forEach(id => {
+    ['troopDateInput', 'heroDateInput', 'carterDateInput', 'newMemberJoinDate', 'removeEndDateInput'].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.value = today;
     });
@@ -533,7 +547,7 @@
     const sorted = [...membersData].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
     const options = '<option value="">-- Select member --</option>' +
       sorted.map(m => `<option value="${escapeHtml(m.name)}">${escapeHtml(m.name)}</option>`).join('');
-    ['troopMemberSelect', 'heroMemberSelect', 'carterMemberSelect'].forEach(id => {
+    ['troopMemberSelect', 'heroMemberSelect', 'carterMemberSelect', 'removeMemberSelect'].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.innerHTML = options;
     });
@@ -831,21 +845,41 @@
     } catch (err) { showToast('Error: ' + err.message, 'error'); }
   }
 
-  // REMOVE MEMBER (inline confirm)
-  async function removeMember(name) {
+  // REMOVE MEMBER (quick action jumps to the Remove Member tab, prefilled)
+  function removeMember(name) {
+    document.getElementById('removeMemberSelect').value = name;
+    const btns = document.querySelectorAll('.tab-btn-inner');
+    const removeBtn = [...btns].find(b => b.textContent.includes('Remove Member'));
+    switchTab('removeMemberTab', removeBtn);
+  }
+
+  async function submitRemoveMember() {
+    const name = document.getElementById('removeMemberSelect').value;
+    const endDate = document.getElementById('removeEndDateInput').value;
+    const reason = document.getElementById('removeReasonInput').value.trim();
+    const status = document.getElementById('removeMemberStatus');
+    status.textContent = ''; status.className = 'status';
+    if (!name) { status.textContent = 'Please select a member.'; status.className = 'status err'; return; }
     if (!confirm(`Remove "${name}" and archive to Former Members?`)) return;
     try {
-      const result = await callFunction('removeMember', [name]);
+      const result = await callFunction('removeMember', [name, endDate, reason]);
+      status.textContent = result?.message || 'Done';
+      status.className = result?.success ? 'status ok' : 'status err';
       showToast(result?.message || 'Done', result?.success ? 'success' : 'error');
       if (result?.success) {
         membersData = membersData.filter(m => m.name !== name);
         delete troopData[name.toLowerCase()];
         delete heroData[name.toLowerCase()];
+        document.getElementById('removeReasonInput').value = '';
         populateSelects();
         renderTable();
         document.getElementById('memberCount').textContent = `${membersData.length} members`;
       }
-    } catch (err) { showToast('Error: ' + err.message, 'error'); }
+    } catch (err) {
+      status.textContent = 'Error: ' + err.message;
+      status.className = 'status err';
+      showToast('Error: ' + err.message, 'error');
+    }
   }
 
   // ===========================
