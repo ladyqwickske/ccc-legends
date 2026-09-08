@@ -9,6 +9,7 @@
   <script src="config.js"></script>
   <script src="site-config.js"></script>
   <script src="portal-shim.js"></script>
+  <script src="portal-auth.js"></script>
   <style>
     :root {
       --primary: #1fc1e6;
@@ -199,6 +200,7 @@
     <a href="resources.html"><img src="resources.png" class="nav-icon" alt=""> Resources</a>
     <a href="warnings.html"><img src="warning.png" class="nav-icon" alt=""> Warnings</a>
     <a href="calendar.html"><img src="calendar.png" class="nav-icon" alt=""> Calendar</a>
+    <a href="bank.html"><img src="bank.png" class="nav-icon" alt=""> Bank</a>
   </div>
 </nav>
 
@@ -265,6 +267,7 @@
       </select>
       <button class="btn" id="chestRecalcBtn" style="display:none" onclick="calculateParticipation()">🔄 Recalculate</button>
       <button class="btn secondary" id="chestFillBtn" style="display:none" onclick="fillNonParticipants()">Fill Non-Participants</button>
+      <button class="btn secondary" id="chestPenaltyBtn" style="display:none" onclick="recalculatePenalties()">⚖️ Recalculate Penalties</button>
     </div>
     <div class="participation-section" id="chestParticipationSection" style="display:none">
       <h3 id="chestParticipationTitle">Participation</h3>
@@ -296,6 +299,7 @@
         <button class="btn" onclick="var bp=document.getElementById('manualBatchPanel');if(bp&&bp.style.display!=='none'){addToManualBatch();}else{saveManualEntry();}">💾 Save</button>
         <button class="btn" style="background:#7c3aed;" onclick="toggleManualBatch()">📋 Batch</button>
         <button class="btn secondary" onclick="fillNonParticipants()">Fill Non-Participants</button>
+        <button class="btn secondary" onclick="recalculatePenalties()">⚖️ Recalculate Penalties</button>
       </div>
       <div id="manualEntryStatus" style="font-size:0.85em; margin-top:6px;"></div>
       <!-- Manual Batch Panel -->
@@ -345,6 +349,7 @@
       <div class="form-row" style="margin-top:8px;">
         <button class="btn" style="background:var(--primary);" onclick="calculateTroopParticipation()">🔄 Calculate Status</button>
         <button class="btn secondary" onclick="fillTroopNonParticipants()">🙅 Fill Non-Participants</button>
+        <button class="btn secondary" onclick="recalculatePenalties()">⚖️ Recalculate Penalties</button>
       </div>
       <div id="troopEntryStatus" style="font-size:0.85em; margin-top:6px;"></div>
       <!-- Troop Batch Panel -->
@@ -392,6 +397,19 @@
         <div class="note" style="margin-bottom:8px;">Set point targets per troop category. Categories match the highest troop level recorded for each member (e.g. G7 = Guard level 7).</div>
         <div id="troopTargetRows"></div>
         <button class="btn secondary" onclick="addTroopTargetRow()" style="margin-top:6px; font-size:0.8em;">+ Add Category</button>
+      </div>
+      <div id="eventPenaltySection" style="margin-bottom:12px; padding:12px; border:1px solid var(--border); border-radius:8px; background:rgba(255,210,77,0.14);">
+        <label style="display:flex;align-items:center;gap:8px;font-weight:600;color:var(--primary);margin-bottom:8px;text-transform:none;">
+          <input type="checkbox" id="eventPenaltyEnabled" onchange="onPenaltyEnabledChange()" style="width:auto;"> Enable missed-target penalty
+        </label>
+        <div id="eventPenaltyFields" class="form-row" style="display:none;margin-bottom:0;">
+          <select id="eventPenaltyType" style="flex:0.5;min-width:130px;">
+            <option value="silver">Silver</option>
+            <option value="points">Points</option>
+          </select>
+          <input type="number" id="eventPenaltyAmount" placeholder="Max penalty amount" min="0" step="1">
+        </div>
+        <div class="note" style="margin-top:6px;">Penalties are pro-rated by missed percentage. Silver penalties sync to Bank; point penalties raise that member's period target.</div>
       </div>
       <div class="form-row">
         <button class="btn" onclick="saveEvent()">Save Event</button>
@@ -596,7 +614,11 @@
       });
     }
     document.getElementById(currentPartBodyId).innerHTML = sorted.map(row =>
-      '<tr>' + headers.map(h => `<td>${escapeHtml(String(row[h] || ''))}</td>`).join('') + '</tr>'
+      '<tr>' + headers.map(h => {
+        if (h === 'Penalty') return penaltyCellHtml(row);
+        if (h === 'Penalty Status') return penaltyStatusCellHtml(row);
+        return `<td>${escapeHtml(String(row[h] || ''))}</td>`;
+      }).join('') + '</tr>'
     ).join('');
   }
   let currentUser = null;
@@ -925,6 +947,9 @@
     const start = document.getElementById('eventStartDate').value;
     const end = document.getElementById('eventEndDate').value;
     const target = document.getElementById('eventTargetPoints').value;
+    const penaltyEnabled = document.getElementById('eventPenaltyEnabled').checked;
+    const penaltyType = document.getElementById('eventPenaltyType').value;
+    const penaltyAmount = document.getElementById('eventPenaltyAmount').value;
     if (!name || !type || !start || !end) { showToast('All fields required', 'error'); return; }
 
     // Get troop targets if this is a troop-based event type
@@ -934,9 +959,9 @@
     try {
       let result;
       if (editingEvent) {
-        result = await callFunction('updateEvent', [editingEvent, name, type, start, end, target ? Number(target) : null, troopTargets]);
+        result = await callFunction('updateEvent', [editingEvent, name, type, start, end, target ? Number(target) : null, troopTargets, penaltyEnabled, penaltyType, penaltyAmount ? Number(penaltyAmount) : null]);
       } else {
-        result = await callFunction('addEvent', [name, type, start, end, target ? Number(target) : null, troopTargets]);
+        result = await callFunction('addEvent', [name, type, start, end, target ? Number(target) : null, troopTargets, penaltyEnabled, penaltyType, penaltyAmount ? Number(penaltyAmount) : null]);
       }
       showToast(result?.message || 'Done', result?.success ? 'success' : 'error');
       if (result?.success) { cancelEdit(); loadEvents(); }
@@ -952,6 +977,10 @@
     document.getElementById('eventStartDate').value = ev.startDate;
     document.getElementById('eventEndDate').value = ev.endDate;
     document.getElementById('eventTargetPoints').value = ev.targetPoints || '';
+    document.getElementById('eventPenaltyEnabled').checked = !!ev.penaltyEnabled;
+    document.getElementById('eventPenaltyType').value = ev.penaltyType || 'silver';
+    document.getElementById('eventPenaltyAmount').value = ev.penaltyAmount || '';
+    onPenaltyEnabledChange();
     // Show troop targets if troop-based
     const et = eventTypesData.find(t => t.name === ev.eventType);
     const isTroop = et && et.trackingMethod === 'troop-based';
@@ -971,10 +1000,19 @@
     document.getElementById('eventStartDate').value = '';
     document.getElementById('eventEndDate').value = '';
     document.getElementById('eventTargetPoints').value = '';
+    document.getElementById('eventPenaltyEnabled').checked = false;
+    document.getElementById('eventPenaltyType').value = 'silver';
+    document.getElementById('eventPenaltyAmount').value = '';
+    onPenaltyEnabledChange();
     document.getElementById('eventTroopTargetSection').style.display = 'none';
     document.getElementById('troopTargetRows').innerHTML = '';
     document.getElementById('eventFormTitle').textContent = '➕ Create New Event';
     document.getElementById('cancelEditBtn').style.display = 'none';
+  }
+
+  function onPenaltyEnabledChange() {
+    const enabled = document.getElementById('eventPenaltyEnabled').checked;
+    document.getElementById('eventPenaltyFields').style.display = enabled ? 'flex' : 'none';
   }
 
   async function deleteEvent(name) {
@@ -1102,6 +1140,7 @@
     selectedEvent = ev || null;
     document.getElementById('chestRecalcBtn').style.display = ev ? 'inline' : 'none';
     document.getElementById('chestFillBtn').style.display = ev ? 'inline' : 'none';
+    document.getElementById('chestPenaltyBtn').style.display = ev ? 'inline' : 'none';
     if (ev) loadParticipationInto(ev, 'chestParticipationSection', 'chestParticipationTitle', 'chestParticipationHeaders', 'chestParticipationBody');
     else document.getElementById('chestParticipationSection').style.display = 'none';
   }
@@ -1172,7 +1211,7 @@
         const firstRow = result.data[0];
         const hasTroopCols = 'Troop Category' in firstRow;
         const displayHeaders = hasTroopCols
-          ? ['Member Name', 'Points', 'Troop Category', 'Target', 'Status']
+          ? ['Member Name', 'Points', 'Troop Category', 'Target', 'Status'].concat(('Penalty' in firstRow) ? ['Penalty', 'Penalty Status'] : [])
           : Object.keys(firstRow);
 
         headersEl.innerHTML = displayHeaders.map(h =>
@@ -1220,6 +1259,8 @@
           return `<td style="text-align:center;color:var(--text-muted)">—</td>`;
         }
         // Right-align numeric columns
+        if (h === 'Penalty') return penaltyCellHtml(row);
+        if (h === 'Penalty Status') return penaltyStatusCellHtml(row);
         if (h === 'Points' || h === 'Target') {
           const num = Number(val);
           return `<td style="text-align:right">${!isNaN(num) && val !== '-' ? num.toLocaleString() : val}</td>`;
@@ -1297,6 +1338,65 @@
   }
 
   let currentPartBodyId = 'chestParticipationBody';
+
+  function penaltyCellHtml(row) {
+    const member = row['Member Name'] || row.memberName || '';
+    const raw = row['Penalty'];
+    const value = raw === '' || raw == null ? '' : Number(raw) || 0;
+    return `<td style="min-width:150px;"><input type="number" min="0" step="1" value="${value || ''}" data-member="${escapeAttr(member)}" class="penalty-input" style="width:90px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;"> <button class="btn secondary" style="padding:3px 7px;font-size:0.78em;" onclick="savePenalty('${escapeAttr(member)}', this)">Save</button></td>`;
+  }
+
+  function penaltyStatusCellHtml(row) {
+    const member = row['Member Name'] || row.memberName || '';
+    const status = row['Penalty Status'] || '';
+    return `<td style="min-width:170px;"><span style="font-weight:600;color:${status === 'Exempt' || status === 'Waived' ? 'var(--success)' : 'var(--text-muted)'}">${escapeHtml(status || 'Auto')}</span> <button class="btn secondary" style="padding:3px 7px;font-size:0.78em;" onclick="waivePenalty('${escapeAttr(member)}')">Waive</button> <button class="btn secondary" style="padding:3px 7px;font-size:0.78em;" onclick="resetPenalty('${escapeAttr(member)}')">Reset</button></td>`;
+  }
+
+  async function savePenalty(memberName, btn) {
+    if (!selectedEvent) return;
+    const row = btn.closest('tr');
+    const input = row ? row.querySelector('.penalty-input') : null;
+    const amount = input ? Number(input.value) || 0 : 0;
+    try {
+      const result = await callFunction('updateEventPenalty', [selectedEvent.eventName, memberName, amount, 'Adjusted']);
+      showToast(result?.message || 'Penalty updated', result?.success ? 'success' : 'error');
+      if (result?.success) reloadParticipationForSelectedEvent();
+    } catch (err) { showToast('Error: ' + err.message, 'error'); }
+  }
+
+  async function waivePenalty(memberName) {
+    if (!selectedEvent) return;
+    try {
+      const result = await callFunction('updateEventPenalty', [selectedEvent.eventName, memberName, 0, 'Waived']);
+      showToast(result?.message || 'Penalty waived', result?.success ? 'success' : 'error');
+      if (result?.success) reloadParticipationForSelectedEvent();
+    } catch (err) { showToast('Error: ' + err.message, 'error'); }
+  }
+
+  async function resetPenalty(memberName) {
+    if (!selectedEvent) return;
+    try {
+      const result = await callFunction('updateEventPenalty', [selectedEvent.eventName, memberName, 0, 'Auto']);
+      showToast(result?.message || 'Penalty reset', result?.success ? 'success' : 'error');
+      if (result?.success) reloadParticipationForSelectedEvent();
+    } catch (err) { showToast('Error: ' + err.message, 'error'); }
+  }
+
+  async function recalculatePenalties() {
+    if (!selectedEvent) return;
+    try {
+      const result = await callFunction('applyEventPenalties', [selectedEvent.eventName]);
+      showToast(result?.message || 'Penalties recalculated', result?.success ? 'success' : 'error');
+      if (result?.success) reloadParticipationForSelectedEvent();
+    } catch (err) { showToast('Error: ' + err.message, 'error'); }
+  }
+
+  function reloadParticipationForSelectedEvent() {
+    if (!selectedEvent) return;
+    if (selectedEvent.participationMethod === 'chest-based') onChestEventSelected();
+    else if (selectedEvent.participationMethod === 'troop-based') loadTroopParticipation(selectedEvent);
+    else onManualEventSelected();
+  }
 
   async function calculateParticipation() {
     if (!selectedEvent) return;

@@ -9,6 +9,7 @@
   <script src="config.js"></script>
   <script src="site-config.js"></script>
   <script src="portal-shim.js"></script>
+  <script src="portal-auth.js"></script>
   <style>
     :root {
       --primary: #1fc1e6;
@@ -198,6 +199,7 @@
     <a href="resources.html"><img src="resources.png" class="nav-icon" alt=""> Resources</a>
     <a href="warnings.html"><img src="warning.png" class="nav-icon" alt=""> Warnings</a>
     <a href="calendar.html"><img src="calendar.png" class="nav-icon" alt=""> Calendar</a>
+    <a href="bank.html"><img src="bank.png" class="nav-icon" alt=""> Bank</a>
   </div>
 </nav>
 
@@ -219,6 +221,8 @@
       <button class="tab-btn-inner" onclick="switchTab('heroTab', this)">🦸 Hero Level</button>
       <button class="tab-btn-inner" onclick="switchTab('carterTab', this)">🏗️ Carter Level</button>
       <button class="tab-btn-inner" onclick="switchTab('pointTargetsTab', this)">🎯 Point Targets</button>
+      <button class="tab-btn-inner" onclick="switchTab('exemptTab', this)">🛡️ Exemptions</button>
+      <button class="tab-btn-inner" onclick="switchTab('accountsTab', this)">🔐 Login Accounts</button>
       <button class="tab-btn-inner" onclick="switchTab('addMemberTab', this)">➕ Add Member</button>
     </div>
 
@@ -316,6 +320,32 @@
       </div>
       <button class="btn" onclick="addNewMember()">➕ Add Member</button>
       <div id="addMemberStatus" class="status"></div>
+    </div>
+
+    <div id="exemptTab" class="tab-panel">
+      <h3 style="margin:0 0 10px;color:var(--primary)">Penalty Exemptions</h3>
+      <p style="font-size:0.82em;color:var(--text-muted);margin-bottom:12px;">Members selected here are excluded from automated penalties and period-end underperformer reports.</p>
+      <div class="form-grid" style="grid-template-columns: 1fr;">
+        <div><label>Search</label><input type="text" id="exemptSearchInput" placeholder="Filter members..." oninput="renderExemptList()"></div>
+      </div>
+      <div id="exemptSummary" style="font-size:0.82em;color:var(--text-muted);margin-bottom:8px;"></div>
+      <div id="exemptList" style="max-height:340px;overflow-y:auto;margin:10px 0;border:1px solid var(--border);border-radius:8px;padding:8px;background:#fff;">Loading...</div>
+      <button class="btn" onclick="saveExemptMembers()">💾 Save Exemptions</button>
+      <button class="btn secondary" style="margin-left:8px;" onclick="loadExemptMembers(true)">↻ Reload</button>
+      <div id="exemptStatus" class="status"></div>
+    </div>
+
+    <div id="accountsTab" class="tab-panel">
+      <h3 style="margin:0 0 10px;color:var(--primary)">Linked Google Accounts</h3>
+      <p style="font-size:0.82em;color:var(--text-muted);margin-bottom:12px;">Link members to Google accounts so they can sign in and view their own profile. The same email can be used for alt accounts.</p>
+      <div class="form-grid" style="grid-template-columns: 1fr;">
+        <div><label>Search</label><input type="text" id="accountsSearchInput" placeholder="Filter members or emails..." oninput="renderMemberAccounts()"></div>
+      </div>
+      <div id="accountsSummary" style="font-size:0.82em;color:var(--text-muted);margin-bottom:8px;"></div>
+      <div id="accountsList" style="max-height:360px;overflow-y:auto;margin:10px 0;border:1px solid var(--border);border-radius:8px;padding:8px;background:#fff;">Loading...</div>
+      <button class="btn" onclick="saveMemberAccounts()">💾 Save Linked Accounts</button>
+      <button class="btn secondary" style="margin-left:8px;" onclick="loadMemberAccounts(true)">↻ Reload</button>
+      <div id="accountsStatus" class="status"></div>
     </div>
 
   </div>
@@ -677,6 +707,8 @@
     document.getElementById(tabId)?.classList.add('active');
     if (btn) btn.classList.add('active');
     if (tabId === 'pointTargetsTab') loadPointTargetPeriods();
+    if (tabId === 'exemptTab') loadExemptMembers();
+    if (tabId === 'accountsTab') loadMemberAccounts();
   }
 
   // TROOP BULK ENTRY
@@ -904,6 +936,139 @@
         status.textContent = result?.message || 'Failed to save.';
         status.className = 'status err';
       }
+    } catch (err) {
+      status.textContent = 'Error: ' + err.message;
+      status.className = 'status err';
+    }
+  }
+
+  // ===========================
+  // PENALTY EXEMPTIONS
+  // ===========================
+  let exemptSelection = null;
+  let exemptReasons = {};
+
+  async function loadExemptMembers(force) {
+    if (exemptSelection && !force) { renderExemptList(); return; }
+    const status = document.getElementById('exemptStatus');
+    const list = document.getElementById('exemptList');
+    status.textContent = '';
+    list.innerHTML = '<div style="text-align:center;padding:12px;color:var(--text-muted)">Loading...</div>';
+    try {
+      const result = await callFunction('getExemptMembers');
+      exemptSelection = new Set();
+      exemptReasons = {};
+      (result && result.members ? result.members : []).forEach(entry => {
+        const key = String(entry.name || '').toLowerCase();
+        if (!key) return;
+        exemptSelection.add(key);
+        exemptReasons[key] = entry.reason || '';
+      });
+      renderExemptList();
+    } catch (err) {
+      list.innerHTML = '<div style="color:var(--danger);padding:12px">Error: ' + err.message + '</div>';
+    }
+  }
+
+  function renderExemptList() {
+    const list = document.getElementById('exemptList');
+    const summary = document.getElementById('exemptSummary');
+    if (!list || !exemptSelection) return;
+    const filter = (document.getElementById('exemptSearchInput')?.value || '').toLowerCase().trim();
+    const sorted = [...membersData].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+    const visible = sorted.filter(m => !filter || (m.name || '').toLowerCase().includes(filter));
+    summary.textContent = `${exemptSelection.size} exempt member(s)`;
+    if (visible.length === 0) { list.innerHTML = '<div style="padding:12px;color:var(--text-muted)">No matching members.</div>'; return; }
+    list.innerHTML = visible.map(m => {
+      const key = (m.name || '').toLowerCase();
+      const checked = exemptSelection.has(key) ? ' checked' : '';
+      return `<label style="display:grid;grid-template-columns:auto 1fr minmax(160px,260px);gap:8px;align-items:center;padding:6px 8px;border-bottom:1px solid #eee;text-transform:none;color:var(--text);font-size:0.9em;">
+        <input type="checkbox" data-member="${escapeAttr(m.name)}" onchange="toggleExemptMember(this)"${checked}>
+        <span>${escapeHtml(m.name)}</span>
+        <input type="text" value="${escapeAttr(exemptReasons[key] || '')}" placeholder="Reason" oninput="exemptReasons['${escapeAttr(key)}']=this.value" style="padding:4px 8px;border:1px solid var(--border);border-radius:4px;">
+      </label>`;
+    }).join('');
+  }
+
+  function toggleExemptMember(input) {
+    if (!exemptSelection) exemptSelection = new Set();
+    const name = input.dataset.member || '';
+    const key = name.toLowerCase();
+    if (input.checked) exemptSelection.add(key);
+    else exemptSelection.delete(key);
+    renderExemptList();
+  }
+
+  async function saveExemptMembers() {
+    const status = document.getElementById('exemptStatus');
+    status.textContent = 'Saving...'; status.className = 'status';
+    const rows = [...membersData]
+      .filter(m => exemptSelection && exemptSelection.has((m.name || '').toLowerCase()))
+      .map(m => ({ name: m.name, reason: exemptReasons[(m.name || '').toLowerCase()] || '' }));
+    try {
+      const result = await callFunction('setExemptMembers', [rows]);
+      status.textContent = result?.message || 'Saved exemptions.';
+      status.className = result?.success ? 'status ok' : 'status err';
+      if (result?.success) loadExemptMembers(true);
+    } catch (err) {
+      status.textContent = 'Error: ' + err.message;
+      status.className = 'status err';
+    }
+  }
+
+  // ===========================
+  // LINKED GOOGLE ACCOUNTS
+  // ===========================
+  let memberAccounts = null;
+
+  async function loadMemberAccounts(force) {
+    if (memberAccounts && !force) { renderMemberAccounts(); return; }
+    const status = document.getElementById('accountsStatus');
+    const list = document.getElementById('accountsList');
+    status.textContent = '';
+    list.innerHTML = '<div style="text-align:center;padding:12px;color:var(--text-muted)">Loading...</div>';
+    try {
+      const result = await callFunction('getMemberGoogleAccounts');
+      memberAccounts = result && Array.isArray(result.members) ? result.members : [];
+      renderMemberAccounts();
+    } catch (err) {
+      list.innerHTML = '<div style="color:var(--danger);padding:12px">Error: ' + err.message + '</div>';
+    }
+  }
+
+  function renderMemberAccounts() {
+    const list = document.getElementById('accountsList');
+    const summary = document.getElementById('accountsSummary');
+    if (!list || !memberAccounts) return;
+    const filter = (document.getElementById('accountsSearchInput')?.value || '').toLowerCase().trim();
+    const rows = memberAccounts
+      .slice()
+      .sort((a, b) => (a.name || '').localeCompare(b.name || ''))
+      .filter(entry => !filter || (entry.name || '').toLowerCase().includes(filter) || (entry.email || '').toLowerCase().includes(filter));
+    const linked = memberAccounts.filter(entry => entry.email).length;
+    summary.textContent = `${linked}/${memberAccounts.length} member account(s) linked`;
+    if (rows.length === 0) { list.innerHTML = '<div style="padding:12px;color:var(--text-muted)">No matching members.</div>'; return; }
+    list.innerHTML = rows.map(entry => `
+      <label style="display:grid;grid-template-columns:minmax(130px,1fr) minmax(220px,2fr);gap:8px;align-items:center;padding:6px 8px;border-bottom:1px solid #eee;text-transform:none;color:var(--text);font-size:0.9em;">
+        <span>${escapeHtml(entry.name)}</span>
+        <input type="email" value="${escapeAttr(entry.email || '')}" data-member="${escapeAttr(entry.name)}" oninput="updateMemberAccount(this)" placeholder="name@example.com" style="padding:6px 8px;border:1px solid var(--border);border-radius:4px;">
+      </label>`).join('');
+  }
+
+  function updateMemberAccount(input) {
+    const name = input.dataset.member || '';
+    const found = (memberAccounts || []).find(entry => entry.name === name);
+    if (found) found.email = input.value.trim().toLowerCase();
+  }
+
+  async function saveMemberAccounts() {
+    const status = document.getElementById('accountsStatus');
+    status.textContent = 'Saving...'; status.className = 'status';
+    try {
+      const result = await callFunction('setMemberGoogleAccounts', [memberAccounts || []]);
+      status.textContent = result?.message || 'Saved linked accounts.';
+      status.className = result?.success ? 'status ok' : 'status err';
+      if (result?.success) loadMemberAccounts(true);
     } catch (err) {
       status.textContent = 'Error: ' + err.message;
       status.className = 'status err';

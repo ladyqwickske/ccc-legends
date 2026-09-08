@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>cCc Legends - My Profile</title>
+  <link rel="icon" type="image/png" href="logo.png">
+  <script src="perf-debug.js"></script>
+  <script src="config.js"></script>
+  <script src="site-config.js"></script>
+  <script src="portal-shim.js"></script>
+  <script src="portal-auth.js"></script>
+  <style>
+    :root {
+      --primary: #1fc1e6;
+      --primary-soft: #55d9f3;
+      --primary-hover: #076b88;
+      --accent: #ffd24d;
+      --accent-light: #fff49a;
+      --accent-deep: #c57a00;
+      --bg-card: rgba(255, 255, 255, 0.95);
+      --bg-card-soft: #dff6ff;
+      --bg-page: #dff6ff;
+      --bg-page-alt: #ffffff;
+      --text: #0b3d59;
+      --text-muted: #076b88;
+      --success: #0ea5c6;
+      --danger: #8a5b00;
+      --debt: #c62828;
+      --border: #55d9f3;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: linear-gradient(135deg, var(--bg-page-alt) 0%, var(--bg-page) 55%, var(--accent-light) 100%);
+      color: var(--text); min-height: 100vh; background-attachment: fixed; padding: 60px 8px 80px 8px;
+    }
+    .tab-nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+      display: flex; justify-content: center; gap: 0;
+      background: rgba(255,255,255,0.96); border-bottom: 2px solid var(--primary-soft);
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08); padding: 0;
+    }
+    .tab-nav a { color: var(--text-muted); text-decoration: none; padding: 12px 18px; font-size: 0.95em; font-weight: 500; border-bottom: 3px solid transparent; transition: all 0.2s; }
+    .tab-nav a:hover { color: var(--primary); }
+    .tab-nav a.active { color: var(--primary); border-bottom-color: var(--primary); }
+    .nav-icon { width: 18px; height: 18px; vertical-align: middle; margin-right: 4px; }
+    .login-bar { position: fixed; top: 0; right: 8px; z-index: 1001; display: flex; align-items: center; gap: 8px; padding: 8px; }
+    .login-bar .user-email { font-size: 0.8em; color: var(--primary); }
+    .login-bar button { background: var(--primary); color: #ffffff; border: none; border-radius: 6px; padding: 6px 14px; cursor: pointer; font-weight: 600; font-size: 0.85em; }
+    .login-bar button:hover { background: var(--primary-hover); }
+    .login-bar .logout-btn { background: var(--accent-light); color: var(--accent-deep); }
+    .nav-links { display: flex; }
+    .hamburger { display: none; background: none; border: none; cursor: pointer; padding: 8px; flex-direction: column; gap: 4px; }
+    .hamburger span { display: block; width: 22px; height: 2px; background: var(--primary); border-radius: 2px; }
+    .container { max-width: 1040px; margin: 0 auto; background: var(--bg-card); border-radius: 16px; box-shadow: 0 12px 30px rgba(11,61,89,0.12); padding: 24px 16px; border: 1px solid rgba(85,217,243,0.45); }
+    h1 { color: var(--primary); text-align: center; margin-bottom: 4px; font-size: 1.8em; }
+    h2 { color: var(--primary); font-size: 1.05em; margin: 18px 0 10px; }
+    .site-logo { width: 64px; height: 64px; display: block; margin: 0 auto 8px auto; }
+    .subtitle { text-align: center; color: var(--text-muted); margin-bottom: 16px; font-size: 0.9em; }
+    .account-picker { display: none; max-width: 360px; margin: 0 auto 16px; }
+    label { display: block; font-size: 0.75em; font-weight: 700; color: var(--primary-hover); margin-bottom: 4px; text-transform: uppercase; }
+    select { width: 100%; padding: 9px 11px; background: #ffffff; border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 0.9em; }
+    .headline { border-radius: 12px; padding: 18px; margin: 16px 0; border: 1px solid var(--border); background: #fff; }
+    .headline .caption { font-size: 0.78em; text-transform: uppercase; color: var(--text-muted); font-weight: 700; margin-bottom: 4px; }
+    .headline .amount { font-size: 2.1em; font-weight: 800; overflow-wrap: anywhere; }
+    .headline.savings { background: #e8f8f9; border-color: var(--primary-soft); }
+    .headline.savings .amount { color: var(--success); }
+    .headline.debt { background: #ffebee; border-color: #ffcdd2; }
+    .headline.debt .amount { color: var(--debt); }
+    .headline.neutral .amount { color: var(--text-muted); }
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin: 12px 0; }
+    .card { background: linear-gradient(180deg, #ffffff 0%, var(--bg-card-soft) 100%); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+    .card .label { color: var(--text-muted); font-size: 0.75em; font-weight: 700; text-transform: uppercase; margin-bottom: 4px; }
+    .card .value { color: var(--text); font-size: 1.25em; font-weight: 800; }
+    .card .sub { color: var(--text-muted); font-size: 0.75em; margin-top: 4px; }
+    .progress-track { height: 10px; background: #e8eef2; border-radius: 5px; overflow: hidden; margin: 4px 0 8px; }
+    .progress-fill { height: 100%; background: var(--primary); }
+    .table-wrap { overflow: auto; max-height: 48vh; border: 1px solid var(--border); border-radius: 8px; background: #fff; margin-top: 8px; }
+    table { width: 100%; border-collapse: collapse; min-width: 620px; font-size: 0.86em; }
+    th { position: sticky; top: 0; background: var(--bg-card-soft); color: var(--primary-hover); padding: 9px 8px; text-align: left; border-bottom: 2px solid var(--accent); z-index: 1; }
+    td { padding: 8px; border-bottom: 1px solid #e8eef2; }
+    tr:hover { background: rgba(85,217,243,0.14); }
+    .positive { color: var(--success); font-weight: 700; }
+    .negative { color: var(--debt); font-weight: 700; }
+    .note, .empty { color: var(--text-muted); font-size: 0.86em; padding: 8px 0; }
+    .loading { text-align: center; padding: 40px; color: var(--text-muted); }
+    .spinner { display: inline-block; width: 24px; height: 24px; border: 3px solid var(--border); border-top-color: var(--primary); border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .toast { position: fixed; bottom: 20px; right: 20px; z-index: 3000; background: #fff; color: var(--text); padding: 12px 20px; border-radius: 8px; font-size: 0.9em; display: none; box-shadow: 0 2px 12px rgba(0,0,0,0.12); }
+    .toast.success { border-left: 4px solid var(--success); }
+    .toast.error { border-left: 4px solid var(--danger); }
+    @media (max-width: 600px) {
+      body { padding: 50px 4px 70px 4px; }
+      .tab-nav { flex-wrap: wrap; padding: 0 8px; align-items: center; }
+      .hamburger { display: flex; }
+      .login-bar { position: static; flex: 1; justify-content: flex-end; padding: 4px 0; gap: 6px; }
+      .nav-links { display: none; width: 100%; flex-direction: column; order: 10; }
+      .nav-links.open { display: flex; }
+      .nav-links a { padding: 10px 12px; font-size: 0.9em; border-bottom: 1px solid var(--border); }
+      table { min-width: 560px; }
+    }
+  </style>
+</head>
+<body>
+
+<nav class="tab-nav">
+  <button class="hamburger" id="hamburgerBtn" onclick="document.getElementById('navLinks').classList.toggle('open')"><span></span><span></span><span></span></button>
+  <div class="login-bar" id="loginBar">
+    <span class="user-email" id="userEmail" style="display:none"></span>
+    <button id="loginBtn" onclick="handleLogin()">Login</button>
+    <button id="logoutBtn" class="logout-btn" style="display:none" onclick="handleLogout()">Logout</button>
+  </div>
+  <div class="nav-links" id="navLinks">
+    <a href="dashboard.html"><img src="chest.png" class="nav-icon" alt=""> Dashboard</a>
+    <a href="events.html"><img src="events.png" class="nav-icon" alt=""> Events</a>
+    <a href="members.html"><img src="members.png" class="nav-icon" alt=""> Members</a>
+    <a href="profiling.html"><img src="profiling.png" class="nav-icon" alt=""> Profiling</a>
+    <a href="resources.html"><img src="resources.png" class="nav-icon" alt=""> Resources</a>
+    <a href="warnings.html"><img src="warning.png" class="nav-icon" alt=""> Warnings</a>
+    <a href="calendar.html"><img src="calendar.png" class="nav-icon" alt=""> Calendar</a>
+    <a href="bank.html"><img src="bank.png" class="nav-icon" alt=""> Bank</a>
+    <a href="myprofile.html" class="active" id="myProfileTabBtn"><img src="members.png" class="nav-icon" alt=""> My Profile</a>
+  </div>
+</nav>
+
+<div class="container">
+  <img src="logo.png" alt="cCc Legends" class="site-logo">
+  <h1>My Profile</h1>
+  <p class="subtitle">Your bank balance, target progress, and recent activity</p>
+
+  <div class="account-picker" id="accountPicker">
+    <label for="accountSelect">Linked Member</label>
+    <select id="accountSelect" onchange="onAccountChange()"></select>
+  </div>
+
+  <div id="profileContent"><div class="loading"><div class="spinner"></div><br>Loading profile...</div></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  let isLoggedIn = false;
+  let currentUser = null;
+  let selectedMember = '';
+
+  document.addEventListener('DOMContentLoaded', () => {
+    checkLoginState();
+    loadProfile();
+  });
+
+  function checkLoginState() {
+    const stored = localStorage.getItem('leg_auth');
+    if (stored) {
+      try {
+        currentUser = JSON.parse(stored);
+        isLoggedIn = !!(currentUser && currentUser.email && currentUser.allowed !== false);
+      } catch (e) {}
+    }
+    updateLoginUI();
+  }
+
+  function handleLogin() {
+    if (!document.getElementById('gsi-script')) {
+      const script = document.createElement('script');
+      script.id = 'gsi-script';
+      script.src = 'https://accounts.google.com/gsi/client';
+      script.onload = () => initGoogleLogin();
+      document.head.appendChild(script);
+    } else { initGoogleLogin(); }
+  }
+
+  function initGoogleLogin() {
+    google.accounts.id.initialize({ client_id: SITE_CONFIG.googleClientId, callback: handleGoogleCallback });
+    google.accounts.id.prompt();
+  }
+
+  async function handleGoogleCallback(response) {
+    try {
+      const res = await fetch(window.GAS_WEB_APP_URL, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idToken: response.credential })
+      });
+      const data = await res.json();
+      if (data.success && data.email) {
+        const verifyRes = await fetch(window.GAS_WEB_APP_URL, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'api', fn: 'verifyGoogleLogin', args: [{ email: data.email }] })
+        });
+        const verifyData = await verifyRes.json();
+        const auth = (verifyData && verifyData.data) ? verifyData.data : verifyData;
+        if (auth && auth.success && auth.allowed) {
+          isLoggedIn = true;
+          currentUser = { email: data.email, allowed: true, role: auth.role, memberName: auth.memberName, memberNames: auth.memberNames || [] };
+          localStorage.setItem('leg_auth', JSON.stringify(currentUser));
+          updateLoginUI();
+          showToast('Logged in as ' + data.email, 'success');
+          loadProfile();
+        } else { showToast((auth && (auth.message || auth.debug)) || 'Access denied', 'error'); }
+      }
+    } catch (err) { showToast('Login error: ' + err.message, 'error'); }
+  }
+
+  function handleLogout() {
+    isLoggedIn = false; currentUser = null;
+    localStorage.removeItem('leg_auth');
+    localStorage.removeItem('leg_portal_role');
+    localStorage.removeItem('leg_portal_member');
+    updateLoginUI();
+    renderSignedOut();
+  }
+
+  function updateLoginUI() {
+    document.getElementById('userEmail').textContent = isLoggedIn && currentUser ? currentUser.email : '';
+    document.getElementById('userEmail').style.display = isLoggedIn ? 'inline' : 'none';
+    document.getElementById('loginBtn').style.display = isLoggedIn ? 'none' : 'inline';
+    document.getElementById('logoutBtn').style.display = isLoggedIn ? 'inline' : 'none';
+  }
+
+  function renderSignedOut() {
+    document.getElementById('accountPicker').style.display = 'none';
+    document.getElementById('profileContent').innerHTML = '<div class="empty" style="text-align:center;padding:36px 8px;">Sign in with the Google account linked to your clan name to view your profile.<br><br><button class="btn" onclick="handleLogin()" style="background:var(--primary);color:#fff;border:none;border-radius:8px;padding:10px 22px;font-weight:700;cursor:pointer;">Login</button></div>';
+  }
+
+  function onAccountChange() {
+    selectedMember = document.getElementById('accountSelect').value || '';
+    loadProfile();
+  }
+
+  function renderAccountPicker(names, current) {
+    const picker = document.getElementById('accountPicker');
+    const select = document.getElementById('accountSelect');
+    if (!names || names.length < 2) { picker.style.display = 'none'; return; }
+    select.innerHTML = names.map(name => `<option value="${escapeAttr(name)}"${name === current ? ' selected' : ''}>${escapeHtml(name)}</option>`).join('');
+    picker.style.display = 'block';
+  }
+
+  async function loadProfile() {
+    const container = document.getElementById('profileContent');
+    if (!isLoggedIn || !currentUser || !currentUser.email) { renderSignedOut(); return; }
+
+    container.innerHTML = '<div class="loading"><div class="spinner"></div><br>Loading profile...</div>';
+    try {
+      const res = await fetch(window.GAS_WEB_APP_URL, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'getMyProfile', email: currentUser.email, memberName: selectedMember })
+      });
+      const payload = await res.json();
+      const data = payload && payload.ok ? payload.data : payload;
+      if (!data || !data.success) {
+        renderAccountPicker(data && data.memberNames, selectedMember);
+        container.innerHTML = '<div class="empty" style="text-align:center;padding:36px 8px;">' + escapeHtml(data && data.message ? data.message : 'Could not load your profile.') + '</div>';
+        return;
+      }
+      selectedMember = data.memberName;
+      renderAccountPicker(data.memberNames, data.memberName);
+      renderProfile(data);
+    } catch (err) {
+      container.innerHTML = '<div class="empty" style="text-align:center;padding:36px 8px;">Error: ' + escapeHtml(err.message) + '</div>';
+    }
+  }
+
+  function renderProfile(data) {
+    const bank = data.bank || {};
+    const balance = Number(bank.totalBalance) || 0;
+    const state = balance > 0 ? 'savings' : (balance < 0 ? 'debt' : 'neutral');
+    const caption = balance > 0 ? 'Silver saved in the bank' : (balance < 0 ? 'Silver owed to the bank' : 'Bank balance');
+
+    let html = '<h2>' + escapeHtml(data.memberName) + '</h2>';
+    html += '<div class="headline ' + state + '"><div class="caption">' + caption + '</div><div class="amount">' + formatNumber(Math.abs(balance)) + '</div></div>';
+    html += '<div class="cards">'
+      + card('Total Deposits', formatNumber(bank.depositsTotal))
+      + card('Total Withdrawals', formatNumber(bank.withdrawalsTotal))
+      + card('Penalties Charged', formatNumber(bank.penaltiesTotal))
+      + card('Transactions', formatInt(bank.transactionCount), bank.lastTimestamp ? 'Last: ' + formatTimestamp(bank.lastTimestamp) : '')
+      + '</div>';
+
+    const active = data.activePeriod;
+    if (active) {
+      const percent = active.percentComplete == null ? 0 : active.percentComplete;
+      html += '<h2>Current Period</h2><div class="cards">'
+        + card('Period', escapeHtml(active.periodName || 'Current period'), active.startDate + ' to ' + active.endDate)
+        + card('Points Earned', formatInt(active.earnedPoints), formatInt(active.chestCount) + ' chests opened')
+        + card('Target', formatInt(active.target), active.penaltyPoints > 0 ? 'Includes +' + formatInt(active.penaltyPoints) + ' extra points' : 'Standard target')
+        + card('Still Needed', formatInt(active.remaining), percent + '% complete')
+        + '</div><div class="progress-track"><div class="progress-fill" style="width:' + Math.min(100, Math.max(0, percent)) + '%"></div></div>';
+    }
+
+    const categories = (data.chestBreakdown && data.chestBreakdown.categories) || [];
+    html += '<h2>Points by Chest Category</h2>';
+    if (!categories.length) {
+      html += '<div class="note">No chests recorded for this period yet.</div>';
+    } else {
+      html += '<div class="table-wrap"><table><thead><tr><th>Category</th><th>Chests</th><th>Points</th><th>Share</th></tr></thead><tbody>';
+      const totalPoints = Math.max(1, Number(data.chestBreakdown.totalPoints) || 0);
+      categories.forEach(category => {
+        const points = Number(category.points) || 0;
+        const share = Math.round((points / totalPoints) * 100);
+        html += '<tr><td>' + escapeHtml(category.type) + '</td><td>' + formatInt(category.chests) + '</td><td><strong>' + formatInt(points) + '</strong></td><td>' + share + '%</td></tr>';
+        (category.splits || []).forEach(split => {
+          html += '<tr><td style="padding-left:24px;color:var(--text-muted);">' + escapeHtml(split.label) + '</td><td>' + formatInt(split.chests) + '</td><td>' + formatInt(split.points) + '</td><td></td></tr>';
+        });
+      });
+      html += '</tbody></table></div>';
+    }
+
+    const transactions = data.transactions || [];
+    html += '<h2>Recent Bank Activity</h2>';
+    if (!transactions.length) {
+      html += '<div class="note">No bank transactions recorded yet.</div>';
+    } else {
+      html += '<div class="table-wrap"><table><thead><tr><th>Date</th><th>Type</th><th>Amount</th><th>Balance Impact</th><th>Reference</th><th>Remarks</th></tr></thead><tbody>'
+        + transactions.map(tx => {
+          const type = String(tx.transactionType || '').toLowerCase();
+          const isDebit = type === 'withdrawal' || type === 'penalty';
+          return '<tr><td>' + escapeHtml(formatTimestamp(tx.timestamp)) + '</td><td class="' + (isDebit ? 'negative' : 'positive') + '">' + escapeHtml(type || '-') + '</td><td>' + formatNumber(tx.amount) + '</td><td>' + formatNumber(tx.balance) + '</td><td>' + escapeHtml(tx.reference || '-') + '</td><td>' + escapeHtml(tx.remarks || '-') + '</td></tr>';
+        }).join('')
+        + '</tbody></table></div>';
+    }
+
+    document.getElementById('profileContent').innerHTML = html;
+  }
+
+  function card(label, value, sub) {
+    return '<div class="card"><div class="label">' + label + '</div><div class="value">' + value + '</div>' + (sub ? '<div class="sub">' + escapeHtml(sub) + '</div>' : '') + '</div>';
+  }
+  function formatNumber(value) { return Number(value || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+  function formatInt(value) { return Number(value || 0).toLocaleString(); }
+  function formatTimestamp(value) {
+    if (!value) return '-';
+    const parsed = new Date(value);
+    if (isNaN(parsed.getTime())) return String(value);
+    return parsed.toISOString().replace('T', ' ').substring(0, 16) + ' UTC';
+  }
+  function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str == null ? '' : str;
+    return div.innerHTML;
+  }
+  function escapeAttr(str) { return String(str || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+  function showToast(message, type) {
+    const toast = document.getElementById('toast');
+    toast.textContent = message;
+    toast.className = 'toast ' + (type || '');
+    toast.style.display = 'block';
+    setTimeout(() => { toast.style.display = 'none'; }, 3000);
+  }
+</script>
+</body>
+</html>

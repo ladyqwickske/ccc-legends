@@ -9,6 +9,7 @@
   <script src="config.js"></script>
   <script src="site-config.js"></script>
   <script src="portal-shim.js"></script>
+  <script src="portal-auth.js"></script>
   <style>
     :root {
       --primary: #1fc1e6;
@@ -210,6 +211,7 @@
     <a href="resources.html" id="navResources" style="display:none"><img src="resources.png" class="nav-icon" alt=""> Resources</a>
     <a href="warnings.html"  id="navWarnings" style="display:none"><img src="warning.png" class="nav-icon" alt=""> Warnings</a>
     <a href="calendar.html" class="active"><img src="calendar.png" class="nav-icon" alt=""> Calendar</a>
+    <a href="bank.html" id="navBank" style="display:none"><img src="bank.png" class="nav-icon" alt=""> Bank</a>
   </div>
 </nav>
 
@@ -373,6 +375,7 @@
     document.getElementById('navProfiling').style.display = isLoggedIn ? '' : 'none';
     document.getElementById('navResources').style.display = isLoggedIn ? '' : 'none';
     document.getElementById('navWarnings').style.display = isLoggedIn ? '' : 'none';
+    document.getElementById('navBank').style.display = isLoggedIn ? '' : 'none';
   }
 
   // LOAD EVENTS (recurring only — backend events are managed on the Events page)
