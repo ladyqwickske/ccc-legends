@@ -115,6 +115,8 @@
     .table-wrap { overflow: auto; max-height: 58vh; border: 1px solid var(--border); border-radius: 8px; background: #fff; }
     table { width: 100%; border-collapse: collapse; min-width: 680px; font-size: 0.86em; }
     th { position: sticky; top: 0; background: var(--bg-card-soft); color: var(--primary-hover); padding: 9px 8px; text-align: left; border-bottom: 2px solid var(--accent); z-index: 1; }
+    .sort-header { padding: 0; border: 0; background: transparent; color: inherit; font: inherit; text-transform: inherit; letter-spacing: inherit; cursor: pointer; text-align: left; }
+    .sort-header:hover { color: var(--primary); }
     td { padding: 8px; border-bottom: 1px solid #e8eef2; }
     tr:hover { background: rgba(85,217,243,0.14); }
     .status-badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 0.75em; font-weight: 800; }
@@ -264,7 +266,14 @@
         </div>
         <div class="table-wrap">
           <table>
-            <thead><tr><th>Member</th><th>Status</th><th>Balance</th><th>Deposits</th><th>Withdrawals</th><th>Penalties</th><th>Rows</th><th>Last Transaction</th></tr></thead>
+            <thead><tr>
+              <th><button type="button" class="sort-header" data-balance-sort="memberName">Member</button></th>
+              <th><button type="button" class="sort-header" data-balance-sort="status">Status</button></th>
+              <th><button type="button" class="sort-header" data-balance-sort="totalBalance">Balance</button></th>
+              <th><button type="button" class="sort-header" data-balance-sort="penaltiesTotal">Penalties</button></th>
+              <th><button type="button" class="sort-header" data-balance-sort="transactionCount">Rows</button></th>
+              <th><button type="button" class="sort-header" data-balance-sort="lastTimestamp">Last Transaction</button></th>
+            </tr></thead>
             <tbody id="balancesBody"></tbody>
           </table>
         </div>
@@ -302,6 +311,7 @@
   let allTransactionsData = [];
   let allBalancesData = [];
   let editingSheetRow = null;
+  let balanceSort = { key: 'totalBalance', direction: 'desc' };
   const OTHER_MEMBER_VALUE = '__other__';
 
   document.addEventListener('DOMContentLoaded', () => {
@@ -388,6 +398,9 @@
     document.getElementById('transactionsFilterMember').addEventListener('input', filterTransactions);
     document.getElementById('transactionsFilterType').addEventListener('change', filterTransactions);
     document.getElementById('bankForm').addEventListener('submit', submitTransaction);
+    document.querySelectorAll('[data-balance-sort]').forEach(button => {
+      button.addEventListener('click', () => sortBalances(button.dataset.balanceSort));
+    });
   }
 
   function updateTransactionFields() {
@@ -574,20 +587,60 @@
       return;
     }
     empty.textContent = '';
-    tbody.innerHTML = items.map(item => {
+    tbody.innerHTML = sortBalanceItems(items).map(item => {
       const balance = Number(item.totalBalance) || 0;
       const status = item.status || 'external';
       return `<tr>
         <td>${escapeHtml(item.memberName)}</td>
         <td><span class="status-badge status-${escapeAttr(status)}">${escapeHtml(statusLabel(status))}</span></td>
         <td class="${balance < 0 ? 'negative' : 'positive'}">${formatNumber(balance)}</td>
-        <td>${formatNumber(item.depositsTotal)}</td>
-        <td>${formatNumber(item.withdrawalsTotal)}</td>
         <td class="${Number(item.penaltiesTotal) > 0 ? 'negative' : ''}">${formatNumber(item.penaltiesTotal)}</td>
         <td>${Number(item.transactionCount || 0)}</td>
         <td>${escapeHtml(formatTimestamp(item.lastTimestamp))}</td>
       </tr>`;
     }).join('');
+  }
+
+  function sortBalanceItems(items) {
+    const direction = balanceSort.direction === 'asc' ? 1 : -1;
+    return items.slice().sort((left, right) => {
+      let leftValue = left[balanceSort.key];
+      let rightValue = right[balanceSort.key];
+      if (balanceSort.key === 'status') {
+        leftValue = statusLabel(leftValue || 'external');
+        rightValue = statusLabel(rightValue || 'external');
+      } else if (balanceSort.key === 'lastTimestamp') {
+        leftValue = leftValue ? new Date(leftValue).getTime() : 0;
+        rightValue = rightValue ? new Date(rightValue).getTime() : 0;
+      } else if (balanceSort.key !== 'memberName') {
+        leftValue = Number(leftValue) || 0;
+        rightValue = Number(rightValue) || 0;
+      } else {
+        leftValue = String(leftValue || '').toLowerCase();
+        rightValue = String(rightValue || '').toLowerCase();
+      }
+      if (leftValue < rightValue) return -1 * direction;
+      if (leftValue > rightValue) return 1 * direction;
+      return String(left.memberName || '').localeCompare(String(right.memberName || ''));
+    });
+  }
+
+  function sortBalances(key) {
+    if (balanceSort.key === key) {
+      balanceSort.direction = balanceSort.direction === 'asc' ? 'desc' : 'asc';
+    } else {
+      balanceSort = { key: key, direction: key === 'memberName' || key === 'status' ? 'asc' : 'desc' };
+    }
+    updateBalanceSortIndicators();
+    filterBalances();
+  }
+
+  function updateBalanceSortIndicators() {
+    document.querySelectorAll('[data-balance-sort]').forEach(button => {
+      const isActive = button.dataset.balanceSort === balanceSort.key;
+      button.textContent = button.textContent.replace(/ [▲▼]$/, '')
+        + (isActive ? (balanceSort.direction === 'asc' ? ' ▲' : ' ▼') : '');
+    });
   }
 
   function renderTransactions(items) {
