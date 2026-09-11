@@ -17,7 +17,9 @@ const SITE_CONFIG = {
   googleClientId: '47674606892-0m90hd0cd01kijo69ssuqtn1j3igp32i.apps.googleusercontent.com',
 
   // Members hidden from progress stats when not logged in
-  maskedMembers: [],
+  maskedMembers: [
+    'Legendary CQ'
+  ],
 
   // Navigation Pages
   pages: [

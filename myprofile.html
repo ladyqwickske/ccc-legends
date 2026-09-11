@@ -309,11 +309,14 @@
     if (!transactions.length) {
       html += '<div class="note">No bank transactions recorded yet.</div>';
     } else {
-      html += '<div class="table-wrap"><table><thead><tr><th>Date</th><th>Type</th><th>Amount</th><th>Balance Impact</th><th>Reference</th><th>Remarks</th></tr></thead><tbody>'
+      html += '<div class="table-wrap"><table><thead><tr><th>Date</th><th>Type</th><th>Amount</th><th>Balance Impact</th><th>From / To</th><th>Reference</th><th>Remarks</th></tr></thead><tbody>'
         + transactions.map(tx => {
           const type = String(tx.transactionType || '').toLowerCase();
           const isDebit = type === 'withdrawal' || type === 'penalty';
-          return '<tr><td>' + escapeHtml(formatTimestamp(tx.timestamp)) + '</td><td class="' + (isDebit ? 'negative' : 'positive') + '">' + escapeHtml(type || '-') + '</td><td>' + formatNumber(tx.amount) + '</td><td>' + formatNumber(tx.balance) + '</td><td>' + escapeHtml(tx.reference || '-') + '</td><td>' + escapeHtml(tx.remarks || '-') + '</td></tr>';
+          const impact = tx.balanceImpact == null ? tx.balance : tx.balanceImpact;
+          const sourceLabel = tx.counterparty ? ((tx.direction === 'received' ? 'From: ' : 'To: ') + tx.counterparty) : '-';
+          const impactClass = Number(impact) < 0 ? 'negative' : 'positive';
+          return '<tr><td>' + escapeHtml(formatTimestamp(tx.timestamp)) + '</td><td class="' + (type === 'transfer' ? 'positive' : (isDebit ? 'negative' : 'positive')) + '">' + escapeHtml(type || '-') + '</td><td>' + formatNumber(tx.amount) + '</td><td class="' + impactClass + '">' + (Number(impact) > 0 ? '+' : '') + formatNumber(impact) + '</td><td>' + escapeHtml(sourceLabel) + '</td><td>' + escapeHtml(tx.reference || '-') + '</td><td>' + escapeHtml(tx.remarks || '-') + '</td></tr>';
         }).join('')
         + '</tbody></table></div>';
     }

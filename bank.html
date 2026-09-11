@@ -206,6 +206,8 @@
           <select id="transactionType" required>
             <option value="deposit">Deposit</option>
             <option value="withdrawal">Withdrawal</option>
+            <option value="transfer">Transfer to member</option>
+            <option value="penalty">Penalty</option>
           </select>
         </div>
         <div class="form-row" id="depositedByRow">
@@ -213,16 +215,21 @@
           <input type="text" id="depositedBy" placeholder="Who actually deposited, if different">
         </div>
         <div class="form-row" id="recipientRow" style="display:none">
-          <label for="recipient">Recipient</label>
-          <input type="text" id="recipient" placeholder="Who received the funds, if different">
+          <label for="recipient" id="recipientLabel">Recipient</label>
+          <select id="recipient"><option value="">Loading members...</option></select>
         </div>
-        <div class="form-row">
+        <div class="form-row" id="customRecipientRow" style="display:none">
+          <label for="customRecipientName">Other Recipient</label>
+          <input type="text" id="customRecipientName" placeholder="Former member or someone from another clan">
+          <small>Used as-is; keep spelling consistent so the balance stays on one row.</small>
+        </div>
+        <div class="form-row" id="feeRow">
           <label for="fee">Percentage Fee (%)</label>
           <input type="number" id="fee" min="0" max="100" step="0.01" value="0" required>
         </div>
         <div class="form-row">
           <label for="amount">Amount</label>
-          <input type="number" id="amount" min="0" step="0.01" required>
+          <input type="text" id="amount" inputmode="decimal" autocomplete="off" placeholder="1,000,000,000" required>
         </div>
         <div class="form-row">
           <label for="transactionDate">Transaction Date</label>
@@ -271,12 +278,13 @@
             <option value="">All transaction types</option>
             <option value="deposit">Deposit</option>
             <option value="withdrawal">Withdrawal</option>
+            <option value="transfer">Transfer</option>
             <option value="penalty">Penalty</option>
           </select>
         </div>
         <div class="table-wrap">
           <table>
-            <thead><tr><th>Member</th><th>Timestamp</th><th>Type</th><th>Amount</th><th>Fee</th><th>Balance</th><th>Deposited By</th><th>Recipient</th><th>Reference</th><th>Remarks</th></tr></thead>
+            <thead><tr><th>Member</th><th>Timestamp</th><th>Type</th><th>Amount</th><th>Fee</th><th>Balance</th><th>Deposited By</th><th>Recipient</th><th>Reference</th><th>Remarks</th><th>Actions</th></tr></thead>
             <tbody id="transactionsBody"></tbody>
           </table>
         </div>
@@ -293,6 +301,7 @@
   let currentUser = null;
   let allTransactionsData = [];
   let allBalancesData = [];
+  let editingSheetRow = null;
   const OTHER_MEMBER_VALUE = '__other__';
 
   document.addEventListener('DOMContentLoaded', () => {
@@ -372,6 +381,8 @@
   function bindBankUi() {
     document.getElementById('transactionType').addEventListener('change', updateTransactionFields);
     document.getElementById('memberName').addEventListener('change', toggleCustomMemberRow);
+    document.getElementById('recipient').addEventListener('change', toggleCustomRecipientRow);
+    document.getElementById('amount').addEventListener('blur', formatAmountInput);
     document.getElementById('balancesFilterMember').addEventListener('input', filterBalances);
     document.getElementById('balancesFilterStatus').addEventListener('change', filterBalances);
     document.getElementById('transactionsFilterMember').addEventListener('input', filterTransactions);
@@ -381,10 +392,20 @@
 
   function updateTransactionFields() {
     const type = document.getElementById('transactionType').value;
+    const recipientRow = document.getElementById('recipientRow');
+    const customRecipientRow = document.getElementById('customRecipientRow');
+    const feeRow = document.getElementById('feeRow');
+    const fee = document.getElementById('fee');
     document.getElementById('depositedByRow').style.display = type === 'deposit' ? 'block' : 'none';
-    document.getElementById('recipientRow').style.display = type === 'withdrawal' ? 'block' : 'none';
-    if (type === 'deposit') document.getElementById('recipient').value = '';
-    if (type === 'withdrawal') document.getElementById('depositedBy').value = '';
+    recipientRow.style.display = (type === 'withdrawal' || type === 'transfer') ? 'block' : 'none';
+    if (customRecipientRow && type !== 'withdrawal' && type !== 'transfer') customRecipientRow.style.display = 'none';
+    if (feeRow) feeRow.style.display = type === 'penalty' ? 'none' : 'block';
+    if (type === 'penalty' && fee) fee.value = '0';
+    if (type === 'deposit' || type === 'penalty') document.getElementById('recipient').value = '';
+    if (type !== 'deposit') document.getElementById('depositedBy').value = '';
+    const label = document.getElementById('recipientLabel');
+    if (label) label.textContent = type === 'transfer' ? 'Recipient (required)' : 'Recipient (optional)';
+    toggleCustomRecipientRow();
   }
 
   function toggleCustomMemberRow() {
@@ -399,6 +420,37 @@
     return selected === OTHER_MEMBER_VALUE ? document.getElementById('customMemberName').value.trim() : selected;
   }
 
+  function toggleCustomRecipientRow() {
+    const select = document.getElementById('recipient');
+    const row = document.getElementById('customRecipientRow');
+    if (!select || !row) return;
+    const isOther = select.value === OTHER_MEMBER_VALUE;
+    row.style.display = isOther ? 'block' : 'none';
+    if (isOther) document.getElementById('customRecipientName').focus();
+    else document.getElementById('customRecipientName').value = '';
+  }
+
+  function resolveRecipientName() {
+    const selected = document.getElementById('recipient').value;
+    return selected === OTHER_MEMBER_VALUE ? document.getElementById('customRecipientName').value.trim() : selected;
+  }
+
+  function parseFormattedNumber(value) {
+    const raw = String(value || '').trim();
+    const hasComma = raw.includes(',');
+    const hasPeriod = raw.includes('.');
+    const decimalIndex = hasComma && hasPeriod ? Math.max(raw.lastIndexOf(','), raw.lastIndexOf('.')) : -1;
+    const whole = decimalIndex === -1 ? raw : raw.substring(0, decimalIndex);
+    const decimal = decimalIndex === -1 ? '' : raw.substring(decimalIndex + 1);
+    return parseFloat(whole.replace(/[\s,.]/g, '') + (decimalIndex === -1 ? '' : '.' + decimal.replace(/[\s,.]/g, '')));
+  }
+
+  function formatAmountInput() {
+    const input = document.getElementById('amount');
+    const amount = parseFormattedNumber(input.value);
+    if (!isNaN(amount)) input.value = amount.toLocaleString('en-US', { maximumFractionDigits: 2 });
+  }
+
   async function refreshBankData(showNotice) {
     if (!isLoggedIn) return;
     await Promise.all([loadMemberOptions(), loadTransactions(), loadMemberBalances()]);
@@ -407,8 +459,11 @@
 
   async function loadMemberOptions() {
     const select = document.getElementById('memberName');
+    const recipient = document.getElementById('recipient');
     select.innerHTML = '<option value="">Loading members...</option>';
     select.disabled = true;
+    recipient.innerHTML = '<option value="">Loading members...</option>';
+    recipient.disabled = true;
     try {
       const result = await callFunction('getBankMemberOptions');
       const active = Array.isArray(result?.active) ? result.active : [];
@@ -420,12 +475,16 @@
       if (external.length) html += '<optgroup label="External / other clans">' + external.map(optionHtml).join('') + '</optgroup>';
       html += `<option value="${OTHER_MEMBER_VALUE}">➕ Other name (type it in)...</option>`;
       select.innerHTML = html;
+      recipient.innerHTML = html;
     } catch (err) {
       select.innerHTML = `<option value="${OTHER_MEMBER_VALUE}">➕ Other name (type it in)...</option>`;
+      recipient.innerHTML = `<option value="${OTHER_MEMBER_VALUE}">➕ Other name (type it in)...</option>`;
       console.error(err);
     }
     select.disabled = false;
+    recipient.disabled = false;
     toggleCustomMemberRow();
+    toggleCustomRecipientRow();
   }
 
   async function loadTransactions() {
@@ -461,28 +520,33 @@
 
     const memberName = resolveMemberName();
     const transactionType = document.getElementById('transactionType').value;
-    const amount = Number(document.getElementById('amount').value);
+    const amount = parseFormattedNumber(document.getElementById('amount').value);
     const fee = Number(document.getElementById('fee').value) || 0;
     const dateInput = document.getElementById('transactionDate').value;
     const timestamp = dateInput ? dateInput + 'T00:00:00.000Z' : new Date().toISOString();
 
     if (!memberName) { status.textContent = 'Please select a member or type a name.'; status.className = 'status err'; return; }
     if (!(amount > 0)) { status.textContent = 'Amount must be greater than 0.'; status.className = 'status err'; return; }
+    const recipient = resolveRecipientName();
+    if (transactionType === 'transfer' && !recipient) { status.textContent = 'Please select or enter a recipient for the transfer.'; status.className = 'status err'; return; }
 
     status.textContent = 'Saving...';
     try {
-      const result = await callFunction('addBankTransaction', [{
+      const result = await callFunction(editingSheetRow ? 'updateBankTransaction' : 'addBankTransaction', [{
+        sheetRow: editingSheetRow,
         memberName, timestamp, transactionType, amount, fee,
         depositedBy: document.getElementById('depositedBy').value.trim(),
-        recipient: document.getElementById('recipient').value.trim(),
+        recipient,
         remarks: document.getElementById('remarks').value.trim()
       }]);
       status.textContent = typeof result === 'string' ? result : 'Transaction recorded successfully.';
       status.className = 'status ok';
       document.getElementById('bankForm').reset();
+      editingSheetRow = null;
+      document.querySelector('#bankForm button[type="submit"]').textContent = 'Submit Transaction';
       document.getElementById('fee').value = '0';
       updateTransactionFields();
-      await refreshBankData();
+      await Promise.all([loadTransactions(), loadMemberBalances()]);
     } catch (err) {
       status.textContent = 'Error: ' + err.message;
       status.className = 'status err';
@@ -549,6 +613,7 @@
         <td>${escapeHtml(tx.recipient || '-')}</td>
         <td>${escapeHtml(tx.reference || '-')}</td>
         <td>${escapeHtml(tx.remarks || '-')}</td>
+        <td>${String(tx.reference || '').indexOf('Event Penalty:') === 0 ? '-' : `<button type="button" class="btn secondary edit-transaction-btn" data-sheet-row="${Number(tx.sheetRow)}">Edit</button>`}</td>
       </tr>`;
     }).join('');
   }
@@ -577,6 +642,40 @@
     renderTransactions(filtered);
   }
 
+  function editTransaction(sheetRow) {
+    const tx = allTransactionsData.find(item => Number(item.sheetRow) === Number(sheetRow));
+    if (!tx) return;
+    if (String(tx.reference || '').indexOf('Event Penalty:') === 0) {
+      showToast('Event penalty transactions must be changed from the event.', 'error');
+      return;
+    }
+    editingSheetRow = tx.sheetRow;
+    const memberSelect = document.getElementById('memberName');
+    memberSelect.value = tx.memberName || '';
+    if (memberSelect.value !== (tx.memberName || '')) {
+      memberSelect.value = OTHER_MEMBER_VALUE;
+      document.getElementById('customMemberName').value = tx.memberName || '';
+    }
+    toggleCustomMemberRow();
+    document.getElementById('transactionType').value = tx.transactionType || 'deposit';
+    document.getElementById('amount').value = Number(tx.amount || 0).toLocaleString('en-US', { maximumFractionDigits: 2 });
+    document.getElementById('fee').value = tx.fee || 0;
+    document.getElementById('depositedBy').value = tx.depositedBy || '';
+    const recipient = document.getElementById('recipient');
+    recipient.value = tx.recipient || '';
+    if (recipient.value !== (tx.recipient || '')) {
+      recipient.value = OTHER_MEMBER_VALUE;
+      document.getElementById('customRecipientName').value = tx.recipient || '';
+    }
+    document.getElementById('remarks').value = tx.remarks || '';
+    document.getElementById('transactionDate').value = tx.timestamp ? String(tx.timestamp).substring(0, 10) : '';
+    document.querySelector('#bankForm button[type="submit"]').textContent = 'Update Transaction';
+    updateTransactionFields();
+    toggleCustomRecipientRow();
+    document.getElementById('formStatus').textContent = '';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
   function optionHtml(name) { return `<option value="${escapeAttr(name)}">${escapeHtml(name)}</option>`; }
   function statusLabel(status) { return status === 'active' ? 'Active' : (status === 'former' ? 'Former' : 'External'); }
   function formatNumber(value) { return Number(value || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
@@ -599,6 +698,11 @@
     toast.style.display = 'block';
     setTimeout(() => { toast.style.display = 'none'; }, 3000);
   }
+
+  document.addEventListener('click', event => {
+    const button = event.target.closest('.edit-transaction-btn');
+    if (button) editTransaction(button.dataset.sheetRow);
+  });
 </script>
 </body>
 </html>
