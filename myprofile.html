@@ -286,6 +286,16 @@
         + '</div><div class="progress-track"><div class="progress-fill" style="width:' + Math.min(100, Math.max(0, percent)) + '%"></div></div>';
     }
 
+    const pointPenaltyHistory = data.pointPenaltyHistory || [];
+    html += '<h2>Point Penalties</h2>';
+    if (pointPenaltyHistory.length > 0) {
+      html += '<div class="table-wrap"><table><thead><tr><th>Event</th><th>Event Date</th><th>Penalty Points</th><th>Status</th></tr></thead><tbody>'
+        + pointPenaltyHistory.map(penalty => '<tr><td>' + escapeHtml(penalty.eventName || '-') + '</td><td>' + escapeHtml(formatDateOnly(penalty.startDate)) + ' to ' + escapeHtml(formatDateOnly(penalty.endDate)) + '</td><td class="negative">+' + formatInt(penalty.penaltyPoints) + '</td><td>' + escapeHtml(penalty.penaltyStatus || 'Auto') + '</td></tr>').join('')
+        + '</tbody></table></div>';
+    } else {
+      html += '<div class="note">No extra chest points are owed.</div>';
+    }
+
     const categories = (data.chestBreakdown && data.chestBreakdown.categories) || [];
     html += '<h2>Points by Chest Category</h2>';
     if (!categories.length) {
@@ -305,6 +315,16 @@
     }
 
     const transactions = data.transactions || [];
+    const penaltyTransactions = transactions.filter(tx => String(tx.transactionType || '').toLowerCase() === 'penalty');
+    if (penaltyTransactions.length > 0) {
+      html += '<h2>Silver Penalties Due</h2><div class="table-wrap"><table><thead><tr><th>Penalty</th><th>Due Date</th><th>Status</th></tr></thead><tbody>'
+        + penaltyTransactions.map(tx => {
+          const dueDate = tx.dueDate || getPenaltyDueDate(tx.timestamp);
+          const overdue = dueDate && dueDate < new Date().toISOString().substring(0, 10);
+          return '<tr><td>' + formatNumber(tx.balance) + '</td><td>' + escapeHtml(formatDateOnly(dueDate)) + '</td><td class="' + (overdue ? 'negative' : 'positive') + '">' + (overdue ? 'Overdue' : 'Due') + '</td></tr>';
+        }).join('')
+        + '</tbody></table></div>';
+    }
     html += '<h2>Recent Bank Activity</h2>';
     if (!transactions.length) {
       html += '<div class="note">No bank transactions recorded yet.</div>';
@@ -326,6 +346,17 @@
 
   function card(label, value, sub) {
     return '<div class="card"><div class="label">' + label + '</div><div class="value">' + value + '</div>' + (sub ? '<div class="sub">' + escapeHtml(sub) + '</div>' : '') + '</div>';
+  }
+  function getPenaltyDueDate(timestamp) {
+    const dueDate = new Date(timestamp || Date.now());
+    if (isNaN(dueDate.getTime())) return '';
+    dueDate.setUTCDate(dueDate.getUTCDate() + 14);
+    return dueDate.toISOString().substring(0, 10);
+  }
+  function formatDateOnly(value) {
+    if (!value) return '-';
+    const parsed = new Date(value + 'T00:00:00Z');
+    return isNaN(parsed.getTime()) ? String(value) : parsed.toISOString().substring(0, 10);
   }
   function formatNumber(value) { return Number(value || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
   function formatInt(value) { return Number(value || 0).toLocaleString(); }
