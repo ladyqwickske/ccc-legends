@@ -130,7 +130,7 @@
   <p class="subtitle">Your bank balance, target progress, and recent activity</p>
 
   <div class="account-picker" id="accountPicker">
-    <label for="accountSelect">Linked Member</label>
+    <label id="accountPickerLabel" for="accountSelect">Linked Member</label>
     <select id="accountSelect" onchange="onAccountChange()"></select>
   </div>
 
@@ -227,11 +227,19 @@
     loadProfile();
   }
 
-  function renderAccountPicker(names, current) {
+  function renderAccountPicker(names, current, linkedNames) {
     const picker = document.getElementById('accountPicker');
     const select = document.getElementById('accountSelect');
     if (!names || names.length < 2) { picker.style.display = 'none'; return; }
-    select.innerHTML = names.map(name => `<option value="${escapeAttr(name)}"${name === current ? ' selected' : ''}>${escapeHtml(name)}</option>`).join('');
+    const linked = Array.isArray(linkedNames) ? linkedNames : [];
+    const linkedKeys = new Set(linked.map(name => String(name).toLowerCase()));
+    const otherNames = names.filter(name => !linkedKeys.has(String(name).toLowerCase()));
+    const option = name => `<option value="${escapeAttr(name)}"${name === current ? ' selected' : ''}>${escapeHtml(name)}</option>`;
+    document.getElementById('accountPickerLabel').textContent = linked.length > 0 ? 'Profiles' : 'Linked Member';
+    select.innerHTML = linked.length > 0 && otherNames.length > 0
+      ? '<optgroup label="My linked accounts">' + linked.map(option).join('') + '</optgroup>'
+        + '<optgroup label="Other active members">' + otherNames.map(option).join('') + '</optgroup>'
+      : names.map(option).join('');
     picker.style.display = 'block';
   }
 
@@ -248,12 +256,12 @@
       const payload = await res.json();
       const data = payload && payload.ok ? payload.data : payload;
       if (!data || !data.success) {
-        renderAccountPicker(data && data.memberNames, selectedMember);
+        renderAccountPicker(data && data.memberNames, selectedMember, data && data.linkedMemberNames);
         container.innerHTML = '<div class="empty" style="text-align:center;padding:36px 8px;">' + escapeHtml(data && data.message ? data.message : 'Could not load your profile.') + '</div>';
         return;
       }
       selectedMember = data.memberName;
-      renderAccountPicker(data.memberNames, data.memberName);
+      renderAccountPicker(data.memberNames, data.memberName, data.linkedMemberNames);
       renderProfile(data);
     } catch (err) {
       container.innerHTML = '<div class="empty" style="text-align:center;padding:36px 8px;">Error: ' + escapeHtml(err.message) + '</div>';
@@ -287,6 +295,22 @@
     }
 
     const pointPenaltyHistory = data.pointPenaltyHistory || [];
+    if (data.role === 'admin') {
+      const norms = data.normHistory || [];
+      html += '<h2>Norms: Last Two Periods</h2>';
+      if (!norms.length) {
+        html += '<div class="note">No completed target-based norm events found.</div>';
+      } else {
+        html += '<div class="table-wrap"><table><thead><tr><th>Period</th><th>Event</th><th>Date</th><th>Achieved</th><th>Target</th><th>Progress</th><th>Status</th></tr></thead><tbody>'
+          + norms.map(norm => {
+            const color = norm.completed ? 'positive' : (Number(norm.percent) >= 70 ? '' : 'negative');
+            const status = norm.completed ? 'Completed' : 'Not completed';
+            const category = norm.category ? ' (' + escapeHtml(norm.category) + ')' : '';
+            return '<tr><td>' + escapeHtml(norm.periodName || '-') + '</td><td>' + escapeHtml(norm.eventName || '-') + category + '</td><td>' + escapeHtml(norm.startDate || '-') + ' to ' + escapeHtml(norm.endDate || '-') + '</td><td>' + formatInt(norm.achieved) + '</td><td>' + formatInt(norm.target) + '</td><td class="' + color + '">' + formatInt(norm.percent) + '%</td><td class="' + color + '">' + status + '</td></tr>';
+          }).join('')
+          + '</tbody></table></div>';
+      }
+    }
     html += '<h2>Point Penalties</h2>';
     if (pointPenaltyHistory.length > 0) {
       html += '<div class="table-wrap"><table><thead><tr><th>Event</th><th>Event Date</th><th>Penalty Points</th><th>Status</th></tr></thead><tbody>'
