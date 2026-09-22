@@ -196,7 +196,6 @@
     <a href="events.html"><img src="events.png" class="nav-icon" alt=""> Events</a>
     <a href="members.html" class="active"><img src="members.png" class="nav-icon" alt=""> Members</a>
     <a href="profiling.html"><img src="profiling.png" class="nav-icon" alt=""> Profiling</a>
-    <a href="resources.html"><img src="resources.png" class="nav-icon" alt=""> Resources</a>
     <a href="warnings.html"><img src="warning.png" class="nav-icon" alt=""> Warnings</a>
     <a href="calendar.html"><img src="calendar.png" class="nav-icon" alt=""> Calendar</a>
     <a href="bank.html"><img src="bank.png" class="nav-icon" alt=""> Bank</a>
@@ -971,7 +970,7 @@
   // PENALTY EXEMPTIONS
   // ===========================
   let exemptSelection = null;
-  let exemptReasons = {};
+  let exemptMeta = {};
 
   async function loadExemptMembers(force) {
     if (exemptSelection && !force) { renderExemptList(); return; }
@@ -982,12 +981,13 @@
     try {
       const result = await callFunction('getExemptMembers');
       exemptSelection = new Set();
-      exemptReasons = {};
+      exemptMeta = {};
       (result && result.members ? result.members : []).forEach(entry => {
-        const key = String(entry.name || '').toLowerCase();
+        const name = String(entry.name || '').trim();
+        const key = name.toLowerCase();
         if (!key) return;
         exemptSelection.add(key);
-        exemptReasons[key] = entry.reason || '';
+        exemptMeta[key] = { name: name, reason: entry.reason || '', startDate: entry.startDate || '', endDate: entry.endDate || '' };
       });
       renderExemptList();
     } catch (err) {
@@ -1000,18 +1000,32 @@
     const summary = document.getElementById('exemptSummary');
     if (!list || !exemptSelection) return;
     const filter = (document.getElementById('exemptSearchInput')?.value || '').toLowerCase().trim();
-    const sorted = [...membersData].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-    const visible = sorted.filter(m => !filter || (m.name || '').toLowerCase().includes(filter));
-    summary.textContent = `${exemptSelection.size} exempt member(s)`;
-    if (visible.length === 0) { list.innerHTML = '<div style="padding:12px;color:var(--text-muted)">No matching members.</div>'; return; }
-    list.innerHTML = visible.map(m => {
-      const key = (m.name || '').toLowerCase();
+    const knownKeys = new Set(membersData.map(m => (m.name || '').toLowerCase()));
+    // Exempt names that are no longer clan members must stay listed so they can be removed
+    const extras = [...exemptSelection].filter(key => !knownKeys.has(key)).map(key => (exemptMeta[key] && exemptMeta[key].name) || key);
+    const names = membersData.map(m => m.name)
+      .concat(extras)
+      .filter(Boolean)
+      .filter(name => !filter || name.toLowerCase().includes(filter))
+      .sort((a, b) => a.localeCompare(b));
+    const datedCount = [...exemptSelection].filter(key => {
+      const meta = exemptMeta[key] || {};
+      return !!(meta.startDate || meta.endDate);
+    }).length;
+    summary.textContent = `${exemptSelection.size} exempt member(s) (${datedCount} date-limited)`;
+    if (names.length === 0) { list.innerHTML = '<div style="padding:12px;color:var(--text-muted)">No matching members.</div>'; return; }
+    list.innerHTML = names.map(name => {
+      const key = name.toLowerCase();
       const checked = exemptSelection.has(key) ? ' checked' : '';
-      return `<label style="display:grid;grid-template-columns:auto 1fr minmax(160px,260px);gap:8px;align-items:center;padding:6px 8px;border-bottom:1px solid #eee;text-transform:none;color:var(--text);font-size:0.9em;">
-        <input type="checkbox" data-member="${escapeAttr(m.name)}" onchange="toggleExemptMember(this)"${checked}>
-        <span>${escapeHtml(m.name)}</span>
-        <input type="text" value="${escapeAttr(exemptReasons[key] || '')}" placeholder="Reason" oninput="exemptReasons['${escapeAttr(key)}']=this.value" style="padding:4px 8px;border:1px solid var(--border);border-radius:4px;">
-      </label>`;
+      const meta = exemptMeta[key] || {};
+      const unknown = !knownKeys.has(key) ? ' <span style="color:var(--text-muted);font-size:0.85em;">(not an active member)</span>' : '';
+      return `<div style="display:grid;grid-template-columns:auto minmax(140px,1.4fr) minmax(140px,1fr) 130px 130px;gap:8px;align-items:center;padding:6px 8px;border-bottom:1px solid #eee;text-transform:none;color:var(--text);font-size:0.9em;">
+        <input type="checkbox" data-member="${escapeAttr(name)}" onchange="toggleExemptMember(this)"${checked}>
+        <span>${escapeHtml(name)}${unknown}</span>
+        <input type="text" value="${escapeAttr(meta.reason || '')}" placeholder="Reason" data-member="${escapeAttr(name)}" data-field="reason" onchange="updateExemptField(this)" style="padding:4px 8px;border:1px solid var(--border);border-radius:4px;">
+        <input type="date" value="${escapeAttr(meta.startDate || '')}" data-member="${escapeAttr(name)}" data-field="startDate" onchange="updateExemptField(this)" title="Start date (blank = always)" style="padding:4px 8px;border:1px solid var(--border);border-radius:4px;">
+        <input type="date" value="${escapeAttr(meta.endDate || '')}" data-member="${escapeAttr(name)}" data-field="endDate" onchange="updateExemptField(this)" title="End date (blank = always)" style="padding:4px 8px;border:1px solid var(--border);border-radius:4px;">
+      </div>`;
     }).join('');
   }
 
@@ -1021,15 +1035,32 @@
     const key = name.toLowerCase();
     if (input.checked) exemptSelection.add(key);
     else exemptSelection.delete(key);
+    exemptMeta[key] = exemptMeta[key] || { name: name, reason: '', startDate: '', endDate: '' };
+    exemptMeta[key].name = name;
     renderExemptList();
+  }
+
+  function updateExemptField(input) {
+    const name = input.dataset.member || '';
+    const key = name.toLowerCase();
+    const field = input.dataset.field || '';
+    if (!key || !field) return;
+    exemptMeta[key] = exemptMeta[key] || { name: name, reason: '', startDate: '', endDate: '' };
+    exemptMeta[key].name = name;
+    exemptMeta[key][field] = input.value || '';
   }
 
   async function saveExemptMembers() {
     const status = document.getElementById('exemptStatus');
     status.textContent = 'Saving...'; status.className = 'status';
-    const rows = [...membersData]
-      .filter(m => exemptSelection && exemptSelection.has((m.name || '').toLowerCase()))
-      .map(m => ({ name: m.name, reason: exemptReasons[(m.name || '').toLowerCase()] || '' }));
+    const byKey = {};
+    membersData.forEach(m => { if (m.name) byKey[m.name.toLowerCase()] = m.name; });
+    const rows = [...(exemptSelection || [])].map(key => ({
+      name: byKey[key] || (exemptMeta[key] && exemptMeta[key].name) || key,
+      reason: (exemptMeta[key] && exemptMeta[key].reason) || '',
+      startDate: (exemptMeta[key] && exemptMeta[key].startDate) || '',
+      endDate: (exemptMeta[key] && exemptMeta[key].endDate) || ''
+    }));
     try {
       const result = await callFunction('setExemptMembers', [rows]);
       status.textContent = result?.message || 'Saved exemptions.';

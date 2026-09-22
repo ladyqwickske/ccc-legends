@@ -197,7 +197,6 @@
     <a href="events.html" class="active"><img src="events.png" class="nav-icon" alt=""> Events</a>
     <a href="members.html"><img src="members.png" class="nav-icon" alt=""> Members</a>
     <a href="profiling.html"><img src="profiling.png" class="nav-icon" alt=""> Profiling</a>
-    <a href="resources.html"><img src="resources.png" class="nav-icon" alt=""> Resources</a>
     <a href="warnings.html"><img src="warning.png" class="nav-icon" alt=""> Warnings</a>
     <a href="calendar.html"><img src="calendar.png" class="nav-icon" alt=""> Calendar</a>
     <a href="bank.html"><img src="bank.png" class="nav-icon" alt=""> Bank</a>
@@ -267,6 +266,7 @@
       </select>
       <button class="btn" id="chestRecalcBtn" style="display:none" onclick="calculateParticipation()">🔄 Recalculate</button>
       <button class="btn secondary" id="chestFillBtn" style="display:none" onclick="fillNonParticipants()">Fill Non-Participants</button>
+      <button class="btn secondary" id="chestPenaltyPreviewBtn" style="display:none" onclick="previewPenalties()">👁️ Preview Penalties</button>
       <button class="btn secondary" id="chestPenaltyBtn" style="display:none" onclick="recalculatePenalties()">⚖️ Recalculate Penalties</button>
     </div>
     <div class="participation-section" id="chestParticipationSection" style="display:none">
@@ -299,6 +299,7 @@
         <button class="btn" onclick="var bp=document.getElementById('manualBatchPanel');if(bp&&bp.style.display!=='none'){addToManualBatch();}else{saveManualEntry();}">💾 Save</button>
         <button class="btn" style="background:#7c3aed;" onclick="toggleManualBatch()">📋 Batch</button>
         <button class="btn secondary" onclick="fillNonParticipants()">Fill Non-Participants</button>
+        <button class="btn secondary" onclick="previewPenalties()">👁️ Preview Penalties</button>
         <button class="btn secondary" onclick="recalculatePenalties()">⚖️ Recalculate Penalties</button>
       </div>
       <div id="manualEntryStatus" style="font-size:0.85em; margin-top:6px;"></div>
@@ -349,6 +350,7 @@
       <div class="form-row" style="margin-top:8px;">
         <button class="btn" style="background:var(--primary);" onclick="calculateTroopParticipation()">🔄 Calculate Status</button>
         <button class="btn secondary" onclick="fillTroopNonParticipants()">🙅 Fill Non-Participants</button>
+        <button class="btn secondary" onclick="previewPenalties()">👁️ Preview Penalties</button>
         <button class="btn secondary" onclick="recalculatePenalties()">⚖️ Recalculate Penalties</button>
       </div>
       <div id="troopEntryStatus" style="font-size:0.85em; margin-top:6px;"></div>
@@ -494,6 +496,19 @@
     </div>
   </div>
 
+</div>
+
+<div id="penaltyPreviewPanel" style="display:none; position:fixed; right:16px; bottom:16px; width:min(420px, calc(100vw - 32px)); max-height:60vh; overflow:auto; background:#fff; border:1px solid var(--border); border-radius:10px; box-shadow:0 6px 24px rgba(0,0,0,0.18); padding:14px; z-index:900;">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+    <strong style="color:var(--primary);">👁️ Penalty Preview</strong>
+    <button class="btn secondary" style="padding:3px 9px; font-size:0.8em;" onclick="closePenaltyPreview()">✖ Close</button>
+  </div>
+  <p id="penaltyPreviewSummary" style="font-size:0.82em; color:var(--text-muted); margin:0 0 8px;"></p>
+  <table style="width:100%; font-size:0.85em;">
+    <thead><tr><th style="text-align:left; padding:4px 6px;">Member</th><th style="text-align:right; padding:4px 6px;">Penalty</th><th style="text-align:left; padding:4px 6px;">Status</th></tr></thead>
+    <tbody id="penaltyPreviewBody"></tbody>
+  </table>
+  <button class="btn" style="margin-top:10px;" onclick="recalculatePenalties()">⚖️ Apply These Penalties</button>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -1143,6 +1158,7 @@
     document.getElementById('chestRecalcBtn').style.display = ev ? 'inline' : 'none';
     document.getElementById('chestFillBtn').style.display = ev ? 'inline' : 'none';
     document.getElementById('chestPenaltyBtn').style.display = ev ? 'inline' : 'none';
+    document.getElementById('chestPenaltyPreviewBtn').style.display = ev ? 'inline' : 'none';
     if (ev) loadParticipationInto(ev, 'chestParticipationSection', 'chestParticipationTitle', 'chestParticipationHeaders', 'chestParticipationBody');
     else document.getElementById('chestParticipationSection').style.display = 'none';
   }
@@ -1389,8 +1405,46 @@
     try {
       const result = await callFunction('applyEventPenalties', [selectedEvent.eventName]);
       showToast(result?.message || 'Penalties recalculated', result?.success ? 'success' : 'error');
-      if (result?.success) reloadParticipationForSelectedEvent();
+      if (result?.success) { closePenaltyPreview(); reloadParticipationForSelectedEvent(); }
     } catch (err) { showToast('Error: ' + err.message, 'error'); }
+  }
+
+  // Dry-run: shows what applyEventPenalties would write, without touching the sheet or bank.
+  async function previewPenalties() {
+    if (!selectedEvent) return;
+    try {
+      const result = await callFunction('calculateEventPenalties', [selectedEvent.eventName]);
+      if (!result || !result.success) {
+        showToast(result?.message || 'Could not calculate penalties', 'error');
+        return;
+      }
+      renderPenaltyPreview(result);
+      showToast(result.message || 'Preview ready', 'success');
+    } catch (err) { showToast('Error: ' + err.message, 'error'); }
+  }
+
+  function renderPenaltyPreview(result) {
+    const panel = document.getElementById('penaltyPreviewPanel');
+    const body = document.getElementById('penaltyPreviewBody');
+    const summary = document.getElementById('penaltyPreviewSummary');
+    if (!panel || !body) return;
+
+    const rows = (result.preview || []).filter(r => r.memberName);
+    const penalised = rows.filter(r => Number(r.amount) > 0);
+    summary.textContent = result.penaltyEnabled
+      ? `${result.penalisedMembers} member(s) would be penalised for a total of ${result.totalPenalty} ${result.penaltyType}. Nothing has been saved yet.`
+      : 'Penalties are disabled for this event.';
+
+    const listed = penalised.length > 0 ? penalised : rows;
+    body.innerHTML = listed.length === 0
+      ? '<tr><td colspan="3" style="text-align:center;color:var(--text-muted)">No rows to penalise</td></tr>'
+      : listed.map(r => `<tr><td>${escapeHtml(r.memberName)}</td><td style="text-align:right">${Number(r.amount) > 0 ? Number(r.amount).toLocaleString() : '-'}</td><td>${escapeHtml(r.status || 'Auto')}</td></tr>`).join('');
+    panel.style.display = 'block';
+  }
+
+  function closePenaltyPreview() {
+    const panel = document.getElementById('penaltyPreviewPanel');
+    if (panel) panel.style.display = 'none';
   }
 
   function reloadParticipationForSelectedEvent() {

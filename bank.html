@@ -167,7 +167,6 @@
     <a href="events.html"><img src="events.png" class="nav-icon" alt=""> Events</a>
     <a href="members.html"><img src="members.png" class="nav-icon" alt=""> Members</a>
     <a href="profiling.html"><img src="profiling.png" class="nav-icon" alt=""> Profiling</a>
-    <a href="resources.html"><img src="resources.png" class="nav-icon" alt=""> Resources</a>
     <a href="warnings.html"><img src="warning.png" class="nav-icon" alt=""> Warnings</a>
     <a href="calendar.html"><img src="calendar.png" class="nav-icon" alt=""> Calendar</a>
     <a href="bank.html" class="active"><img src="bank.png" class="nav-icon" alt=""> Bank</a>
@@ -188,6 +187,7 @@
   <div class="overview-row">
     <div class="metric"><div class="label">Total Bank Balance</div><div id="totalBalance" class="value">-</div></div>
     <div class="metric"><div class="label">Outstanding Debts</div><div id="totalOwed" class="value debt">-</div></div>
+    <button type="button" id="exportNegativeBalancesBtn" class="btn secondary">Export Members Owing Silver (CSV)</button>
   </div>
 
   <div class="grid">
@@ -398,6 +398,7 @@
     document.getElementById('transactionsFilterMember').addEventListener('input', filterTransactions);
     document.getElementById('transactionsFilterType').addEventListener('change', filterTransactions);
     document.getElementById('bankForm').addEventListener('submit', submitTransaction);
+    document.getElementById('exportNegativeBalancesBtn').addEventListener('click', exportNegativeBalancesCsv);
     document.querySelectorAll('[data-balance-sort]').forEach(button => {
       button.addEventListener('click', () => sortBalances(button.dataset.balanceSort));
     });
@@ -468,6 +469,28 @@
     if (!isLoggedIn) return;
     await Promise.all([loadMemberOptions(), loadTransactions(), loadMemberBalances()]);
     if (showNotice) showToast('Bank data refreshed', 'success');
+  }
+
+  async function exportNegativeBalancesCsv() {
+    const button = document.getElementById('exportNegativeBalancesBtn');
+    button.disabled = true;
+    try {
+      const csv = await callFunction('exportBankNegativeBalancesCsv');
+      if (!csv || csv.split('\n').length <= 1) {
+        showToast('No members currently owe the bank.', '');
+        return;
+      }
+      const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'members-owing-bank.csv';
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      showToast('Could not export bank debts: ' + error.message, 'error');
+    } finally {
+      button.disabled = false;
+    }
   }
 
   async function loadMemberOptions() {

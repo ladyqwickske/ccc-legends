@@ -26,7 +26,6 @@ const SITE_CONFIG = {
     { name: 'Dashboard', file: 'dashboard.html', icon: '📊' },
     { name: 'Events', file: 'events.html', icon: '⚔️' },
     { name: 'Members', file: 'members.html', icon: '👥' },
-    { name: 'Resources', file: 'resources.html', icon: 'resources.png' },
     { name: 'Warnings', file: 'warnings.html', icon: 'warning.png' },
     { name: 'Calendar', file: 'calendar.html', icon: '📅' }
   ]
