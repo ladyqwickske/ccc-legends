@@ -118,6 +118,8 @@
     .event-dot.ev-hellforge        { background: #fff8e1; color: #ff6f00; }
     .event-dot.ev-ragnarok         { background: #efebe9; color: #4e342e; }
     .event-dot.ev-forest-pass      { background: #e8f5e9; color: #1b5e20; }
+    .event-dot.ev-olympus          { background: #f9fbe7; color: #e2f81c; }
+    .event-dot.ev-dark-omens       { background: #f3e5f5; color: #29dce2; }
 
     .event-dot.ev-ends { opacity: 0.65; }
 
@@ -269,21 +271,41 @@
 
   // ── Recurring event definitions ──────────────────────────────
   // Edit firstStart, duration (days), and interval (days) as needed
-  const RECURRING = [
-    { title: 'Doomsday',          firstStart: '2026-05-20', duration: 2, interval: 5,  color: 'ev-doomsday',        category: 'Daily Event', description: 'Doomsday — recurring every 5 days.' },
-    { title: 'Arachne\'s Swarm',  firstStart: '2026-05-21', duration: 2, interval: 5,  color: 'ev-arachne',         category: 'Daily Event', description: 'Arachne\'s Swarm — recurring every 5 days.' },
-    { title: 'Ruthless Slaughter',firstStart: '2026-05-24', duration: 2, interval: 5,  color: 'ev-slaughter',       category: 'Daily Event', description: 'Ruthless Slaughter — recurring every 5 days.' },
-    { title: 'Crypting Period',    firstStart: '2026-05-14', duration: 6, interval: 5,  color: 'ev-crypting',        category: 'Crypting', description: 'Crypting period.' },
-    { title: 'Ancients',          firstStart: '2026-05-20', duration: 2, interval: 5,  color: 'ev-ancients',        category: 'Daily Event', description: 'Ancients — recurring every 5 days.' },
-    { title: 'The Great Hunt',    firstStart: '2026-05-19', duration: 2, interval: 5,  color: 'ev-great-hunt',      category: 'Daily Event', description: 'The Great Hunt — recurring every 5 days.' },
-    { title: 'KvK',               firstStart: '2026-05-24', duration: 2, interval: 5,  color: 'ev-kvk',             category: 'Major Event', description: 'Kingdom vs Kingdom — recurring every 5 days.' },
-    { title: 'CoT',               firstStart: '2026-05-10', duration: 2, interval: 5,  color: 'ev-cot',             category: 'Major Event', description: 'Clash for the Throne — recurring every 5 days.' },
-    { title: 'Armageddon',        firstStart: '2026-05-21', duration: 2, interval: 5,  color: 'ev-armageddon',      category: 'Major Event', description: 'Armageddon — recurring every 5 days.' },
-    { title: 'Shadow Invasion',   firstStart: '2026-05-23', duration: 2, interval: 5,  color: 'ev-shadow-invasion', category: 'Major Event', description: 'Shadow Invasion — recurring every 5 days.' },
-    { title: 'HellForge',         firstStart: '2026-05-20', duration: 2, interval: 5,  color: 'ev-hellforge',       category: 'Major Event', description: 'HellForge — recurring every 5 days.' },
-    { title: 'Ragnarok',          firstStart: '2026-05-22', duration: 2, interval: 5,  color: 'ev-ragnarok',        category: 'Major Event', description: 'Ragnarok — recurring every 5 days.' },
-    { title: 'Forest Pass',       firstStart: '2026-05-14', duration: 1, interval: 7,  color: 'ev-forest-pass',     category: 'Weekly Event', description: 'Forest Pass — 7-day event, resets every Wednesday.' },
-  ];
+  //const RECURRING = [
+  //  { title: 'Doomsday',          firstStart: '2026-05-20', duration: 2, interval: 5,  color: 'ev-doomsday',        category: 'Daily Event', description: 'Doomsday — recurring every 5 days.' },
+  //  { title: 'Arachne\'s Swarm',  firstStart: '2026-05-21', duration: 2, interval: 5,  color: 'ev-arachne',         category: 'Daily Event', description: 'Arachne\'s Swarm — recurring every 5 days.' },
+  //  { title: 'Ruthless Slaughter',firstStart: '2026-05-24', duration: 2, interval: 5,  color: 'ev-slaughter',       category: 'Daily Event', description: 'Ruthless Slaughter — recurring every 5 days.' },
+  //  { title: 'Crypting Period',    firstStart: '2026-05-14', duration: 6, interval: 5,  color: 'ev-crypting',        category: 'Crypting', description: 'Crypting period.' },
+  //  { title: 'Ancients',          firstStart: '2026-05-20', duration: 2, interval: 5,  color: 'ev-ancients',        category: 'Daily Event', description: 'Ancients — recurring every 5 days.' },
+  //  { title: 'The Great Hunt',    firstStart: '2026-05-19', duration: 2, interval: 5,  color: 'ev-great-hunt',      category: 'Daily Event', description: 'The Great Hunt — recurring every 5 days.' },
+  //  { title: 'KvK',               firstStart: '2026-05-24', duration: 2, interval: 5,  color: 'ev-kvk',             category: 'Major Event', description: 'Kingdom vs Kingdom — recurring every 5 days.' },
+  //  { title: 'CoT',               firstStart: '2026-05-10', duration: 2, interval: 5,  color: 'ev-cot',             category: 'Major Event', description: 'Clash for the Throne — recurring every 5 days.' },
+  //  { title: 'Armageddon',        firstStart: '2026-05-21', duration: 2, interval: 5,  color: 'ev-armageddon',      category: 'Major Event', description: 'Armageddon — recurring every 5 days.' },
+  //  { title: 'Shadow Invasion',   firstStart: '2026-05-23', duration: 2, interval: 5,  color: 'ev-shadow-invasion', category: 'Major Event', description: 'Shadow Invasion — recurring every 5 days.' },
+  //  { title: 'HellForge',         firstStart: '2026-05-20', duration: 2, interval: 5,  color: 'ev-hellforge',       category: 'Major Event', description: 'HellForge — recurring every 5 days.' },
+  //  { title: 'Ragnarok',          firstStart: '2026-05-22', duration: 2, interval: 5,  color: 'ev-ragnarok',        category: 'Major Event', description: 'Ragnarok — recurring every 5 days.' },
+  //  { title: 'Forest Pass',       firstStart: '2026-05-14', duration: 1, interval: 7,  color: 'ev-forest-pass',     category: 'Weekly Event', description: 'Forest Pass — 7-day event, resets every Wednesday.' },
+  //];
+
+   var RECURRING = [
+      { title: 'Doomsday',          firstStart: '2026-03-01', duration: 1, interval: 6,  color: 'ev-doomsday',    category: 'Daily Event', description: 'Doomsday — recurring every 6 days.' },
+      { title: 'Arachne\'s Swarm',  firstStart: '2026-03-02', duration: 1, interval: 6,  color: 'ev-arachne',  category: 'Daily Event', description: 'Arachne\'s Swarm — recurring every 6 days.' },
+      { title: 'Ruthless Slaughter',firstStart: '2026-03-03', duration: 1, interval: 6,  color: 'ev-slaughter',  category: 'Daily Event', description: 'Ruthless Slaughter — recurring every 6 days.' },
+      { title: 'Crypt Start',firstStart: '2026-03-03', duration: 1, interval: 6, color: 'ev-crypting', category: 'Crypting', description: 'Crypting period starts — same day as Ruthless Slaughter.' },
+      { title: 'Crypt End',  firstStart: '2026-03-08', duration: 1, interval: 6, color: 'ev-crypting', category: 'Crypting', description: 'Crypting period ends — the day before the next Ruthless Slaughter.' },
+      { title: 'Ancients',          firstStart: '2026-03-03', duration: 2, interval: 6,  color: 'ev-ancients',   category: 'Daily Event', description: 'Ancients — 2-day event (Towers day 1, Tin Man day 2).' },
+      { title: 'Thirst for Battle', firstStart: '2026-03-05', duration: 1, interval: 6,  color: 'ev-thirst',    category: 'Daily Event', description: 'Thirst for Battle — recurring every 6 days.' },
+      { title: 'The Great Hunt',    firstStart: '2026-03-06', duration: 1, interval: 6,  color: 'ev-great-hunt',   category: 'Daily Event', description: 'The Great Hunt — recurring every 6 days.' },
+      { title: 'KvK',               firstStart: '2026-03-05', duration: 1, interval: 24, color: 'ev-kvk',    category: 'Major Event', description: 'Kingdom vs Kingdom — recurring every 24 days.' },
+      { title: 'CoT',               firstStart: '2026-03-10', duration: 2, interval: 12, color: 'ev-cot',    category: 'Major Event', description: 'Clash for the Throne — 2-day event recurring every 12 days.' },
+      { title: 'Armageddon',        firstStart: '2026-03-17', duration: 2, interval: 24, color: 'ev-armageddon',  category: 'Major Event', description: 'Armageddon — 2-day event recurring every 24 days.' },
+      { title: 'Dark Omens',        firstStart: '2026-03-20', duration: 2, interval: 24, color: 'ev-dark-omens',  category: 'Major Event', description: 'Dark Omens — 2-day event recurring every 24 days.' },
+      { title: 'Shadow Invasion',   firstStart: '2026-03-23', duration: 2, interval: 24, color: 'ev-shadow-invasion',   category: 'Major Event', description: 'Shadow Invasion — 2-day event recurring every 24 days.' },
+      { title: 'HellForge',         firstStart: '2026-03-29', duration: 2, interval: 24, color: 'ev-hellforge', category: 'Major Event', description: 'HellForge — 2-day event recurring every 24 days.' },
+      { title: 'Olympus',           firstStart: '2026-03-29', duration: 5, interval: 24, color: 'ev-olympus',    category: 'Major Event', description: 'Olympus — 5-day event recurring every 24 days.' },
+      { title: 'Ragnarok',          firstStart: '2026-04-04', duration: 2, interval: 24, color: 'ev-ragnarok',    category: 'Major Event', description: 'Ragnarok — 2-day event.' },
+    ];
+
 
   function parseDateLocal(s) { const p = s.split('-'); return new Date(Date.UTC(+p[0], +p[1]-1, +p[2])); }
   function fmtDateLocal(d) {
