@@ -7,6 +7,7 @@
   <link rel="icon" type="image/png" href="logo.png">
   <script src="perf-debug.js"></script>
   <script src="config.js"></script>
+  <script src="translate.js"></script>
   <script src="site-config.js"></script>
   <script src="portal-shim.js"></script>
   <script src="portal-auth.js"></script>
@@ -437,12 +438,18 @@
         </div>
         <div id="genEventTypes" style="display:flex; flex-wrap:wrap; gap:4px 12px;">
           <label style="font-size:0.85em; color:var(--text); cursor:pointer;"><input type="checkbox" class="gen-type-cb" value="Active Period" checked> Active Period</label>
-          <label style="font-size:0.85em; color:var(--text); cursor:pointer;"><input type="checkbox" class="gen-type-cb" value="Ancients" checked> Ancients</label>
           <label style="font-size:0.85em; color:var(--text); cursor:pointer;"><input type="checkbox" class="gen-type-cb" value="Ancients Tower" checked> Ancients Tower</label>
-          <label style="font-size:0.85em; color:var(--text); cursor:pointer;"><input type="checkbox" class="gen-type-cb" value="Ancients Points" checked> Tin Man Points</label>
+          <label style="font-size:0.85em; color:var(--text); cursor:pointer;"><input type="checkbox" class="gen-type-cb" value="Ancients" checked> Ancients</label>
+          <label style="font-size:0.85em; color:var(--text); cursor:pointer;"><input type="checkbox" class="gen-type-cb" value="Ancients Points" checked> Ancients Points</label>
+          <label style="font-size:0.85em; color:var(--text); cursor:pointer;"><input type="checkbox" class="gen-type-cb" value="Doomsday Points" checked> Doomsday Points</label>
+          <label style="font-size:0.85em; color:var(--text); cursor:pointer;"><input type="checkbox" class="gen-type-cb" value="Arachne Points" checked> Arachne Points</label>
           <label style="font-size:0.85em; color:var(--text); cursor:pointer;"><input type="checkbox" class="gen-type-cb" value="Ragnarok" checked> Ragnarok</label>
           <label style="font-size:0.85em; color:var(--text); cursor:pointer;"><input type="checkbox" class="gen-type-cb" value="Ragnarok Points" checked> Ragnarok Points</label>
+          <label style="font-size:0.85em; color:var(--text); cursor:pointer;"><input type="checkbox" class="gen-type-cb" value="Shadow City Points" checked> Shadow City Points</label>
+          <label style="font-size:0.85em; color:var(--text); cursor:pointer;"><input type="checkbox" class="gen-type-cb" value="Hellforge Points" checked> Hellforge Points</label>
+          <label style="font-size:0.85em; color:var(--text); cursor:pointer;"><input type="checkbox" class="gen-type-cb" value="Armageddon Points" checked> Armageddon Points</label>
           <label style="font-size:0.85em; color:var(--text); cursor:pointer;"><input type="checkbox" class="gen-type-cb" value="Dark Omens Event" checked> Dark Omens Event</label>
+          <label style="font-size:0.85em; color:var(--text); cursor:pointer;"><input type="checkbox" class="gen-type-cb" value="Restoration of Balance" checked> Restoration of Balance</label>
           <label style="font-size:0.85em; color:var(--text); cursor:pointer;"><input type="checkbox" class="gen-type-cb" value="Olympus" checked> Olympus</label>
           <label style="font-size:0.85em; color:var(--text); cursor:pointer;"><input type="checkbox" class="gen-type-cb" value="Hermes' Chests" checked> Hermes' Chests</label>
           <label style="font-size:0.85em; color:var(--text); cursor:pointer;"><input type="checkbox" class="gen-type-cb" value="Olympus Tartarus" checked> Olympus Tartarus</label>
@@ -1370,13 +1377,16 @@
     return `<td style="min-width:170px;"><span style="font-weight:600;color:${status === 'Exempt' || status === 'Waived' ? 'var(--success)' : 'var(--text-muted)'}">${escapeHtml(status || 'Auto')}</span> <button class="btn secondary" style="padding:3px 7px;font-size:0.78em;" onclick="waivePenalty('${escapeAttr(member)}')">Waive</button> <button class="btn secondary" style="padding:3px 7px;font-size:0.78em;" onclick="resetPenalty('${escapeAttr(member)}')">Reset</button></td>`;
   }
 
+  // Save / Waive / Reset for one member: changeAppliedPenalty changes only that member's
+  // penalty (bank row in place, point penalty) once the event's penalties are applied,
+  // and before that saves it and applies the event, as updateEventPenalty did.
   async function savePenalty(memberName, btn) {
     if (!selectedEvent) return;
     const row = btn.closest('tr');
     const input = row ? row.querySelector('.penalty-input') : null;
     const amount = input ? Number(input.value) || 0 : 0;
     try {
-      const result = await callFunction('updateEventPenalty', [selectedEvent.eventName, memberName, amount, 'Adjusted']);
+      const result = await callFunction('changeAppliedPenalty', [selectedEvent.eventName, memberName, amount, 'Adjusted']);
       showToast(result?.message || 'Penalty updated', result?.success ? 'success' : 'error');
       if (result?.success) reloadParticipationForSelectedEvent();
     } catch (err) { showToast('Error: ' + err.message, 'error'); }
@@ -1385,7 +1395,7 @@
   async function waivePenalty(memberName) {
     if (!selectedEvent) return;
     try {
-      const result = await callFunction('updateEventPenalty', [selectedEvent.eventName, memberName, 0, 'Waived']);
+      const result = await callFunction('changeAppliedPenalty', [selectedEvent.eventName, memberName, 0, 'Waived']);
       showToast(result?.message || 'Penalty waived', result?.success ? 'success' : 'error');
       if (result?.success) reloadParticipationForSelectedEvent();
     } catch (err) { showToast('Error: ' + err.message, 'error'); }
@@ -1394,7 +1404,7 @@
   async function resetPenalty(memberName) {
     if (!selectedEvent) return;
     try {
-      const result = await callFunction('updateEventPenalty', [selectedEvent.eventName, memberName, 0, 'Auto']);
+      const result = await callFunction('changeAppliedPenalty', [selectedEvent.eventName, memberName, 0, 'Auto']);
       showToast(result?.message || 'Penalty reset', result?.success ? 'success' : 'error');
       if (result?.success) reloadParticipationForSelectedEvent();
     } catch (err) { showToast('Error: ' + err.message, 'error'); }
@@ -1540,6 +1550,7 @@
         if (result.created && result.created.length > 0) parts.push('✅ Created ' + result.created.length + ': ' + result.created.join(', '));
         if (result.skipped && result.skipped.length > 0) parts.push('⏭️ Skipped ' + result.skipped.length + ' existing');
         if (result.errors && result.errors.length > 0) parts.push('❌ ' + result.errors.length + ' error(s)');
+        if (result.missingTypes && result.missingTypes.length > 0) parts.push('⚠️ Not generated, create these event types first: ' + result.missingTypes.map(escapeHtml).join(', '));
         status.innerHTML = parts.join('<br>') || 'No events to generate in this range.';
         status.style.color = (result.errors && result.errors.length > 0) ? 'var(--danger)' : 'var(--success)';
         loadEvents();
