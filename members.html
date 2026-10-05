@@ -12,6 +12,7 @@
   <script src="site-config.js"></script>
   <script src="portal-shim.js"></script>
   <script src="portal-auth.js"></script>
+  <script src="member-transfers.js"></script>
   <style>
     :root {
       --primary: #1fc1e6;
@@ -176,6 +177,7 @@
     .tab-group.active { background: var(--primary); border-color: var(--primary); color: #fff; }
     /* Member Configuration: the member list is not needed */
     body.config-group #memberCount, body.config-group #loadingDiv, body.config-group #tableContainer { display: none !important; }
+    body.transfers-tab #memberCount, body.transfers-tab #loadingDiv, body.transfers-tab #tableContainer { display: none !important; }
     .tab-panel { display: none; }
     .tab-panel.active { display: block; }
     .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 12px; }
@@ -254,6 +256,7 @@
       <button class="tab-btn-inner" data-group="admin" data-tab="superiorsTab" id="superiorsTabBtn" style="display:none" onclick="switchTab('superiorsTab', this)">👑 Superiors</button>
       <button class="tab-btn-inner" data-group="admin" data-tab="addMemberTab" onclick="switchTab('addMemberTab', this)">➕ Add Member</button>
       <button class="tab-btn-inner" data-group="admin" data-tab="removeMemberTab" onclick="switchTab('removeMemberTab', this)">🚪 Remove Member</button>
+      <button class="tab-btn-inner" data-group="admin" data-tab="transfersTab" id="transfersTabBtn" onclick="switchTab('transfersTab', this)">🔁 Member Transfers</button>
       <button class="tab-btn-inner" data-group="config" data-tab="pointTargetsTab" hidden onclick="switchTab('pointTargetsTab', this)">🎯 Point Targets</button>
       <button class="tab-btn-inner" data-group="config" data-tab="exemptTab" hidden onclick="switchTab('exemptTab', this)">🛡️ Exemptions</button>
       <button class="tab-btn-inner" data-group="config" data-tab="chestOverviewTab" hidden onclick="switchTab('chestOverviewTab', this)">📦 Chest Points</button>
@@ -357,12 +360,27 @@
 
     <div id="addMemberTab" class="tab-panel">
       <h3 style="margin:0 0 10px;color:var(--primary)">Add New Member</h3>
-      <div class="form-grid" style="grid-template-columns: repeat(2, 1fr);">
-        <div><label>Player Name</label><input type="text" id="newMemberName" placeholder="Player Name"></div>
-        <div><label>Join Date</label><input type="date" id="newMemberJoinDate"></div>
+      <!-- New or returning member (member-transfers.js: ReturningMember) -->
+      <div style="display:flex;gap:18px;margin-bottom:12px;flex-wrap:wrap;">
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="radio" name="addMemberMode" value="new" checked> 🆕 New member</label>
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="radio" name="addMemberMode" value="returning"> ↩️ Returning member (was here before)</label>
       </div>
-      <button class="btn" onclick="addNewMember()">➕ Add Member</button>
-      <div id="addMemberStatus" class="status"></div>
+      <div id="returningMemberForm" style="display:none;"></div>
+      <div id="newMemberForm">
+        <div class="form-grid" style="grid-template-columns: repeat(2, 1fr);">
+          <div><label>Player Name</label><input type="text" id="newMemberName" placeholder="Player Name"></div>
+          <div><label>Join Date</label><input type="date" id="newMemberJoinDate"></div>
+        </div>
+        <div id="returningMemberHint" class="status" style="display:none;margin-bottom:10px;"></div>
+        <button class="btn" onclick="addNewMember()">➕ Add Member</button>
+        <div id="addMemberStatus" class="status"></div>
+      </div>
+    </div>
+
+    <div id="transfersTab" class="tab-panel">
+      <h3 style="margin:0 0 10px;color:var(--primary)">🔁 Member Transfers</h3>
+      <p style="font-size:0.85em;color:var(--text-muted);margin:0 0 12px;">Players who move between the cCc clans: ask the clan they came from for their profile (memberships, troop and hero levels, chest points, events, warnings), and answer the other clans' requests. Nothing is shared until a superior of that clan approves.</p>
+      <div id="transfersPanel"></div>
     </div>
 
     <div id="removeMemberTab" class="tab-panel">
@@ -576,7 +594,29 @@
       if (window.ManualChests) window.ManualChests.checkAccess();
       if (window.Superiors) window.Superiors.checkAccess();
     }
+    initReturningAndTransfers();
   });
+
+  // ➕ Add Member → Returning member, and 🔁 Member Transfers (member-transfers.js)
+  function initReturningAndTransfers() {
+    if (window.ReturningMember) {
+      window.ReturningMember.init({
+        container: 'returningMemberForm', newForm: 'newMemberForm', hint: 'returningMemberHint',
+        nameInput: 'newMemberName', modeName: 'addMemberMode',
+        currentMembers: () => membersData.map(m => m.name),
+        onDone: () => {
+          loadAllData();
+          if (memberAccounts) loadMemberAccounts(true);
+          if (exemptSelection) loadExemptMembers(true);
+          if (window.Superiors) window.Superiors.refresh();
+        },
+      });
+    }
+    if (window.MemberTransfers) {
+      window.MemberTransfers.init({ container: 'transfersPanel', badge: 'transfersTabBtn', onLevelsCopied: () => loadAllData() });
+      if (isLoggedIn) setTimeout(() => window.MemberTransfers.check(), 1500); // waiting requests from other clans → count on the tab
+    }
+  }
 
   function setTodayDefaults() {
     const today = new Date().toISOString().split('T')[0];
@@ -917,6 +957,7 @@
     document.querySelectorAll('.tab-btn-inner[data-group]').forEach(b => { b.hidden = b.getAttribute('data-group') !== group; });
     document.querySelectorAll('.tab-group').forEach(g => g.classList.toggle('active', g.getAttribute('data-group') === group));
     document.body.classList.toggle('config-group', group === 'config');
+    document.body.classList.toggle('transfers-tab', tabId === 'transfersTab');
     if (tabId === 'pointTargetsTab') loadPointTargetPeriods();
     if (tabId === 'exemptTab') loadExemptMembers();
     if (tabId === 'accountsTab') loadMemberAccounts();
@@ -926,6 +967,7 @@
     if (tabId === 'manualChestsTab' && window.ManualChests) window.ManualChests.load();
     if (tabId === 'superiorsTab' && window.Superiors) window.Superiors.load();
     if (tabId === 'chestOverviewTab' && window.ChestOverview) window.ChestOverview.load();
+    if (tabId === 'transfersTab' && window.MemberTransfers) window.MemberTransfers.load();
   }
 
   // TROOP BULK ENTRY
