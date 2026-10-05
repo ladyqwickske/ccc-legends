@@ -1044,6 +1044,10 @@
         if (heroData[oldKey]) { heroData[newKey] = heroData[oldKey]; delete heroData[oldKey]; }
         populateSelects();
         renderTable();
+        // the server renamed them everywhere: reload the lists already shown with the old name
+        if (memberAccounts) loadMemberAccounts(true);
+        if (exemptSelection) loadExemptMembers(true);
+        if (window.Superiors) window.Superiors.refresh();
       }
     } catch (err) { showToast('Error: ' + err.message, 'error'); }
   }
@@ -1747,6 +1751,8 @@
       function checkAccess() {
         fetchList().then(r => { data = r; $('superiorsTabBtn').style.display = ''; }).catch(() => {});
       }
+      // after a rename: reload the list if it was loaded (only the owner has it)
+      function refresh() { if (data) load(true, true); }
       function load(force, keepStatus) {
         if (data && !force) { render(); return; }
         if (!keepStatus) status('Loading superiors…');
@@ -1812,7 +1818,7 @@
           if (r && r.success) load(true, true);
         } catch (e) { status('Error: ' + e.message, false); }
       }
-      return { checkAccess, load, render, addEmail, save };
+      return { checkAccess, load, refresh, render, addEmail, save };
     })();
 
     // ➕ Manual Chests (owner only; the Worker refuses anyone else): add chests by hand to the
