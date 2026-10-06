@@ -414,7 +414,7 @@
     const W = profilingData.weights || {};
     const metaNote = profilingData.lastUpdated ? '<span style="font-size:0.75em;color:var(--text-muted);font-weight:400;margin-left:8px;">Updated: ' + profilingData.lastUpdated + '</span>' : '';
     const eventNote = profilingData.eventCounts
-      ? '<span style="font-size:0.75em;color:var(--text-muted);font-weight:400;display:block;margin-top:4px;">Events tracked: Tower (' + profilingData.eventCounts.tower + ') · Tinman (' + profilingData.eventCounts.tinman + ') · Ragnarok (' + (profilingData.eventCounts.ragnarok || 0) + ') · Rag Pts (' + (profilingData.eventCounts.ragnarokPts || 0) + ')</span>'
+      ? '<span style="font-size:0.75em;color:var(--text-muted);font-weight:400;display:block;margin-top:4px;">Events tracked (last 60 days): Ancients (' + (profilingData.eventCounts.ancients || 0) + ') · Ragnarok (' + (profilingData.eventCounts.ragnarok || 0) + ') · Olympus &amp; Dark Omens (' + (profilingData.eventCounts.olympusDO || 0) + ') · Other (' + (profilingData.eventCounts.other || 0) + ')</span>'
       : '';
 
     // Build a ranking card HTML helper
@@ -464,7 +464,7 @@
     let html = '<div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:20px;">';
     html += '<div style="flex:1;min-width:280px;">'
       + '<div class="ranking-section-title">🏆 Top Performers' + metaNote + '</div>' + eventNote;
-    top.forEach((m, i) => { html += rankingCardHtml(m, i + 1); });
+    top.forEach((m) => { html += rankingCardHtml(m, sorted.indexOf(m) + 1); });
     html += '</div>';
 
     // ── Needs Attention ──
