@@ -43,6 +43,20 @@ window.GAS_WEB_APP_URL = window.CLOUDFLARE_WORKER_URL;
 		else if (!email && get(SESSION_KEY)) clearPass();
 	})();
 
+	// Decide before the page is drawn whether the visitor is signed in, so moving
+	// between pages doesn't flash the "Login Required" box first (as on the
+	// Champions site). The page's own login code still has the final say: it sets
+	// #loginGate / #mainContent itself once it has loaded.
+	(function markSignedIn() {
+		var signedIn = false;
+		try { var a = JSON.parse(get(PAGE_AUTH_KEY) || '{}') || {}; signedIn = !!(a.email && a.allowed); } catch (e) {}
+		document.documentElement.classList.add(signedIn ? 'portal-signed-in' : 'portal-signed-out');
+		var style = document.createElement('style');
+		style.textContent = 'html.portal-signed-in #loginGate, html.portal-signed-in #loginBtn { display: none; }'
+			+ ' html.portal-signed-out #mainContent { display: none; }';
+		(document.head || document.documentElement).appendChild(style);
+	})();
+
 	// "Logout" on a page removes 'leg_auth': once it was there during this visit
 	// and is gone, the pass is dropped too. (While signing in the page asks the
 	// Worker first and only then stores 'leg_auth', so a missing key alone must
