@@ -443,9 +443,10 @@
       <h3 style="margin:0 0 10px;color:var(--primary)">Chest Points — Last 5 Periods</h3>
       <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px;">
         <input type="text" id="cpoSearch" placeholder="🔍 Filter members…" style="flex:1;min-width:200px;padding:8px 10px;border:1px solid var(--border);border-radius:6px;" oninput="ChestOverview.render()">
+        <label style="display:flex;align-items:center;gap:6px;font-size:0.85em;color:var(--text-muted);white-space:nowrap;"><input type="checkbox" id="cpoCustomOnly" onchange="ChestOverview.render()"> Only custom targets</label>
         <button class="btn secondary" style="margin:0;" onclick="ChestOverview.load(true)">↻ Reload</button>
       </div>
-      <p id="cpoMeta" style="font-size:0.8em;color:var(--text-muted);margin-bottom:8px;">Each member's chest points per period against their target (🎯 Point Targets, else the period's target, else 3000): green ≥ target, orange ≥ 90%, red below. '-' = not a member yet in that period, '*' = joined during that period. Hover a cell for the target.</p>
+      <p id="cpoMeta" style="font-size:0.8em;color:var(--text-muted);margin-bottom:8px;">Each member's chest points per period against their target (🎯 Point Targets, else the period's target, else 3000): green ≥ target, orange ≥ 90%, red below. The period's target is under its dates; a member's own (custom) target is shown as 🎯 under their points — e.g. a shortfall carried over from the period before. '-' = not a member yet in that period, '*' = joined during that period.</p>
       <div id="cpoStatus" class="status" style="display:none;"></div>
       <div class="table-container" style="max-height:65vh;overflow-y:auto;"><table style="font-size:0.85em;">
         <thead id="cpoHead"></thead>
@@ -1741,10 +1742,13 @@
         const res = m.periodResults[i] || { points: 0 };
         const join = m.joinDate || '';
         if (join && p.endDate && join > p.endDate) return { text: '-', value: -1 };
-        const target = targets[p.key][m.member.toLowerCase()] || p.targetPoints || 3000;
+        const periodTarget = p.targetPoints || 3000;
+        const own = targets[p.key][m.member.toLowerCase()] || 0;
+        const target = own || periodTarget;
         const color = res.points >= target ? 'green' : res.points >= target * 0.9 ? 'orange' : 'red';
         const joined = join && join >= p.startDate && join <= p.endDate ? '*' : '';
-        return { text: res.points.toLocaleString() + joined, value: res.points, color, target };
+        // custom: the member's own target (🎯 Point Targets) when it isn't the period's target
+        return { text: res.points.toLocaleString() + joined, value: res.points, color, target, custom: own && own !== periodTarget ? own : 0 };
       }
       function sortBy(col) {
         sort = sort.col === col ? { col, dir: -sort.dir } : { col, dir: col === 'member' ? 1 : -1 };
@@ -1756,16 +1760,19 @@
         const arrow = (c) => sort.col === c ? (sort.dir > 0 ? ' ▲' : ' ▼') : '';
         $('cpoHead').innerHTML = '<tr><th data-cpo="member" style="text-align:left;padding:6px 8px;cursor:pointer;user-select:none;">Member' + arrow('member') + '</th>' +
           periods.map((p, i) => '<th data-cpo="' + i + '" style="text-align:right;padding:6px 8px;cursor:pointer;user-select:none;" title="' + esc(p.startDate + ' → ' + p.endDate) + '">' +
-            esc(p.periodName) + arrow(String(i)) + '<div style="font-weight:400;font-size:0.85em;color:var(--text-muted);">' + esc(p.startDate.slice(5) + ' → ' + p.endDate.slice(5)) + '</div></th>').join('') + '</tr>';
+            esc(p.periodName) + arrow(String(i)) + '<div style="font-weight:400;font-size:0.85em;color:var(--text-muted);">' + esc(p.startDate.slice(5) + ' → ' + p.endDate.slice(5)) + '<br>🎯 ' + esc((p.targetPoints || 3000).toLocaleString()) + '</div></th>').join('') + '</tr>';
         $('cpoHead').querySelectorAll('[data-cpo]').forEach(th => th.addEventListener('click', () => sortBy(th.dataset.cpo)));
         const term = ($('cpoSearch').value || '').toLowerCase().trim();
+        const customOnly = $('cpoCustomOnly').checked;
         const rows = data.members.filter(m => !term || m.member.toLowerCase().includes(term))
-          .map(m => ({ m, cells: periods.map((p, i) => cell(m, p, i)) }));
+          .map(m => ({ m, cells: periods.map((p, i) => cell(m, p, i)) }))
+          .filter(r => !customOnly || r.cells.some(c => c.custom));
         rows.sort((a, b) => sort.col === 'member' ? sort.dir * a.m.member.localeCompare(b.m.member)
           : sort.dir * (a.cells[+sort.col].value - b.cells[+sort.col].value) || a.m.member.localeCompare(b.m.member));
         $('cpoBody').innerHTML = rows.length ? rows.map(({ m, cells }) => '<tr style="border-top:1px solid var(--border);"><td style="padding:6px 8px;text-align:left;">' + esc(m.member) + '</td>' +
           cells.map(c => '<td style="padding:6px 8px;text-align:right;font-weight:600;' + (c.color ? 'color:' + COLORS[c.color] + ';' : 'color:var(--text-muted);') + '"' +
-            (c.target ? ' title="Target ' + c.target.toLocaleString() + '"' : '') + '>' + esc(c.text) + '</td>').join('') + '</tr>').join('')
+            (c.target ? ' title="Target ' + c.target.toLocaleString() + (c.custom ? ' (custom target)' : ' (period target)') + '"' : '') + '>' + esc(c.text) +
+            (c.custom ? '<div style="font-size:0.85em;font-weight:400;color:var(--text-muted);white-space:nowrap;">🎯 ' + esc(c.custom.toLocaleString()) + '</div>' : '') + '</td>').join('') + '</tr>').join('')
           : '<tr><td colspan="' + (periods.length + 1) + '" style="padding:8px;color:var(--text-muted);">No members match this filter.</td></tr>';
       }
       return { load, render };
