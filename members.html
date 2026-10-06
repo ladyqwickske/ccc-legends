@@ -256,6 +256,7 @@
       <button class="tab-btn-inner" data-group="admin" data-tab="superiorsTab" id="superiorsTabBtn" style="display:none" onclick="switchTab('superiorsTab', this)">👑 Superiors</button>
       <button class="tab-btn-inner" data-group="admin" data-tab="addMemberTab" onclick="switchTab('addMemberTab', this)">➕ Add Member</button>
       <button class="tab-btn-inner" data-group="admin" data-tab="removeMemberTab" onclick="switchTab('removeMemberTab', this)">🚪 Remove Member</button>
+      <button class="tab-btn-inner" data-group="admin" data-tab="linkFormerTab" onclick="switchTab('linkFormerTab', this)">🔗 Link Former Members</button>
       <button class="tab-btn-inner" data-group="admin" data-tab="transfersTab" id="transfersTabBtn" onclick="switchTab('transfersTab', this)">🔁 Member Transfers</button>
       <button class="tab-btn-inner" data-group="config" data-tab="pointTargetsTab" hidden onclick="switchTab('pointTargetsTab', this)">🎯 Point Targets</button>
       <button class="tab-btn-inner" data-group="config" data-tab="exemptTab" hidden onclick="switchTab('exemptTab', this)">🛡️ Exemptions</button>
@@ -375,6 +376,12 @@
         <button class="btn" onclick="addNewMember()">➕ Add Member</button>
         <div id="addMemberStatus" class="status"></div>
       </div>
+    </div>
+
+    <div id="linkFormerTab" class="tab-panel">
+      <h3 style="margin:0 0 10px;color:var(--primary)">🔗 Link Former Members</h3>
+      <p style="font-size:0.85em;color:var(--text-muted);margin:0 0 12px;">Someone who left and came back (maybe more than once) and was added as a new member? Pick them as the current member and tick their entries on the Former Members list. Their history (chests, troops, heroes, events, warnings, …) then counts for the current member, their old login comes along if they don't have one, and each earlier membership is kept on their profile. Entries under another name are renamed to the current member's name.</p>
+      <div id="linkFormerPanel"></div>
     </div>
 
     <div id="transfersTab" class="tab-panel">
@@ -604,6 +611,18 @@
       window.ReturningMember.init({
         container: 'returningMemberForm', newForm: 'newMemberForm', hint: 'returningMemberHint',
         nameInput: 'newMemberName', modeName: 'addMemberMode',
+        currentMembers: () => membersData.map(m => m.name),
+        onDone: () => {
+          loadAllData();
+          if (memberAccounts) loadMemberAccounts(true);
+          if (exemptSelection) loadExemptMembers(true);
+          if (window.Superiors) window.Superiors.refresh();
+        },
+      });
+    }
+    if (window.LinkFormer) {
+      window.LinkFormer.init({
+        container: 'linkFormerPanel',
         currentMembers: () => membersData.map(m => m.name),
         onDone: () => {
           loadAllData();
@@ -958,7 +977,7 @@
     document.querySelectorAll('.tab-btn-inner[data-group]').forEach(b => { b.hidden = b.getAttribute('data-group') !== group; });
     document.querySelectorAll('.tab-group').forEach(g => g.classList.toggle('active', g.getAttribute('data-group') === group));
     document.body.classList.toggle('config-group', group === 'config');
-    document.body.classList.toggle('transfers-tab', tabId === 'transfersTab');
+    document.body.classList.toggle('transfers-tab', tabId === 'transfersTab' || tabId === 'linkFormerTab');
     if (tabId === 'pointTargetsTab') loadPointTargetPeriods();
     if (tabId === 'exemptTab') loadExemptMembers();
     if (tabId === 'accountsTab') loadMemberAccounts();
@@ -969,6 +988,7 @@
     if (tabId === 'superiorsTab' && window.Superiors) window.Superiors.load();
     if (tabId === 'chestOverviewTab' && window.ChestOverview) window.ChestOverview.load();
     if (tabId === 'transfersTab' && window.MemberTransfers) window.MemberTransfers.load();
+    if (tabId === 'linkFormerTab' && window.LinkFormer) window.LinkFormer.load();
   }
 
   // TROOP BULK ENTRY
