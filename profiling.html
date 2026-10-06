@@ -413,8 +413,10 @@
     const sorted = [...profilingData.members].sort((a, b) => b.overallScore - a.overallScore);
     const W = profilingData.weights || {};
     const metaNote = profilingData.lastUpdated ? '<span style="font-size:0.75em;color:var(--text-muted);font-weight:400;margin-left:8px;">Updated: ' + profilingData.lastUpdated + '</span>' : '';
+    const parts = profilingData.parts || [];
     const eventNote = profilingData.eventCounts
-      ? '<span style="font-size:0.75em;color:var(--text-muted);font-weight:400;display:block;margin-top:4px;">Events tracked (last 60 days): Ancients (' + (profilingData.eventCounts.ancients || 0) + ') · Ragnarok (' + (profilingData.eventCounts.ragnarok || 0) + ') · Olympus &amp; Dark Omens (' + (profilingData.eventCounts.olympusDO || 0) + ') · Other (' + (profilingData.eventCounts.other || 0) + ')</span>'
+      ? '<span style="font-size:0.75em;color:var(--text-muted);font-weight:400;display:block;margin-top:4px;">Events counted (last 60 days): '
+        + parts.filter(p => p.kind === 'events').map(p => escapeHtml(p.label) + ' (' + (profilingData.eventCounts[p.key] || 0) + ')').join(' · ') + '</span>'
       : '';
 
     // Build a ranking card HTML helper
@@ -422,21 +424,13 @@
       const rankClass = rank === 1 ? 'top1' : rank === 2 ? 'top2' : rank === 3 ? 'top3' : '';
       const medal = rank <= 3 ? ['🥇','🥈','🥉'][rank - 1] + ' ' : '';
       const b = m.breakdown || {};
-      const barHtml = [
-        { score: b.targetHitRate?.score, color: '#8bc34a', title: 'Target' },
-        { score: b.ancients?.score, color: '#42a5f5', title: 'Ancients' },
-        { score: b.ragnarok?.score, color: '#e74c3c', title: 'Ragnarok' },
-        { score: b.olympusDO?.score, color: '#ab47bc', title: 'Olympus/DO' },
-        { score: b.other?.score, color: '#78909c', title: 'Other' },
-        { score: b.consistency?.score, color: '#ff9800', title: 'Consistency' },
-        { score: b.warnings?.score, color: '#ef5350', title: 'Warnings' }
-      ].map(bar => {
+      const barHtml = parts.map(p => ({ score: b[p.key]?.score, color: partColor(p, b[p.key]?.score), title: p.label })).map(bar => {
         const w = bar.score !== null && bar.score !== undefined ? Math.max(2, bar.score * 0.5) : 0;
         return w > 0 ? '<div class="ranking-bar" style="background:' + bar.color + '44;width:' + w + 'px;" title="' + bar.title + ': ' + (bar.score ?? '—') + '"></div>' : '';
       }).join('');
       const metaParts = [m.rating];
       if (m.joinDate) metaParts.push('Joined ' + m.joinDate);
-      if (b.targetHitRate?.total > 0) metaParts.push(b.targetHitRate.met + '/' + b.targetHitRate.total + ' targets met');
+      if (b.target?.total > 0) metaParts.push(b.target.met + '/' + b.target.total + ' targets met');
       if (b.warnings?.count > 0) metaParts.push('⚠️ ' + b.warnings.count + ' warning' + (b.warnings.count > 1 ? 's' : ''));
       return '<div class="ranking-card">'
         + '<div class="ranking-rank ' + rankClass + '">#' + rank + '</div>'
@@ -530,16 +524,9 @@
     document.getElementById('scoreValue').style.color = scoreColor(m.overallScore);
     document.getElementById('scoreRating').textContent = m.rating;
 
-    // Breakdown bars
-    const items = [
-      { label: 'Target Achievement (' + W.target + '%)', score: b.targetHitRate?.score, color: '#8bc34a' },
-      { label: 'Ancients (' + W.ancients + '%)', score: b.ancients?.score, color: '#42a5f5' },
-      { label: 'Ragnarok (' + W.ragnarok + '%)', score: b.ragnarok?.score, color: '#e74c3c' },
-      { label: 'Olympus & Dark Omens (' + W.olympusDO + '%)', score: b.olympusDO?.score, color: '#ab47bc' },
-      { label: 'Other Events (' + W.other + '%)', score: b.other?.score, color: '#78909c' },
-      { label: 'Consistency (' + W.consistency + '%)', score: b.consistency?.score, color: '#ff9800' },
-      { label: 'Warnings (' + W.warnings + '%)', score: b.warnings?.score, color: '#ef5350' }
-    ];
+    // Breakdown bars (one per score part; "—" = left out, the rest scaled up)
+    const parts = profilingData.parts || [];
+    const items = parts.map(p => ({ label: escapeHtml(p.label) + ' (' + p.weight + '%)', score: b[p.key]?.score, color: partColor(p, b[p.key]?.score) }));
     document.getElementById('scoreBreakdown').innerHTML = items.map(item => {
       const val = item.score !== null && item.score !== undefined ? item.score : 0;
       const display = item.score !== null && item.score !== undefined ? item.score : '—';
@@ -551,18 +538,11 @@
     }).join('');
 
     const cards = [];
-    const metricLabels = { targetHitRate: '🎯 Target Achievement', ancients: '🏛️ Ancients', ragnarok: '⚔️ Ragnarok', olympusDO: '🔮 Olympus & Dark Omens', other: '📋 Other Events', consistency: '📆 Consistency', warnings: '⚠️ Warnings' };
-    Object.keys(metricLabels).forEach(function(key) {
-      const metric = b[key];
+    const icons = { target: '🎯', consistency: '📆', warnings: '⚠️', ancients: '🏛️', ragnarok: '⚔️', darkOmens: '🔮', olympus: '⚡' };
+    parts.forEach(function(p) {
+      const metric = b[p.key];
       if (!metric) return;
-      const detail = key === 'targetHitRate'
-        ? metric.met + ' of ' + metric.total + ' targets met'
-        : key === 'consistency'
-          ? metric.activePeriods + ' of ' + metric.checkedPeriods + ' periods active'
-          : key === 'warnings'
-            ? metric.count + ' warning' + (metric.count === 1 ? '' : 's')
-            : metric.participated + ' of ' + metric.applicable + ' events';
-      cards.push(card(metricLabels[key], metric.score + '%', detail));
+      cards.push(card((icons[p.key] || '📋') + ' ' + escapeHtml(p.label), metric.score !== null && metric.score !== undefined ? metric.score + '%' : '—', partDetail(p, metric)));
     });
     if (m.joinDate) {
       cards.push(card('📅 Joined', m.joinDate, ''));
@@ -570,17 +550,31 @@
     document.getElementById('metricCards').innerHTML = cards.join('');
 
     // Breakdown table
-    const rows = [
-      metricRow('Target Achievement', b.targetHitRate, W.target, b.targetHitRate ? b.targetHitRate.met + '/' + b.targetHitRate.total + ' targets met' : '—'),
-      metricRow('Ancients', b.ancients, W.ancients, b.ancients ? b.ancients.participated + '/' + b.ancients.applicable + ' events' : '—'),
-      metricRow('Ragnarok', b.ragnarok, W.ragnarok, b.ragnarok ? b.ragnarok.participated + '/' + b.ragnarok.applicable + ' events' : '—'),
-      metricRow('Olympus & Dark Omens', b.olympusDO, W.olympusDO, b.olympusDO ? b.olympusDO.participated + '/' + b.olympusDO.applicable + ' events' : '—'),
-      metricRow('Other Events', b.other, W.other, b.other ? b.other.participated + '/' + b.other.applicable + ' events' : '—'),
-      metricRow('Consistency', b.consistency, W.consistency, b.consistency ? b.consistency.activePeriods + '/' + b.consistency.checkedPeriods + ' periods active' : '—'),
-      metricRow('Warnings', b.warnings, W.warnings, b.warnings ? b.warnings.count + ' warning(s)' : '—')
-    ];
-    document.getElementById('breakdownBody').innerHTML = rows.join('');
+    document.getElementById('breakdownBody').innerHTML = parts.map(p => {
+      const metric = b[p.key];
+      const evs = metric && metric.events && metric.events.length
+        ? '<div style="margin-top:4px;">' + metric.events.map(ev => '<div style="font-size:0.9em;padding:1px 0;">' + eventLine(ev) + '</div>').join('') + '</div>' : '';
+      return metricRow(escapeHtml(p.label), metric, p.weight, partDetail(p, metric) + evs);
+    }).join('');
   }
+
+  // ─── Score parts (sent by the server: profilingData.parts) ───
+  function partColor(p, score) { return p.kind === 'warnings' ? (score != null && score < 100 ? '#ef5350' : '#4caf50') : p.color; }
+  function partDetail(p, metric) {
+    if (!metric) return '—';
+    if (p.kind === 'target') return metric.total ? metric.met + ' of ' + metric.total + ' targets met' : 'No finished periods yet (left out)';
+    if (p.kind === 'consistency') return metric.checkedPeriods ? metric.activePeriods + ' of ' + metric.checkedPeriods + ' periods active' : 'No finished periods yet (left out)';
+    if (p.kind === 'warnings') return metric.count === 0 ? 'Clean record' : metric.count + ' warning' + (metric.count === 1 ? '' : 's') + ' (−25% each)';
+    return metric.counted ? metric.counted + ' event' + (metric.counted === 1 ? '' : 's') + ' in the last 60 days' : 'No events in the last 60 days (left out)';
+  }
+  function eventLine(ev) {
+    if (ev.kind === 'ranking') {
+      return (ev.points > 0 ? '🏅 ' : '❌ ') + escapeHtml(ev.name) + ' — ' + (ev.points > 0 ? '#' + ev.rank + ' of ' + ev.of + ', ' + formatNumber(ev.points) + ' pts' : 'no points') + ' → ' + ev.score + '%';
+    }
+    return (ev.status === 'Yes' ? '✅ ' : ev.status === 'Partial' ? '⚠️ ' : '❌ ') + escapeHtml(ev.name) + ' — '
+      + (ev.status === 'Yes' ? 'took part' : ev.status === 'Partial' ? 'partly' : 'did not take part') + ' → ' + ev.score + '%';
+  }
+
 
   function metricRow(label, metric, weight, detail) {
     const score = metric && metric.score !== null && metric.score !== undefined ? metric.score : '—';
