@@ -848,8 +848,8 @@
       if (raw === '') continue;
       const level = parseInt(raw, 10);
       const isC = t === 'C';
-      if (isNaN(level) || (isC ? (level < 1 || level > 500) : (level < 3 || level > 9))) {
-        status.textContent = `${t}: ${isC ? 'must be 1-500' : 'must be 3-9'}.`;
+      if (isNaN(level) || (isC ? (level < 1 || level > 500) : (level < 1 || level > 9))) {
+        status.textContent = `${t}: ${isC ? 'must be 1-500' : 'must be 1-9'}.`;
         status.className = 'status err'; return;
       }
       if (level !== (loadedTroopLevels[t] || 0)) changes.push({ type: t, level });
