@@ -187,6 +187,7 @@
     .stat-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin: 0 0 16px; }
     .stat-card { background: var(--bg-card-soft); border: 1px solid var(--border); border-radius: 8px; padding: 12px; text-align: center; }
     .stat-card h3 { font-size: 0.8em; color: var(--primary); margin: 0 0 6px; }
+    .stat-card[title] { cursor: help; }
     .stat-card .value { font-size: 1.7em; font-weight: 700; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .status { margin-top: 8px; padding: 8px 12px; border-radius: 6px; font-size: 0.85em; min-height: 1.5em; }
     .status.ok { background: #e8f5e9; color: #2e7d32; }
@@ -234,10 +235,8 @@
 
   <div class="stat-cards">
     <div class="stat-card"><h3>Total Members</h3><div class="value" id="statTotal">-</div></div>
-    <div class="stat-card"><h3>T9</h3><div class="value" id="statT9" style="color:#7b1fa2">-</div></div>
-    <div class="stat-card"><h3>G9</h3><div class="value" id="statG9" style="color:#ba68c8">-</div></div>
-    <div class="stat-card"><h3>T8</h3><div class="value" id="statT8" style="color:#1565c0">-</div></div>
-    <div class="stat-card"><h3>G8</h3><div class="value" id="statG8" style="color:#00acc1">-</div></div>
+    <!-- one card per troop level found in the clan, plus the members without troop levels (updateStats) -->
+    <div id="troopStatCards" style="display:contents"></div>
     <div class="stat-card"><h3>Top Hero</h3><div class="value" id="statTopHero" style="font-size:1em;line-height:2.4em;">-</div></div>
   </div>
 
@@ -600,98 +599,35 @@
   }
 
   // Summary cards (as on Champions): members, troop categories, highest hero level.
+  // Summary cards: members, one card per troop level present in the clan (highest
+  // first), the members without troop levels, highest hero level. Hover a troop
+  // card for the members in it.
+  const TROOP_CARD_ORDER = ['T9', 'G9', 'T8', 'G8', 'T7', 'G7', 'G6', 'G5', 'G4', 'G1–3'];
+  const TROOP_CARD_COLORS = { T9: '#7b1fa2', G9: '#ba68c8', T8: '#1565c0', G8: '#00acc1', T7: '#e53935', G7: '#ef6c00', G6: '#c79a00', G5: '#757575', G4: '#757575', 'G1–3': '#757575' };
   function updateStats() {
     document.getElementById('statTotal').textContent = membersData.length.toLocaleString();
-    const counts = { T9: 0, G9: 0, T8: 0, G8: 0 };
+    const groups = {};   // level → member names
+    const missing = [];
     let top = null;
     membersData.forEach(m => {
       const key = (m.name || '').toLowerCase();
       const t = troopData[key] || {};
-      const cat = determineTroopCategory(t.G, t.M, t.S);
-      if (cat in counts) counts[cat]++;
+      const g = Number(t.G);
+      const cat = determineTroopCategory(t.G, t.M, t.S) || (g > 0 ? 'G1–3' : null);
+      if (cat) (groups[cat] = groups[cat] || []).push(m.name);
+      else missing.push(m.name);
       const h = heroData[key];
       if (h && h.level != null && Number(h.level) > (top ? top.level : 0)) top = { name: m.name, level: Number(h.level) };
     });
-    Object.keys(counts).forEach(c => { document.getElementById('stat' + c).textContent = counts[c]; });
+    const titleText = (t) => String(t).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const card = (label, names, color, note) => `<div class="stat-card" title="${titleText(note + ':\n' + names.slice().sort((a, b) => a.localeCompare(b)).join(', '))}"><h3>${escapeHtml(label)}</h3><div class="value" style="color:${color}">${names.length}</div></div>`;
+    document.getElementById('troopStatCards').innerHTML =
+      TROOP_CARD_ORDER.filter(c => groups[c]).map(c => card(c, groups[c], TROOP_CARD_COLORS[c], c)).join('')
+      + (missing.length ? card('No troop levels', missing, '#c62828', 'No troop levels entered') : '');
     const el = document.getElementById('statTopHero');
     el.textContent = top ? `${top.name} (${top.level})` : '-';
     el.title = top ? `${top.name}: Hero Level ${top.level}` : '';
   }
-
-  function populateSelects() {
-    const sorted = [...membersData].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-    const options = '<option value="">-- Select member --</option>' +
-      sorted.map(m => `<option value="${escapeHtml(m.name)}">${escapeHtml(m.name)}</option>`).join('');
-    ['troopMemberSelect', 'heroMemberSelect', 'carterMemberSelect', 'removeMemberSelect'].forEach(id => {
-      const el = document.getElementById(id);
-      if (el) el.innerHTML = options;
-    });
-  }
-
-  // RENDER TABLE
-  function renderTable() {
-    const tbody = document.getElementById('membersTableBody');
-    tbody.innerHTML = '';
-
-    const sorted = [...membersData].sort((a, b) => {
-      let va, vb;
-      const keyA = (a.name || '').toLowerCase();
-      const keyB = (b.name || '').toLowerCase();
-      const tA = troopData[keyA] || {};
-      const tB = troopData[keyB] || {};
-      const hA = heroData[keyA];
-      const hB = heroData[keyB];
-
-      switch (sortField) {
-        case 'name': va = keyA; vb = keyB; break;
-        case 'joinDate': va = a.joinDate || ''; vb = b.joinDate || ''; break;
-        case 'heroLevel': va = hA ? hA.level : -1; vb = hB ? hB.level : -1; break;
-        case 'category':
-          va = CATEGORY_ORDER.indexOf(determineTroopCategory(tA.G, tA.M, tA.S));
-          vb = CATEGORY_ORDER.indexOf(determineTroopCategory(tB.G, tB.M, tB.S));
-          break;
-        case 'G': case 'M': case 'S': case 'E': case 'C':
-          va = tA[sortField] || 0; vb = tB[sortField] || 0; break;
-        default: va = 0; vb = 0;
-      }
-      if (typeof va === 'string') return sortAsc ? va.localeCompare(vb) : vb.localeCompare(va);
-      return sortAsc ? va - vb : vb - va;
-    });
-
-    sorted.forEach(m => {
-      const key = (m.name || '').toLowerCase();
-      const troops = troopData[key] || {};
-      const hero = heroData[key];
-      const tr = document.createElement('tr');
-
-      const heroHtml = hero && hero.level != null
-        ? `<span class="hero-badge" style="background:${getHeroBg(hero.level)};color:${getHeroFg(hero.level)}" title="Updated: ${hero.timestamp || '?'}">${hero.level}</span>`
-        : '<span style="color:var(--text-muted)">—</span>';
-
-      const cat = determineTroopCategory(troops.G, troops.M, troops.S);
-
-      tr.innerHTML = `
-        <td><strong>${escapeHtml(m.name)}</strong></td>
-        <td>${escapeHtml(m.joinDate)}</td>
-        <td style="text-align:center">${heroHtml}</td>
-        <td style="text-align:center">${categoryBadge(cat)}</td>
-        <td style="text-align:center">${troopBadge('g', troops.G)}</td>
-        <td style="text-align:center">${troopBadge('m', troops.M)}</td>
-        <td style="text-align:center">${troopBadge('s', troops.S)}</td>
-        <td style="text-align:center">${troopBadge('e', troops.E)}</td>
-        <td style="text-align:center">${troopBadge('c', troops.C)}</td>
-        ${isLoggedIn ? `<td class="member-actions">
-          <button title="Edit troops" onclick="quickEditTroop('${escapeAttr(m.name)}')">&nbsp;⚔️&nbsp;</button>
-          <button title="Edit hero" onclick="quickEditHero('${escapeAttr(m.name)}')">&nbsp;🦸&nbsp;</button>
-          <button title="Rename" onclick="renameMember('${escapeAttr(m.name)}')">&nbsp;✏️&nbsp;</button>
-        </td>` : ''}
-      `;
-      tbody.appendChild(tr);
-    });
-  }
-
-  // Troop category order for sorting (low → high)
-  const CATEGORY_ORDER = [null, 'G4', 'G5', 'G6', 'G7', 'T7', 'G8', 'T8', 'G9', 'T9'];
 
   function determineTroopCategory(gLevel, mLevel, sLevel) {
     const g = Number(gLevel);
