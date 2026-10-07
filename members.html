@@ -246,19 +246,19 @@
       <!-- Groups, each with its own tabs (switchGroup / switchTab). Setup and
            corrections (chest data, rules, transfers, access) are on admin.html. -->
       <div class="tab-groups">
-        <button class="tab-group active" data-group="progress" onclick="switchGroup('progress')">📈 Progress</button>
-        <button class="tab-group" data-group="roster" onclick="switchGroup('roster')">👥 Roster</button>
+        <button class="tab-group active" data-group="roster" onclick="switchGroup('roster')">👥 Roster</button>
+        <button class="tab-group" data-group="progress" onclick="switchGroup('progress')">📈 Progress</button>
       </div>
-      <button class="tab-btn-inner active" data-group="progress" data-tab="troopTab" onclick="switchTab('troopTab', this)">⚔️ Track Troops</button>
-      <button class="tab-btn-inner" data-group="progress" data-tab="heroTab" onclick="switchTab('heroTab', this)">🦸 Hero Level</button>
-      <button class="tab-btn-inner" data-group="progress" data-tab="carterTab" onclick="switchTab('carterTab', this)">🏗️ Carter Level</button>
-      <button class="tab-btn-inner" data-group="progress" data-tab="chestOverviewTab" onclick="switchTab('chestOverviewTab', this)">📦 Chest Points</button>
-      <button class="tab-btn-inner" data-group="progress" data-tab="pointTargetsTab" onclick="switchTab('pointTargetsTab', this)">🎯 Point Targets</button>
-      <button class="tab-btn-inner" hidden data-group="roster" data-tab="addMemberTab" onclick="switchTab('addMemberTab', this)">➕ Add Member</button>
-      <button class="tab-btn-inner" hidden data-group="roster" data-tab="removeMemberTab" onclick="switchTab('removeMemberTab', this)">🚪 Remove Member</button>
+      <button class="tab-btn-inner active" data-group="roster" data-tab="addMemberTab" onclick="switchTab('addMemberTab', this)">➕ Add Member</button>
+      <button class="tab-btn-inner" data-group="roster" data-tab="removeMemberTab" onclick="switchTab('removeMemberTab', this)">🚪 Remove Member</button>
+      <button class="tab-btn-inner" hidden data-group="progress" data-tab="troopTab" onclick="switchTab('troopTab', this)">⚔️ Track Troops</button>
+      <button class="tab-btn-inner" hidden data-group="progress" data-tab="heroTab" onclick="switchTab('heroTab', this)">🦸 Hero Level</button>
+      <button class="tab-btn-inner" hidden data-group="progress" data-tab="carterTab" onclick="switchTab('carterTab', this)">🏗️ Carter Level</button>
+      <button class="tab-btn-inner" hidden data-group="progress" data-tab="chestOverviewTab" onclick="switchTab('chestOverviewTab', this)">📦 Chest Points</button>
+      <button class="tab-btn-inner" hidden data-group="progress" data-tab="pointTargetsTab" onclick="switchTab('pointTargetsTab', this)">🎯 Point Targets</button>
     </div>
 
-    <div id="troopTab" class="tab-panel active">
+    <div id="troopTab" class="tab-panel">
       <h3 style="margin:0 0 10px;color:var(--primary)">Track Troop Levels</h3>
       <div class="form-grid" style="grid-template-columns: 1fr 1fr;">
         <div><label>Member</label><select id="troopMemberSelect" onchange="loadMemberTroops()"></select></div>
@@ -368,7 +368,7 @@
     </div>
 
 
-    <div id="addMemberTab" class="tab-panel">
+    <div id="addMemberTab" class="tab-panel active">
       <h3 style="margin:0 0 10px;color:var(--primary)">Add New Member</h3>
       <!-- New or returning member (member-transfers.js: ReturningMember) -->
       <div style="display:flex;gap:18px;margin-bottom:12px;flex-wrap:wrap;">
