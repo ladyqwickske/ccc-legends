@@ -140,9 +140,11 @@
     .level-cell { background: #f8f4ea; display: none; font-size: 12px; color: var(--primary); }
     .level-cell.visible { display: table-cell; }
     .count-zero { color: #ccc; }
-    .player-red { color: var(--danger); font-weight: 500; }
-    .player-orange { color: #e67e22; font-weight: 500; }
-    .player-green { color: var(--success); font-weight: 600; }
+    /* Progress this period: plain green / orange / red, as on Members → Chest Points
+       (not the theme colours, which aren't green and red on every site) */
+    .player-red { color: #c62828; font-weight: 500; }
+    .player-orange { color: #ef6c00; font-weight: 500; }
+    .player-green { color: #2e7d32; font-weight: 600; }
     .troop-category { font-size: 10px; font-style: normal; font-weight: 700; letter-spacing: 0.5px; }
     .troop-category.cat-G4, .troop-category.cat-G5 { color: #777; }
     .troop-category.cat-G6 { color: #b88600; }
@@ -323,9 +325,9 @@
     <div class="stat-card"><div class="stat-value" id="statActiveMembers">-</div><div class="stat-label">Active Members</div></div>
   </div>
   <div class="color-legend" style="text-align:center;margin-bottom:16px;font-size:0.82em;color:var(--text-muted);">
-    <span style="color:var(--success);font-weight:600;">&#9632;</span> ≥ Required &nbsp;
-    <span style="color:#e67e22;font-weight:600;">&#9632;</span> ≥ 90% &nbsp;
-    <span style="color:var(--danger);font-weight:600;">&#9632;</span> Below 90%
+    <span class="player-green">&#9632;</span> ≥ Required &nbsp;
+    <span class="player-orange" style="font-weight:600;">&#9632;</span> ≥ 90% &nbsp;
+    <span class="player-red" style="font-weight:600;">&#9632;</span> Below 90%
   </div>
 
   <!-- Player Rankings -->
