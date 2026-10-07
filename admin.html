@@ -1,0 +1,1324 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>cCc Legends - Admin</title>
+  <link rel="icon" type="image/png" href="logo.png">
+  <script src="perf-debug.js"></script>
+  <script src="config.js"></script>
+  <script src="table-sort.js"></script>
+  <script src="translate.js"></script>
+  <script src="site-config.js"></script>
+  <script src="portal-shim.js"></script>
+  <script src="portal-auth.js"></script>
+  <script src="member-transfers.js"></script>
+  <style>
+    :root {
+      --primary: #1fc1e6;
+      --primary-soft: #55d9f3;
+      --primary-strong: #0ea5c6;
+      --primary-hover: #076b88;
+      --accent: #ffd24d;
+      --accent-light: #fff49a;
+      --accent-strong: #e6a418;
+      --accent-deep: #c57a00;
+      --bg-dark: #0b3d59;
+      --bg-card: rgba(255, 255, 255, 0.95);
+      --bg-card-soft: #dff6ff;
+      --bg-page: #dff6ff;
+      --bg-page-alt: #ffffff;
+      --text: #0b3d59;
+      --text-muted: #076b88;
+      --success: #0ea5c6;
+      --danger: #8a5b00;
+      --border: #55d9f3;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: linear-gradient(135deg, var(--bg-page-alt) 0%, var(--bg-page) 55%, var(--accent-light) 100%);
+      color: var(--text); min-height: 100vh;
+      background-attachment: fixed; padding: 60px 8px 80px 8px;
+    }
+    .tab-nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+      display: flex; justify-content: center; gap: 0;
+      background: rgba(255,255,255,0.96); border-bottom: 2px solid var(--primary-soft);
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+      padding: 0;
+    }
+    .tab-nav a {
+      color: var(--text-muted); text-decoration: none;
+      padding: 12px 18px; font-size: 0.95em; font-weight: 500;
+      border-bottom: 3px solid transparent; transition: all 0.2s;
+    }
+    .tab-nav a:hover { color: var(--primary); }
+    .tab-nav a.active { color: var(--primary); border-bottom-color: var(--primary); }
+    .nav-icon { width: 18px; height: 18px; vertical-align: middle; margin-right: 4px; }
+    .login-bar {
+      position: fixed; top: 0; right: 8px; z-index: 1001;
+      display: flex; align-items: center; gap: 8px; padding: 8px;
+    }
+    .login-bar .user-email { font-size: 0.8em; color: var(--primary); }
+    .login-bar button {
+      background: var(--primary); color: #ffffff; border: none; border-radius: 6px;
+      padding: 6px 14px; cursor: pointer; font-weight: 600; font-size: 0.85em;
+    }
+    .login-bar button:hover { background: var(--primary-hover); }
+    .login-bar .logout-btn { background: var(--accent-light); color: var(--accent-deep); }
+    .container {
+      max-width: 1200px; margin: 0 auto; background: var(--bg-card);
+      border-radius: 16px; box-shadow: 0 12px 30px rgba(11,61,89,0.12); padding: 24px 16px; border: 1px solid rgba(85,217,243,0.45);
+    }
+    h1 { color: var(--primary); text-align: center; margin-bottom: 4px; font-size: 1.8em; }
+    .site-logo { width: 64px; height: 64px; display: block; margin: 0 auto 8px auto; }
+    .subtitle { text-align: center; color: var(--text-muted); margin-bottom: 16px; font-size: 0.9em; }
+
+    /* Member Form (admin only) */
+    .admin-panel {
+      display: none; background: linear-gradient(180deg, #ffffff 0%, var(--bg-card-soft) 100%); border-radius: 12px;
+      padding: 16px; margin-bottom: 20px; border: 1px solid var(--border);
+    }
+    .admin-panel.visible { display: block; }
+    .admin-panel h3 { color: var(--primary); margin-bottom: 12px; font-size: 1em; }
+    .form-row {
+      display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px;
+    }
+    .form-row input, .form-row select {
+      flex: 1; min-width: 120px; padding: 8px 12px;
+      background: #ffffff; border: 1px solid var(--border); border-radius: 8px;
+      color: var(--text); font-size: 0.9em;
+    }
+    .form-row input:focus, .form-row select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 2px rgba(31,193,230,0.18); }
+    .btn {
+      background: var(--primary); color: #fff; border: none; border-radius: 8px;
+      padding: 8px 16px; cursor: pointer; font-weight: 600; font-size: 0.9em;
+    }
+    .btn:hover { background: var(--primary-hover); }
+    .btn.danger { background: var(--danger); color: #fff; }
+    .btn.danger:hover { background: #a93226; }
+    .btn.secondary { background: var(--accent-light); color: var(--accent-deep); }
+
+    /* Members Table */
+    .table-container { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.9em; }
+    th {
+      background: var(--bg-card-soft); color: var(--primary-hover); padding: 10px 8px;
+      text-align: left; border-bottom: 2px solid var(--accent); cursor: pointer;
+    }
+    th:hover { background: var(--accent-light); }
+    td { padding: 8px; border-bottom: 1px solid #eee; }
+    tr:hover { background: rgba(85,217,243,0.14); }
+
+    .might-value { color: var(--primary); font-weight: 600; }
+    .growth-positive { color: var(--success); }
+    .growth-negative { color: var(--danger); }
+    .member-actions { display: flex; gap: 4px; }
+    .member-actions button {
+      background: var(--bg-card-soft); color: var(--text); border: none; border-radius: 4px;
+      padding: 4px 8px; cursor: pointer; font-size: 0.8em;
+    }
+    .member-actions button:hover { background: var(--accent-light); }
+    .member-actions .remove-btn:hover { background: var(--danger); color: #fff; }
+
+    .loading { text-align: center; padding: 40px; color: var(--text-muted); }
+    .spinner {
+      display: inline-block; width: 24px; height: 24px;
+      border: 3px solid var(--border); border-top-color: var(--primary);
+      border-radius: 50%; animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .toast {
+      position: fixed; bottom: 20px; right: 20px; z-index: 3000;
+      background: #fff; color: var(--text); padding: 12px 20px;
+      border-radius: 8px; font-size: 0.9em; display: none;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.12);
+    }
+    .toast.success { border-left: 4px solid var(--success); }
+    .toast.error { border-left: 4px solid var(--danger); }
+
+    .member-count { text-align: center; color: var(--text-muted); font-size: 0.85em; margin-bottom: 12px; }
+
+    .nav-links { display: flex; }
+    .hamburger {
+      display: none; background: none; border: none; cursor: pointer; padding: 8px;
+      flex-direction: column; gap: 4px;
+    }
+    .hamburger span {
+      display: block; width: 22px; height: 2px; background: var(--primary); border-radius: 2px;
+    }
+    @media (max-width: 600px) {
+      body { padding: 50px 4px 70px 4px; }
+      .tab-nav { flex-wrap: wrap; padding: 0 8px; align-items: center; }
+      .hamburger { display: flex; }
+      .login-bar {
+        position: static; flex: 1; justify-content: flex-end;
+        padding: 4px 0; gap: 6px;
+      }
+      .nav-links { display: none; width: 100%; flex-direction: column; order: 10; }
+      .nav-links.open { display: flex; }
+      .nav-links a { padding: 10px 12px; font-size: 0.9em; border-bottom: 1px solid var(--border); }
+    }
+
+    /* Tabs & Forms */
+    .tabs { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 12px; border-bottom: 2px solid var(--border); padding-bottom: 8px; }
+    .tab-btn-inner { padding: 8px 14px; background: none; border: none; color: var(--text-muted); font-size: 0.85em; font-weight: 600; border-bottom: 2px solid transparent; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
+    .tab-btn-inner:hover { color: var(--primary); }
+    .tab-btn-inner.active { color: var(--primary); border-bottom-color: var(--primary); }
+    .tab-btn-inner[hidden] { display: none; }
+    /* the two groups above the tabs */
+    .tab-groups { display: flex; gap: 8px; width: 100%; margin-bottom: 4px; flex-wrap: wrap; }
+    .tab-group {
+      flex: 1; min-width: 200px; padding: 10px 14px; border-radius: 8px; cursor: pointer;
+      background: #fff; border: 1px solid var(--border); color: var(--text); font-size: 0.95em; font-weight: 600; transition: all 0.2s;
+    }
+    .tab-group:hover { border-color: var(--primary); color: var(--primary); }
+    .tab-group.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+    /* Member Configuration: the member list is not needed */
+    .admin-logo { font-size: 64px; line-height: 1; text-align: center; margin: 0 auto 8px; width: auto; height: auto; }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+    .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 12px; }
+    .form-grid label { display: block; font-size: 0.75em; font-weight: 600; color: var(--primary); margin-bottom: 4px; text-transform: uppercase; }
+    .form-grid input, .form-grid select { width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.9em; background: #fff; color: var(--text); }
+    .form-grid input:focus, .form-grid select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 2px rgba(31,193,230,0.18); }
+    .form-grid .note { font-size: 0.7em; color: var(--text-muted); margin-top: 2px; }
+    .stat-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin: 0 0 16px; }
+    .stat-card { background: var(--bg-card-soft); border: 1px solid var(--border); border-radius: 8px; padding: 12px; text-align: center; }
+    .stat-card h3 { font-size: 0.8em; color: var(--primary); margin: 0 0 6px; }
+    .stat-card .value { font-size: 1.7em; font-weight: 700; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .status { margin-top: 8px; padding: 8px 12px; border-radius: 6px; font-size: 0.85em; min-height: 1.5em; }
+    .status.ok { background: #e8f5e9; color: #2e7d32; }
+    .status.err { background: #ffebee; color: #c62828; }
+    .troop-badge { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 0.75em; font-weight: 700; min-width: 28px; text-align: center; }
+    .troop-badge.g { background: #e8f5e9; color: #2e7d32; }
+    .troop-badge.m { background: #e3f2fd; color: #1565c0; }
+    .troop-badge.s { background: #fff3e0; color: #e65100; }
+    .troop-badge.e { background: #f3e5f5; color: #7b1fa2; }
+    .troop-badge.c { background: #fce4ec; color: #c62828; }
+    .hero-badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 0.75em; font-weight: 700; }
+  </style>
+</head>
+<body>
+
+<nav class="tab-nav">
+  <button class="hamburger" id="hamburgerBtn" onclick="document.getElementById('navLinks').classList.toggle('open')"><span></span><span></span><span></span></button>
+  <div class="login-bar" id="loginBar">
+    <span class="user-email" id="userEmail" style="display:none"></span>
+    <button id="loginBtn" onclick="handleLogin()">🔑 Login</button>
+    <button id="logoutBtn" class="logout-btn" style="display:none" onclick="handleLogout()">Logout</button>
+  </div>
+  <div class="nav-links" id="navLinks">
+    <a href="dashboard.html"><img src="chest.png" class="nav-icon" alt=""> Dashboard</a>
+    <a href="events.html"><img src="events.png" class="nav-icon" alt=""> Events</a>
+    <a href="members.html"><img src="members.png" class="nav-icon" alt=""> Members</a>
+    <a href="profiling.html"><img src="profiling.png" class="nav-icon" alt=""> Profiling</a>
+    <a href="warnings.html"><img src="warning.png" class="nav-icon" alt=""> Warnings</a>
+    <a href="calendar.html"><img src="calendar.png" class="nav-icon" alt=""> Calendar</a>
+    <a href="bank.html"><img src="bank.png" class="nav-icon" alt=""> Bank</a>
+    <a href="admin.html" class="active"><span class="nav-icon" style="display:inline-block;text-align:center;font-size:14px;line-height:18px;">⚙️</span> Admin</a>
+  </div>
+</nav>
+
+<div class="login-gate" id="loginGate" style="max-width:500px;margin:80px auto;text-align:center;background:var(--bg-card);border-radius:16px;padding:40px 24px;box-shadow:0 2px 12px rgba(0,0,0,0.08);">
+  <h2 style="color:var(--primary);margin-bottom:12px;">🔒 Login Required</h2>
+  <p style="color:var(--text-muted);margin-bottom:20px;">You need to be logged in to view the Admin page.</p>
+  <button class="btn" onclick="handleLogin()" style="padding:12px 32px;font-size:1em;">🔑 Login</button>
+</div>
+
+<div class="container" id="mainContent">
+  <div class="site-logo admin-logo" aria-hidden="true">⚙️</div>
+  <h1>Admin</h1>
+  <p class="subtitle">Chest data, rules, transfers between the clans and access</p>
+
+  <!-- Admin Panel - Tabbed Interface -->
+  <div class="admin-panel" id="adminPanel">
+    <div class="tabs">
+      <!-- Groups, each with its own tabs (switchGroup / switchTab) -->
+      <div class="tab-groups">
+        <button class="tab-group active" data-group="chestdata" onclick="switchGroup('chestdata')">📥 Chest data</button>
+        <button class="tab-group" data-group="rules" onclick="switchGroup('rules')">🏷️ Rules</button>
+        <button class="tab-group" data-group="clans" onclick="switchGroup('clans')">🔁 Between clans</button>
+        <button class="tab-group" data-group="access" onclick="switchGroup('access')">🔐 Access</button>
+      </div>
+      <button class="tab-btn-inner" data-group="chestdata" data-tab="manualChestsTab" id="manualChestsTabBtn" style="display:none" onclick="switchTab('manualChestsTab', this)">➕ Manual Chests</button>
+      <button class="tab-btn-inner active" data-group="chestdata" data-tab="chestNameFixTab" onclick="switchTab('chestNameFixTab', this)">🔧 Fix Chest Names</button>
+      <button class="tab-btn-inner" data-group="chestdata" data-tab="ocrTab" onclick="switchTab('ocrTab', this)">🔤 OCR Corrections</button>
+      <button class="tab-btn-inner" hidden data-group="rules" data-tab="chestValuesTab" onclick="switchTab('chestValuesTab', this)">🏷️ Chest Point Values</button>
+      <button class="tab-btn-inner" hidden data-group="rules" data-tab="exemptTab" onclick="switchTab('exemptTab', this)">🛡️ Penalty Exemptions</button>
+      <button class="tab-btn-inner" hidden data-group="clans" data-tab="linkFormerTab" onclick="switchTab('linkFormerTab', this)">🔗 Link Former Members</button>
+      <button class="tab-btn-inner" hidden data-group="clans" data-tab="transfersTab" id="transfersTabBtn" onclick="switchTab('transfersTab', this)">🔁 Member Transfers</button>
+      <button class="tab-btn-inner" hidden data-group="access" data-tab="accountsTab" onclick="switchTab('accountsTab', this)">🔐 Login Accounts</button>
+      <button class="tab-btn-inner" hidden data-group="access" data-tab="superiorsTab" id="superiorsTabBtn" style="display:none" onclick="switchTab('superiorsTab', this)">👑 Superiors</button>
+    </div>
+
+    <div id="manualChestsTab" class="tab-panel">
+      <h3 style="margin:0 0 10px;color:var(--primary)">Manual Chests</h3>
+      <p style="font-size:0.82em;color:var(--text-muted);margin-bottom:12px;">Add chests the chesttracker missed or counted in the wrong period — e.g. crypts opened right after a period change that still went to the previous period. They get the points from 🏷️ Chest Points, like imported chests. Only you can see this tab.</p>
+      <div class="form-grid" style="margin-bottom:8px;">
+        <div><label for="mcPeriod">Period</label><select id="mcPeriod" onchange="ManualChests.load()"><option value="active">Active period</option><option value="previous">Previous period</option></select></div>
+        <div><label for="mcMember">Member</label><select id="mcMember"></select></div>
+        <div style="grid-column:span 2;min-width:0;"><label for="mcKind">Chest</label><select id="mcKind" onchange="ManualChests.pickKind()"></select></div>
+      </div>
+      <div class="form-grid" style="margin-bottom:8px;">
+        <div><label for="mcType">Chest type</label><input type="text" id="mcType" placeholder="e.g. Level 20 Rare Crypt" oninput="ManualChests.preview()"></div>
+        <div><label for="mcName">Chest name</label><input type="text" id="mcName" placeholder="e.g. Rare Chest" oninput="ManualChests.preview()"></div>
+        <div><label for="mcLevel">Level</label><input type="number" id="mcLevel" min="0" step="1" oninput="ManualChests.preview()"></div>
+        <div><label for="mcCount">Number of chests</label><input type="number" id="mcCount" min="1" max="500" step="1" value="1" oninput="ManualChests.preview()"></div>
+      </div>
+      <div class="form-grid" style="grid-template-columns:1fr;margin-bottom:8px;">
+        <div><label for="mcNote">Note (optional)</label><input type="text" id="mcNote" maxlength="200" placeholder="e.g. crypts right after rotation"></div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px;">
+        <button class="btn" style="margin:0;" id="mcAddBtn" onclick="ManualChests.add()">➕ Add chests</button>
+        <button class="btn secondary" style="margin:0;" onclick="ManualChests.load()">↻ Reload</button>
+        <span id="mcPreview" style="font-size:0.82em;color:var(--text-muted);"></span>
+      </div>
+      <div id="mcPeriodInfo" style="font-size:0.82em;color:var(--text-muted);margin-bottom:8px;"></div>
+      <div id="mcStatus" class="status" style="display:none;"></div>
+      <h4 style="margin:14px 0 6px;color:var(--primary);">Added by hand</h4>
+      <div class="table-container"><table id="mcRecentTable" data-sortable style="font-size:0.85em;text-align:left;">
+        <thead><tr><th style="text-align:left;padding:6px 8px;">When</th><th style="text-align:left;padding:6px 8px;">Period</th><th style="text-align:left;padding:6px 8px;">Member</th><th style="text-align:left;padding:6px 8px;">Chest</th><th style="text-align:center;padding:6px 8px;">#</th><th style="text-align:right;padding:6px 8px;">Points</th><th style="text-align:left;padding:6px 8px;">Note</th><th style="width:90px;"></th></tr></thead>
+        <tbody id="mcRecent"><tr><td colspan="8" style="padding:8px;color:var(--text-muted);">Loading…</td></tr></tbody>
+      </table></div>
+    </div>
+
+
+    <div id="chestNameFixTab" class="tab-panel active">
+      <h3 style="margin:0 0 10px;color:var(--primary)">Fix Chest Names</h3>
+      <p style="font-size:0.82em;color:var(--text-muted);margin-bottom:12px;">A player name the chest reader got wrong: move those chests to the right member. Only the chests of the chosen period change (for a real name change in the game, use ✏️ Rename in the member list on the Members page).</p>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px;">
+        <label for="cnfPeriod" style="margin:0;font-size:0.85em;font-weight:600;color:var(--primary);">Period</label>
+        <select id="cnfPeriod" style="width:auto;padding:6px 8px;border:1px solid var(--border);border-radius:6px;" onchange="ChestNameFix.load()"><option value="active">Active period</option><option value="previous">Previous period</option></select>
+        <label style="margin:0 0 0 8px;display:flex;align-items:center;gap:4px;font-size:0.85em;"><input type="checkbox" id="cnfShowAll" onchange="ChestNameFix.render()"> show all names</label>
+        <button class="btn secondary" style="margin:0;" onclick="ChestNameFix.load()">↻ Reload</button>
+      </div>
+      <div id="cnfPeriodInfo" style="font-size:0.82em;color:var(--text-muted);margin-bottom:8px;"></div>
+      <div class="table-container"><table id="cnfTable" data-sortable style="font-size:0.85em;">
+        <thead><tr><th style="text-align:left;padding:6px 8px;">Name in the chests</th><th style="text-align:center;padding:6px 8px;width:70px;">Chests</th><th style="text-align:left;padding:6px 8px;">Correct member</th><th style="width:90px;"></th></tr></thead>
+        <tbody id="cnfBody"><tr><td colspan="4" style="padding:8px;color:var(--text-muted);">Loading…</td></tr></tbody>
+      </table></div>
+      <div id="cnfStatus" class="status" style="display:none;"></div>
+    </div>
+
+
+    <div id="ocrTab" class="tab-panel">
+      <h3 style="margin:0 0 10px;color:var(--primary)">OCR Corrections</h3>
+      <p style="font-size:0.82em;color:var(--text-muted);margin-bottom:12px;">The chesttracker's list of words it reads wrong (player and chest names) and what they should be. Changes here reach the chesttracker at its next run; words it learns show up here after that run.</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px;">
+        <input type="text" id="ocrSearch" placeholder="🔍 Search words or misreadings…" style="flex:1;min-width:200px;padding:8px 10px;border:1px solid var(--border);border-radius:6px;" oninput="OcrCorrections.render()">
+        <input type="text" id="ocrNewWord" placeholder="New correct word" style="width:200px;padding:8px 10px;border:1px solid var(--border);border-radius:6px;" onkeydown="if(event.key==='Enter')OcrCorrections.addWord()">
+        <button class="btn" style="margin:0;" onclick="OcrCorrections.addWord()">➕ Add word</button>
+        <button class="btn secondary" style="margin:0;" onclick="OcrCorrections.load()">↻ Reload</button>
+      </div>
+      <div id="ocrInfo" style="font-size:0.82em;color:var(--text-muted);margin-bottom:8px;"></div>
+      <div id="ocrStatus" class="status" style="display:none;"></div>
+      <div id="ocrList"></div>
+    </div>
+
+
+    <div id="chestValuesTab" class="tab-panel">
+      <h3 style="margin:0 0 10px;color:var(--primary)">Chest Point Values</h3>
+      <p style="font-size:0.82em;color:var(--text-muted);margin-bottom:12px;">How many points each chest is worth (what used to be the "Chests 2.0" tab). A change re-scores the chests of the <b>active period</b> right away; closed periods keep the points they had.</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px;">
+        <input type="text" id="cpvSearch" placeholder="🔍 Search type, chest or level…" style="flex:1;min-width:200px;padding:8px 10px;border:1px solid var(--border);border-radius:6px;" oninput="ChestPointValues.render()">
+        <button class="btn" id="cpvSaveBtn" style="margin:0;" onclick="ChestPointValues.save()" disabled>💾 Save changes</button>
+        <button class="btn secondary" style="margin:0;" onclick="ChestPointValues.openForm()">➕ Add chest</button>
+        <button class="btn secondary" style="margin:0;" onclick="ChestPointValues.load()">↻ Reload</button>
+      </div>
+      <div id="cpvInfo" style="font-size:0.82em;color:var(--text-muted);margin-bottom:8px;"></div>
+      <div id="cpvStatus" class="status" style="display:none;"></div>
+      <div id="cpvForm" style="display:none;margin-bottom:12px;background:var(--bg-card-soft);border:1px solid var(--border);border-radius:8px;padding:12px 14px;">
+        <div id="cpvFormTitle" style="font-size:0.85em;color:var(--primary-hover);font-weight:600;margin-bottom:8px;">Add a chest</div>
+        <div class="form-grid" style="margin-bottom:0;">
+          <div><label for="cpvType">Chest type</label><input type="text" id="cpvType" placeholder="e.g. Epic Crypt"></div>
+          <div><label for="cpvName">Chest name</label><input type="text" id="cpvName" placeholder="e.g. Epic Chest"></div>
+          <div><label for="cpvCrypt">Level / crypt / event</label><input type="text" id="cpvCrypt" placeholder="e.g. Level 35"></div>
+          <div><label for="cpvPoints">Points</label><input type="number" id="cpvPoints" min="0" step="1"></div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:10px;">
+          <button class="btn" style="margin:0;" onclick="ChestPointValues.submitForm()">💾 Save</button>
+          <button class="btn secondary" style="margin:0;" onclick="ChestPointValues.closeForm()">Cancel</button>
+        </div>
+      </div>
+      <div id="cpvUnmatched"></div>
+      <div class="table-container" style="max-height:55vh;overflow-y:auto;"><table style="font-size:0.85em;">
+        <thead><tr><th data-cpv-sort="type" onclick="ChestPointValues.sortBy('type')" title="Sort" style="text-align:left;padding:6px 8px;user-select:none;">Chest type <span class="cpv-arrow"></span></th><th data-cpv-sort="name" onclick="ChestPointValues.sortBy('name')" title="Sort" style="text-align:left;padding:6px 8px;user-select:none;">Chest name <span class="cpv-arrow"></span></th><th data-cpv-sort="crypt" onclick="ChestPointValues.sortBy('crypt')" title="Sort" style="text-align:left;padding:6px 8px;user-select:none;">Level <span class="cpv-arrow"></span></th><th data-cpv-sort="points" onclick="ChestPointValues.sortBy('points')" title="Sort" style="text-align:right;padding:6px 8px;user-select:none;width:110px;">Points <span class="cpv-arrow"></span></th><th style="width:80px;"></th></tr></thead>
+        <tbody id="cpvBody"><tr><td colspan="5" style="padding:8px;color:var(--text-muted);">Loading…</td></tr></tbody>
+      </table></div>
+      <details style="margin-top:12px;text-align:left;"><summary style="cursor:pointer;color:var(--text-muted);font-size:0.85em;">Recent changes</summary><div id="cpvLog" style="font-size:0.8em;color:var(--text-muted);padding:6px 4px;"></div></details>
+    </div>
+
+
+    <div id="exemptTab" class="tab-panel">
+      <h3 style="margin:0 0 10px;color:var(--primary)">Penalty Exemptions</h3>
+      <p style="font-size:0.82em;color:var(--text-muted);margin-bottom:12px;">Members selected here are excluded from automated penalties and period-end underperformer reports.</p>
+      <div class="form-grid" style="grid-template-columns: 1fr;">
+        <div><label>Search</label><input type="text" id="exemptSearchInput" placeholder="Filter members..." oninput="renderExemptList()"></div>
+      </div>
+      <div id="exemptSummary" style="font-size:0.82em;color:var(--text-muted);margin-bottom:8px;"></div>
+      <div id="exemptList" style="max-height:340px;overflow-y:auto;margin:10px 0;border:1px solid var(--border);border-radius:8px;padding:8px;background:#fff;">Loading...</div>
+      <button class="btn" onclick="saveExemptMembers()">💾 Save Exemptions</button>
+      <button class="btn secondary" style="margin-left:8px;" onclick="loadExemptMembers(true)">↻ Reload</button>
+      <div id="exemptStatus" class="status"></div>
+    </div>
+
+
+    <div id="linkFormerTab" class="tab-panel">
+      <h3 style="margin:0 0 10px;color:var(--primary)">🔗 Link Former Members</h3>
+      <p style="font-size:0.85em;color:var(--text-muted);margin:0 0 12px;">Someone who left and came back (maybe more than once) and was added as a new member? Pick them as the current member and tick their entries on the Former Members list. Their history (chests, troops, heroes, events, warnings, …) then counts for the current member, their old login comes along if they don't have one, and each earlier membership is kept on their profile. Entries under another name are renamed to the current member's name.</p>
+      <div id="linkFormerPanel"></div>
+    </div>
+
+
+    <div id="transfersTab" class="tab-panel">
+      <h3 style="margin:0 0 10px;color:var(--primary)">🔁 Member Transfers</h3>
+      <p style="font-size:0.85em;color:var(--text-muted);margin:0 0 12px;">Players who move between the cCc clans: ask the clan they came from for their profile (memberships, troop and hero levels, chest points, events, warnings), and answer the other clans' requests. Nothing is shared until a superior of that clan approves.</p>
+      <div id="transfersPanel"></div>
+    </div>
+
+
+    <div id="accountsTab" class="tab-panel">
+      <h3 style="margin:0 0 10px;color:var(--primary)">Linked Google Accounts</h3>
+      <p style="font-size:0.82em;color:var(--text-muted);margin-bottom:12px;">Link members to Google accounts so they can sign in and view their own profile. The same email can be used for alt accounts.</p>
+      <div class="form-grid" style="grid-template-columns: 1fr;">
+        <div><label>Search</label><input type="text" id="accountsSearchInput" placeholder="Filter members or emails..." oninput="renderMemberAccounts()"></div>
+      </div>
+      <div id="accountsSummary" style="font-size:0.82em;color:var(--text-muted);margin-bottom:8px;"></div>
+      <div id="accountsList" style="max-height:360px;overflow-y:auto;margin:10px 0;border:1px solid var(--border);border-radius:8px;padding:8px;background:#fff;">Loading...</div>
+      <button class="btn" onclick="saveMemberAccounts()">💾 Save Linked Accounts</button>
+      <button class="btn secondary" style="margin-left:8px;" onclick="loadMemberAccounts(true)">↻ Reload</button>
+      <div id="accountsStatus" class="status"></div>
+    </div>
+
+
+    <div id="superiorsTab" class="tab-panel">
+      <h3 style="margin:0 0 10px;color:var(--primary)">Superiors</h3>
+      <p style="font-size:0.82em;color:var(--text-muted);margin-bottom:12px;">Superiors can use the management pages (Events, Members, Warnings, Bank, Profiling, …) and make changes. Tick a member to make them a superior: the Google account(s) linked to them on <b>🔐 Login Accounts</b> get the rights, and lose them when the member leaves the clan. Logins that aren't clan members go under <b>Extra e-mails</b>. Only you can see this list; you are always a superior yourself.</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px;">
+        <input type="text" id="superiorsSearchInput" placeholder="🔍 Filter members…" style="flex:1;min-width:200px;padding:8px 10px;border:1px solid var(--border);border-radius:6px;" oninput="Superiors.render()">
+        <button class="btn" style="margin:0;" onclick="Superiors.save()">💾 Save Superiors</button>
+        <button class="btn secondary" style="margin:0;" onclick="Superiors.load(true)">↻ Reload</button>
+      </div>
+      <div id="superiorsStatus" class="status" style="display:none;"></div>
+      <div id="superiorsSummary" style="font-size:0.82em;color:var(--text-muted);margin-bottom:8px;"></div>
+      <div id="superiorsList" style="max-height:40vh;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:10px;background:var(--bg-card-soft);"></div>
+      <h4 style="margin:16px 0 6px;color:var(--primary);">Extra e-mails</h4>
+      <p style="font-size:0.8em;color:var(--text-muted);margin:0 0 8px;">Google logins with superior rights that aren't linked to a clan member. The note is just for you (e.g. who it is).</p>
+      <div id="superiorEmailsList" style="border:1px solid var(--border);border-radius:8px;padding:10px;background:var(--bg-card-soft);"></div>
+      <button class="btn secondary" style="margin-top:8px;" onclick="Superiors.addEmail()">➕ Add e-mail</button>
+    </div>
+
+
+  </div>
+
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  // Admin page: setup and corrections that used to be on the Members page. The
+  // tabs work exactly as they did there; this page only loads the member names
+  // they need (exemptions, transfers).
+  let membersData = [];
+  let isLoggedIn = false;
+  let currentUser = null;
+
+  document.addEventListener('DOMContentLoaded', () => {
+    checkLoginState();
+    if (isLoggedIn) {
+      document.getElementById('loginGate').style.display = 'none';
+      document.getElementById('mainContent').style.display = 'block';
+      loadMembers();
+      if (window.ManualChests) window.ManualChests.checkAccess();
+      if (window.Superiors) window.Superiors.checkAccess();
+    }
+    initTransfers();
+    const tab = (location.hash || '').slice(1);
+    switchTab(tab && document.querySelector(`.tab-btn-inner[data-tab="${tab}"]`) ? tab : 'chestNameFixTab');
+  });
+
+  // 🔗 Link Former Members and 🔁 Member Transfers (member-transfers.js)
+  function initTransfers() {
+    const refresh = () => {
+      loadMembers();
+      if (memberAccounts) loadMemberAccounts(true);
+      if (exemptSelection) loadExemptMembers(true);
+      if (window.Superiors) window.Superiors.refresh();
+    };
+    if (window.LinkFormer) {
+      window.LinkFormer.init({ container: 'linkFormerPanel', currentMembers: () => membersData.map(m => m.name), onDone: refresh });
+    }
+    if (window.MemberTransfers) {
+      window.MemberTransfers.init({ container: 'transfersPanel', badge: 'transfersTabBtn', onLevelsCopied: refresh });
+      if (isLoggedIn) setTimeout(() => window.MemberTransfers.check(), 1500); // waiting requests from other clans → count on the tab
+    }
+  }
+
+  // AUTH (same pattern as dashboard)
+  function checkLoginState() {
+    const stored = localStorage.getItem('leg_auth');
+    if (stored) {
+      try {
+        const auth = JSON.parse(stored);
+        if (auth.email && auth.allowed) {
+          isLoggedIn = true;
+          currentUser = auth;
+          updateLoginUI();
+        }
+      } catch (e) {}
+    }
+  }
+
+  function handleLogin() {
+    if (!document.getElementById('gsi-script')) {
+      const script = document.createElement('script');
+      script.id = 'gsi-script';
+      script.src = 'https://accounts.google.com/gsi/client';
+      script.onload = () => initGoogleLogin();
+      document.head.appendChild(script);
+    } else { initGoogleLogin(); }
+  }
+
+  function initGoogleLogin() {
+    google.accounts.id.initialize({ client_id: SITE_CONFIG.googleClientId, callback: handleGoogleCallback });
+    google.accounts.id.prompt();
+  }
+
+  async function handleGoogleCallback(response) {
+    try {
+      const res = await fetch(window.GAS_WEB_APP_URL, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idToken: response.credential })
+      });
+      const data = await res.json();
+      if (data.success && data.email) {
+        const verifyRes = await fetch(window.GAS_WEB_APP_URL, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'api', fn: 'verifyGoogleLogin', args: [{ email: data.email }] })
+        });
+        const verifyData = await verifyRes.json();
+        const authResult = verifyData.data || verifyData;
+        if (authResult.success && authResult.allowed) {
+          isLoggedIn = true;
+          currentUser = { email: data.email, allowed: true };
+          localStorage.setItem('leg_auth', JSON.stringify(currentUser));
+          updateLoginUI();
+          showToast('Logged in as ' + data.email, 'success');
+        } else { showToast('Access denied', 'error'); }
+      }
+    } catch (err) { showToast('Login error', 'error'); }
+  }
+
+  function handleLogout() {
+    isLoggedIn = false; currentUser = null;
+    localStorage.removeItem('leg_auth');
+    window.location.href = 'dashboard.html';
+  }
+
+  function updateLoginUI() {
+    document.getElementById('userEmail').textContent = isLoggedIn ? currentUser.email : '';
+    document.getElementById('userEmail').style.display = isLoggedIn ? 'inline' : 'none';
+    document.getElementById('loginBtn').style.display = isLoggedIn ? 'none' : 'inline';
+    document.getElementById('logoutBtn').style.display = isLoggedIn ? 'inline' : 'none';
+    document.getElementById('adminPanel').classList.toggle('visible', isLoggedIn);
+    document.getElementById('loginGate').style.display = isLoggedIn ? 'none' : 'block';
+    document.getElementById('mainContent').style.display = isLoggedIn ? 'block' : 'none';
+    if (isLoggedIn && membersData.length === 0) loadMembers();
+  }
+
+  // The clan's member names (for the exemptions list and the transfers)
+  async function loadMembers() {
+    try {
+      const members = await callFunction('getMembersList');
+      if (Array.isArray(members)) membersData = members;
+      if (exemptSelection) renderExemptList();
+    } catch (err) { console.error(err); }
+  }
+
+  // TAB SWITCHING — groups, each showing its own tabs; switching group returns
+  // to the tab last used there (else its first visible tab). A tab can be opened
+  // from a link: admin.html#<tab id>.
+  const lastTabInGroup = {};
+  function firstTabOf(group) {
+    const b = [...document.querySelectorAll(`.tab-btn-inner[data-group="${group}"]`)].find(x => x.style.display !== 'none');
+    return b ? b.getAttribute('data-tab') : null;
+  }
+  function switchGroup(group) {
+    const tab = lastTabInGroup[group] || firstTabOf(group);
+    if (tab) switchTab(tab);
+  }
+  function switchTab(tabId, btn) {
+    btn = document.querySelector(`.tab-btn-inner[data-tab="${tabId}"]`) || btn;
+    if (!btn) return;
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn-inner').forEach(b => b.classList.remove('active'));
+    document.getElementById(tabId)?.classList.add('active');
+    btn.classList.add('active');
+    const group = btn.getAttribute('data-group');
+    lastTabInGroup[group] = tabId;
+    document.querySelectorAll('.tab-btn-inner[data-group]').forEach(b => { b.hidden = b.getAttribute('data-group') !== group; });
+    document.querySelectorAll('.tab-group').forEach(g => g.classList.toggle('active', g.getAttribute('data-group') === group));
+    if (tabId === 'exemptTab') loadExemptMembers();
+    if (tabId === 'accountsTab') loadMemberAccounts();
+    if (tabId === 'chestValuesTab' && window.ChestPointValues) window.ChestPointValues.load();
+    if (tabId === 'chestNameFixTab' && window.ChestNameFix) window.ChestNameFix.load();
+    if (tabId === 'ocrTab' && window.OcrCorrections) window.OcrCorrections.load();
+    if (tabId === 'manualChestsTab' && window.ManualChests) window.ManualChests.load();
+    if (tabId === 'superiorsTab' && window.Superiors) window.Superiors.load();
+    if (tabId === 'transfersTab' && window.MemberTransfers) window.MemberTransfers.load();
+    if (tabId === 'linkFormerTab' && window.LinkFormer) window.LinkFormer.load();
+  }
+
+  // ===========================
+  // PENALTY EXEMPTIONS
+  // ===========================
+  let exemptSelection = null;
+  let exemptMeta = {};
+
+  async function loadExemptMembers(force) {
+    if (exemptSelection && !force) { renderExemptList(); return; }
+    const status = document.getElementById('exemptStatus');
+    const list = document.getElementById('exemptList');
+    status.textContent = '';
+    list.innerHTML = '<div style="text-align:center;padding:12px;color:var(--text-muted)">Loading...</div>';
+    try {
+      const result = await callFunction('getExemptMembers');
+      exemptSelection = new Set();
+      exemptMeta = {};
+      (result && result.members ? result.members : []).forEach(entry => {
+        const name = String(entry.name || '').trim();
+        const key = name.toLowerCase();
+        if (!key) return;
+        exemptSelection.add(key);
+        exemptMeta[key] = { name: name, reason: entry.reason || '', startDate: entry.startDate || '', endDate: entry.endDate || '' };
+      });
+      renderExemptList();
+    } catch (err) {
+      list.innerHTML = '<div style="color:var(--danger);padding:12px">Error: ' + err.message + '</div>';
+    }
+  }
+
+  function renderExemptList() {
+    const list = document.getElementById('exemptList');
+    const summary = document.getElementById('exemptSummary');
+    if (!list || !exemptSelection) return;
+    const filter = (document.getElementById('exemptSearchInput')?.value || '').toLowerCase().trim();
+    const knownKeys = new Set(membersData.map(m => (m.name || '').toLowerCase()));
+    // Exempt names that are no longer clan members must stay listed so they can be removed
+    const extras = [...exemptSelection].filter(key => !knownKeys.has(key)).map(key => (exemptMeta[key] && exemptMeta[key].name) || key);
+    const names = membersData.map(m => m.name)
+      .concat(extras)
+      .filter(Boolean)
+      .filter(name => !filter || name.toLowerCase().includes(filter))
+      .sort((a, b) => a.localeCompare(b));
+    const datedCount = [...exemptSelection].filter(key => {
+      const meta = exemptMeta[key] || {};
+      return !!(meta.startDate || meta.endDate);
+    }).length;
+    summary.textContent = `${exemptSelection.size} exempt member(s) (${datedCount} date-limited)`;
+    if (names.length === 0) { list.innerHTML = '<div style="padding:12px;color:var(--text-muted)">No matching members.</div>'; return; }
+    list.innerHTML = `<table id="exemptTable" data-sortable data-sort-col="1" data-name-col="1" style="width:100%;border-collapse:collapse;font-size:0.9em;">
+      <thead><tr><th style="text-align:center;width:60px;padding:6px 8px;position:sticky;top:0;z-index:1;">Exempt</th><th style="text-align:left;padding:6px 8px;position:sticky;top:0;z-index:1;">Member</th><th style="text-align:left;padding:6px 8px;position:sticky;top:0;z-index:1;">Reason</th><th style="text-align:left;padding:6px 8px;position:sticky;top:0;z-index:1;">Start</th><th style="text-align:left;padding:6px 8px;position:sticky;top:0;z-index:1;">End</th></tr></thead>
+      <tbody>${names.map(name => {
+      const key = name.toLowerCase();
+      const checked = exemptSelection.has(key) ? ' checked' : '';
+      const meta = exemptMeta[key] || {};
+      const unknown = !knownKeys.has(key) ? ' <span style="color:var(--text-muted);font-size:0.85em;">(not an active member)</span>' : '';
+      return `<tr>
+        <td style="padding:4px 8px;text-align:center;"><input type="checkbox" data-member="${escapeAttr(name)}" onchange="toggleExemptMember(this)"${checked} style="width:auto;margin:0;"></td>
+        <td style="padding:4px 8px;" data-sort="${escapeAttr(name)}">${escapeHtml(name)}${unknown}</td>
+        <td style="padding:4px 8px;"><input type="text" value="${escapeAttr(meta.reason || '')}" placeholder="Reason" data-member="${escapeAttr(name)}" data-field="reason" onchange="updateExemptField(this)" style="width:100%;padding:4px 8px;border:1px solid var(--border);border-radius:4px;"></td>
+        <td style="padding:4px 8px;width:140px;"><input type="date" value="${escapeAttr(meta.startDate || '')}" data-member="${escapeAttr(name)}" data-field="startDate" onchange="updateExemptField(this)" title="Start date (blank = always)" style="width:100%;padding:4px 8px;border:1px solid var(--border);border-radius:4px;"></td>
+        <td style="padding:4px 8px;width:140px;"><input type="date" value="${escapeAttr(meta.endDate || '')}" data-member="${escapeAttr(name)}" data-field="endDate" onchange="updateExemptField(this)" title="End date (blank = always)" style="width:100%;padding:4px 8px;border:1px solid var(--border);border-radius:4px;"></td>
+      </tr>`;
+    }).join('')}</tbody></table>`;
+  }
+
+  function toggleExemptMember(input) {
+    if (!exemptSelection) exemptSelection = new Set();
+    const name = input.dataset.member || '';
+    const key = name.toLowerCase();
+    if (input.checked) exemptSelection.add(key);
+    else exemptSelection.delete(key);
+    exemptMeta[key] = exemptMeta[key] || { name: name, reason: '', startDate: '', endDate: '' };
+    exemptMeta[key].name = name;
+    renderExemptList();
+  }
+
+  function updateExemptField(input) {
+    const name = input.dataset.member || '';
+    const key = name.toLowerCase();
+    const field = input.dataset.field || '';
+    if (!key || !field) return;
+    exemptMeta[key] = exemptMeta[key] || { name: name, reason: '', startDate: '', endDate: '' };
+    exemptMeta[key].name = name;
+    exemptMeta[key][field] = input.value || '';
+  }
+
+  async function saveExemptMembers() {
+    const status = document.getElementById('exemptStatus');
+    status.textContent = 'Saving...'; status.className = 'status';
+    const byKey = {};
+    membersData.forEach(m => { if (m.name) byKey[m.name.toLowerCase()] = m.name; });
+    const rows = [...(exemptSelection || [])].map(key => ({
+      name: byKey[key] || (exemptMeta[key] && exemptMeta[key].name) || key,
+      reason: (exemptMeta[key] && exemptMeta[key].reason) || '',
+      startDate: (exemptMeta[key] && exemptMeta[key].startDate) || '',
+      endDate: (exemptMeta[key] && exemptMeta[key].endDate) || ''
+    }));
+    try {
+      const result = await callFunction('setExemptMembers', [rows]);
+      status.textContent = result?.message || 'Saved exemptions.';
+      status.className = result?.success ? 'status ok' : 'status err';
+      if (result?.success) loadExemptMembers(true);
+    } catch (err) {
+      status.textContent = 'Error: ' + err.message;
+      status.className = 'status err';
+    }
+  }
+
+  // ===========================
+  // LINKED GOOGLE ACCOUNTS
+  // ===========================
+  let memberAccounts = null;
+
+  async function loadMemberAccounts(force) {
+    if (memberAccounts && !force) { renderMemberAccounts(); return; }
+    const status = document.getElementById('accountsStatus');
+    const list = document.getElementById('accountsList');
+    status.textContent = '';
+    list.innerHTML = '<div style="text-align:center;padding:12px;color:var(--text-muted)">Loading...</div>';
+    try {
+      const result = await callFunction('getMemberGoogleAccounts');
+      memberAccounts = result && Array.isArray(result.members) ? result.members : [];
+      renderMemberAccounts();
+    } catch (err) {
+      list.innerHTML = '<div style="color:var(--danger);padding:12px">Error: ' + err.message + '</div>';
+    }
+  }
+
+  function renderMemberAccounts() {
+    const list = document.getElementById('accountsList');
+    const summary = document.getElementById('accountsSummary');
+    if (!list || !memberAccounts) return;
+    const filter = (document.getElementById('accountsSearchInput')?.value || '').toLowerCase().trim();
+    const rows = memberAccounts
+      .slice()
+      .sort((a, b) => (a.name || '').localeCompare(b.name || ''))
+      .filter(entry => !filter || (entry.name || '').toLowerCase().includes(filter) || (entry.email || '').toLowerCase().includes(filter));
+    const linked = memberAccounts.filter(entry => entry.email).length;
+    summary.textContent = `${linked}/${memberAccounts.length} member account(s) linked`;
+    if (rows.length === 0) { list.innerHTML = '<div style="padding:12px;color:var(--text-muted)">No matching members.</div>'; return; }
+    list.innerHTML = `<table id="accountsTable" data-sortable data-sort-col="0" data-name-col="0" style="width:100%;border-collapse:collapse;font-size:0.9em;">
+      <thead><tr><th style="text-align:left;padding:6px 8px;position:sticky;top:0;z-index:1;">Member</th><th style="text-align:left;padding:6px 8px;position:sticky;top:0;z-index:1;">Google account</th></tr></thead>
+      <tbody>${rows.map(entry => `
+      <tr>
+        <td style="padding:4px 8px;">${escapeHtml(entry.name)}</td>
+        <td style="padding:4px 8px;"><input type="email" value="${escapeAttr(entry.email || '')}" data-member="${escapeAttr(entry.name)}" oninput="updateMemberAccount(this)" placeholder="name@example.com" style="width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:4px;"></td>
+      </tr>`).join('')}</tbody></table>`;
+  }
+
+  function updateMemberAccount(input) {
+    const name = input.dataset.member || '';
+    const found = (memberAccounts || []).find(entry => entry.name === name);
+    if (found) found.email = input.value.trim().toLowerCase();
+  }
+
+  async function saveMemberAccounts() {
+    const status = document.getElementById('accountsStatus');
+    status.textContent = 'Saving...'; status.className = 'status';
+    try {
+      const result = await callFunction('setMemberGoogleAccounts', [memberAccounts || []]);
+      status.textContent = result?.message || 'Saved linked accounts.';
+      status.className = result?.success ? 'status ok' : 'status err';
+      if (result?.success) loadMemberAccounts(true);
+    } catch (err) {
+      status.textContent = 'Error: ' + err.message;
+      status.className = 'status err';
+    }
+  }
+
+  // UTILITIES
+  function escapeHtml(str) {
+    if (!str) return '';
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+  function escapeAttr(str) {
+    return String(str || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+  }
+  function showToast(message, type) {
+    const toast = document.getElementById('toast');
+    toast.textContent = message;
+    toast.className = 'toast ' + (type || '');
+    toast.style.display = 'block';
+    setTimeout(() => { toast.style.display = 'none'; }, 3000);
+  }
+</script>
+
+<script>
+  // Database-only tabs (as on Champions): they call the Worker directly with
+  // { action: ... } (config.js adds the sign-in pass), not google.script.run.
+  // Times as on Champions: '2026-09-30 11:21 UTC'.
+  window.cccDateTime = window.cccDateTime || function (v) { const d = new Date(v); return isNaN(d.getTime()) ? String(v || '') : d.toISOString().slice(0, 16).replace('T', ' ') + ' UTC'; };
+    // 🔧 Fix Chest Names: move chests read under a wrong name (OCR) to the right member,
+    // in the active or previous period (database only: getChestNamesForFix / fixChestPlayerName).
+    window.ChestNameFix = (function () {
+      let state = { names: [], members: [], period: null };
+      const esc = (t) => { const d = document.createElement('div'); d.textContent = t == null ? '' : String(t); return d.innerHTML; };
+      const post = async (body) => {
+        const res = await fetch(window.GAS_WEB_APP_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+        return res.json();
+      };
+      const status = (msg, ok) => {
+        const el = document.getElementById('cnfStatus');
+        el.style.display = msg ? '' : 'none';
+        el.className = 'status ' + (ok ? 'ok' : 'err');
+        el.textContent = msg || '';
+      };
+      async function load() {
+        status('');
+        document.getElementById('cnfBody').innerHTML = '<tr><td colspan="4" style="padding:8px;color:var(--text-muted);">Loading…</td></tr>';
+        try {
+          const r = await post({ action: 'getChestNamesForFix', period: document.getElementById('cnfPeriod').value });
+          if (!r || !r.success) throw new Error((r && (r.message || r.error)) || 'Could not load the names');
+          state = r;
+          document.getElementById('cnfPeriodInfo').textContent = 'Period ' + r.period.start + ' – ' + (r.period.end || '…');
+          render();
+        } catch (e) {
+          document.getElementById('cnfBody').innerHTML = '';
+          status(e.message, false);
+        }
+      }
+      function render() {
+        const showAll = document.getElementById('cnfShowAll').checked;
+        const rows = (state.names || []).filter(n => showAll || n.status === 'unknown');
+        const options = (sel) => '<option value="">— choose —</option>' + (state.members || []).slice().sort((a, b) => a.localeCompare(b)).map(m =>
+          '<option value="' + esc(m) + '"' + (m === sel ? ' selected' : '') + '>' + esc(m) + '</option>').join('');
+        const body = document.getElementById('cnfBody');
+        if (!rows.length) {
+          body.innerHTML = '<tr><td colspan="4" style="padding:8px;color:var(--success);">' +
+            (showAll ? 'No chests in this period yet.' : '✓ Every name in this period is a member. Tick "show all names" to fix a chest given to the wrong member.') + '</td></tr>';
+          return;
+        }
+        body.innerHTML = rows.map((n, i) => {
+          const tag = n.status === 'unknown' ? ' <span style="font-size:11px;color:var(--accent-deep);">not a member</span>'
+            : (n.status === 'former' ? ' <span style="font-size:11px;color:var(--text-muted);">former member</span>' : '');
+          return '<tr style="border-top:1px solid var(--border);"><td style="padding:6px 8px;" data-sort="' + esc(n.name) + '">' + esc(n.name) + tag + '</td>' +
+            '<td style="text-align:center;padding:6px 8px;">' + n.chests + '</td>' +
+            '<td style="padding:6px 8px;"><select data-cnf="' + i + '" style="width:100%;">' + options(n.suggestion) + '</select></td>' +
+            '<td style="padding:6px 8px;"><button class="btn" style="margin:0;padding:6px 12px;" data-cnf-apply="' + i + '">Fix</button></td></tr>';
+        }).join('');
+        body.querySelectorAll('[data-cnf-apply]').forEach(btn => btn.addEventListener('click', () => apply(rows[+btn.dataset.cnfApply], body.querySelector('[data-cnf="' + btn.dataset.cnfApply + '"]').value, btn)));
+      }
+      async function apply(row, target, btn) {
+        if (!target) { status('Choose the correct member for "' + row.name + '" first.', false); return; }
+        if (!confirm('Move ' + row.chests + ' chest(s) from "' + row.name + '" to "' + target + '" in this period?')) return;
+        btn.disabled = true;
+        try {
+          const r = await post({ action: 'fixChestPlayerName', wrongName: row.name, correctName: target, period: document.getElementById('cnfPeriod').value });
+          if (!r || !r.success) throw new Error((r && (r.message || r.error)) || 'The change failed');
+          await load();
+          status(r.message + ' Recalculate events of this period that were already calculated.', true);
+        } catch (e) {
+          btn.disabled = false;
+          status(e.message, false);
+        }
+      }
+      return { load, render };
+    })();
+
+    // ➕ Manual Chests (owner only; the Worker refuses anyone else): add chests by hand to the
+    // active or previous period, and undo an addition (getManualChests / addManualChests / removeManualChests).
+    window.ManualChests = (function () {
+      let state = { members: [], kinds: [], recent: [], period: null };
+      const esc = (t) => { const d = document.createElement('div'); d.textContent = t == null ? '' : String(t); return d.innerHTML; };
+      const $ = (id) => document.getElementById(id);
+      const post = async (body) => {
+        const res = await fetch(window.GAS_WEB_APP_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+        return res.json();
+      };
+      const status = (msg, ok) => {
+        const el = $('mcStatus');
+        el.style.display = msg ? '' : 'none';
+        el.className = 'status ' + (ok ? 'ok' : 'err');
+        el.textContent = msg || '';
+      };
+      const kindLabel = (k) => k.type + ' — ' + k.name + ' (level ' + k.level + ') · ' + k.points + ' pts';
+      function show(r) {
+        state = r;
+        $('mcPeriodInfo').textContent = 'Adding to: period ' + r.period.start + ' – ' + (r.period.end || '…') + (r.period.status === 'active' ? ' (active)' : ' (closed)');
+        const member = $('mcMember').value;
+        $('mcMember').innerHTML = '<option value="">— choose —</option>' + r.members.slice().sort((a, b) => a.localeCompare(b)).map(m =>
+          '<option value="' + esc(m) + '"' + (m === member ? ' selected' : '') + '>' + esc(m) + '</option>').join('');
+        const kind = $('mcKind').value;
+        $('mcKind').innerHTML = '<option value="">— choose, or type it below —</option>' + r.kinds.map((k, i) =>
+          '<option value="' + i + '"' + (String(i) === kind ? ' selected' : '') + '>' + esc(kindLabel(k)) + '</option>').join('');
+        renderRecent();
+        preview();
+      }
+      async function load() {
+        status('');
+        try {
+          const r = await post({ action: 'getManualChests', period: $('mcPeriod').value });
+          if (!r || !r.success) throw new Error((r && (r.message || r.error)) || 'Could not load');
+          show(r);
+        } catch (e) {
+          $('mcRecent').innerHTML = '';
+          status(e.message, false);
+        }
+      }
+      function pickKind() {
+        const k = state.kinds[+$('mcKind').value];
+        if ($('mcKind').value === '' || !k) return preview();
+        $('mcType').value = k.type; $('mcName').value = k.name; $('mcLevel').value = k.level;
+        preview();
+      }
+      // Points preview for a chest kind from the list (anything else is checked when adding).
+      function preview() {
+        const type = $('mcType').value.trim(), name = $('mcName').value.trim(), level = +$('mcLevel').value || 0;
+        const n = Math.max(0, parseInt($('mcCount').value, 10) || 0);
+        const k = state.kinds.find(x => x.type === type && x.name === name && x.level === level);
+        if (k && $('mcKind').value !== String(state.kinds.indexOf(k))) $('mcKind').value = String(state.kinds.indexOf(k));
+        if (!k && $('mcKind').value !== '') $('mcKind').value = '';
+        $('mcPreview').textContent = k ? (n + ' × ' + k.points + ' = ' + (n * k.points) + ' points') : (type && name ? 'Points are looked up when adding' : '');
+      }
+      function renderRecent() {
+        const rows = state.recent || [];
+        if (!rows.length) { $('mcRecent').innerHTML = '<tr><td colspan="8" style="padding:8px;color:var(--text-muted);">Nothing added by hand yet.</td></tr>'; return; }
+        $('mcRecent').innerHTML = rows.map(r => {
+          const gone = !!r.removedAt;
+          const style = gone ? 'color:var(--text-muted);text-decoration:line-through;' : '';
+          return '<tr style="border-top:1px solid var(--border);' + style + '">' +
+            '<td style="padding:6px 8px;white-space:nowrap;" title="' + esc(r.by || '') + '" data-sort="' + esc(r.at || '') + '">' + esc(cccDateTime(r.at)) + '</td>' +
+            '<td style="padding:6px 8px;white-space:nowrap;">' + esc(r.period) + '</td>' +
+            '<td style="padding:6px 8px;">' + esc(r.clanmate) + '</td>' +
+            '<td style="padding:6px 8px;">' + esc(r.type + ' — ' + r.name + ' (' + r.level + ')') + '</td>' +
+            '<td style="text-align:center;padding:6px 8px;">' + r.count + '</td>' +
+            '<td style="text-align:right;padding:6px 8px;">' + (r.count * r.points) + '</td>' +
+            '<td style="padding:6px 8px;color:var(--text-muted);">' + esc(r.note || '') + '</td>' +
+            '<td style="padding:6px 8px;">' + (gone ? '<span style="font-size:11px;" title="' + esc('by ' + (r.removedBy || '')) + '">undone</span>'
+              : '<button class="btn secondary" style="margin:0;padding:4px 10px;" data-mc-undo="' + r.id + '">↩️ Undo</button>') + '</td></tr>';
+        }).join('');
+        $('mcRecent').querySelectorAll('[data-mc-undo]').forEach(b => b.addEventListener('click', () => undo(rows.find(r => r.id === +b.dataset.mcUndo), b)));
+      }
+      async function add() {
+        const body = {
+          action: 'addManualChests', period: $('mcPeriod').value, clanmate: $('mcMember').value,
+          chestType: $('mcType').value.trim(), chestName: $('mcName').value.trim(), chestLevel: $('mcLevel').value,
+          count: parseInt($('mcCount').value, 10), note: $('mcNote').value.trim(),
+        };
+        if (!body.clanmate) { status('Choose the member first.', false); return; }
+        if (!body.chestType || !body.chestName) { status('Choose a chest, or fill in its type and name.', false); return; }
+        if (!confirm('Add ' + body.count + ' × ' + body.chestName + ' (' + body.chestType + ', level ' + (body.chestLevel || 0) + ') for ' + body.clanmate + ' to ' + $('mcPeriodInfo').textContent.replace('Adding to: ', '') + '?')) return;
+        $('mcAddBtn').disabled = true;
+        try {
+          const r = await post(body);
+          if (!r || !r.success) throw new Error((r && (r.message || r.error)) || 'Adding failed');
+          show(r);
+          $('mcCount').value = 1; $('mcNote').value = '';
+          preview();
+          status(r.message, true);
+        } catch (e) {
+          status(e.message, false);
+        } finally {
+          $('mcAddBtn').disabled = false;
+        }
+      }
+      async function undo(row, btn) {
+        if (!row || !confirm('Take out ' + row.count + ' × ' + row.name + ' for ' + row.clanmate + ' (period ' + row.period + ')?')) return;
+        btn.disabled = true;
+        try {
+          const r = await post({ action: 'removeManualChests', id: row.id, period: $('mcPeriod').value });
+          if (!r || !r.success) throw new Error((r && (r.message || r.error)) || 'Undo failed');
+          show(r);
+          status(r.message, true);
+        } catch (e) {
+          btn.disabled = false;
+          status(e.message, false);
+        }
+      }
+      // Show the tab only to the owner: the Worker answers getManualChests only for her.
+      function checkAccess() {
+        const btn = $('manualChestsTabBtn');
+        if (!btn) return;
+        post({ action: 'getManualChests' })
+          .then(r => { if (r && r.success) { btn.style.display = ''; show(r); } })
+          .catch(() => {});
+      }
+      return { load, pickKind, preview, add, checkAccess };
+    })();
+
+    // 🔤 OCR Corrections: the chesttracker's OcrCorrectionList, shared through the database
+    // (getOcrCorrections / updateOcrCorrections).
+    window.OcrCorrections = (function () {
+      let list = [];
+      const esc = (t) => { const d = document.createElement('div'); d.textContent = t == null ? '' : String(t); return d.innerHTML; };
+      const attr = (t) => esc(t).replace(/"/g, '&quot;');
+      const post = async (body) => {
+        const res = await fetch(window.GAS_WEB_APP_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+        return res.json();
+      };
+      const status = (msg, ok) => {
+        const el = document.getElementById('ocrStatus');
+        el.style.display = msg ? '' : 'none';
+        el.className = 'status ' + (ok ? 'ok' : 'err');
+        el.textContent = msg || '';
+      };
+      const show = (r) => {
+        list = r.corrections || [];
+        const n = list.reduce((s, c) => s + c.variants.length, 0);
+        document.getElementById('ocrInfo').textContent = list.length + ' words, ' + n + ' misreadings' +
+          (r.lastChange ? ' · last change ' + (window.cccDateTime ? cccDateTime(r.lastChange.at) : r.lastChange.at) + ' by ' + (r.lastChange.by || '?') : '');
+        render();
+      };
+      async function load() {
+        status('');
+        try {
+          const r = await post({ action: 'getOcrCorrections' });
+          if (!r || !r.success) throw new Error((r && (r.message || r.error)) || 'Could not load the list');
+          show(r);
+        } catch (e) { status(e.message, false); }
+      }
+      async function change(changes, okMsg) {
+        status('');
+        try {
+          let email = '';
+          try { email = (JSON.parse(localStorage.getItem('leg_auth') || '{}').email) || ''; } catch (e) {}
+          const r = await post({ action: 'updateOcrCorrections', changes: changes, userEmail: email });
+          if (!r || !r.success) throw new Error((r && (r.message || r.error)) || 'The change failed');
+          show(r);
+          status(okMsg || r.message, true);
+        } catch (e) { status(e.message, false); }
+      }
+      function render() {
+        const q = (document.getElementById('ocrSearch').value || '').toLowerCase().trim();
+        const rows = list.filter(c => !q || c.word.toLowerCase().includes(q) || c.variants.some(v => v.toLowerCase().includes(q)));
+        const box = document.getElementById('ocrList');
+        if (!rows.length) { box.innerHTML = '<div style="padding:8px;font-size:0.85em;color:var(--text-muted);">' + (list.length ? 'Nothing matches.' : 'The list is empty until the chesttracker has synced it once.') + '</div>'; return; }
+        box.innerHTML = rows.map(c =>
+          '<div class="ocr-word" data-word="' + attr(c.word) + '" style="border-top:1px solid var(--border);padding:8px 4px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;">' +
+            '<strong style="color:var(--primary-hover);min-width:160px;">' + esc(c.word) + '</strong>' +
+            c.variants.map(v => '<span style="background:var(--bg-card-soft);border:1px solid var(--border);border-radius:12px;padding:2px 4px 2px 10px;font-size:12px;">' + esc(v) +
+              ' <button title="Remove this misreading" data-ocr-rmv="' + attr(v) + '" style="background:none;border:none;color:#c62828;cursor:pointer;font-size:0.85em;">×</button></span>').join('') +
+            '<input type="text" placeholder="+ misreading" data-ocr-add style="width:140px;padding:4px 8px;font-size:12px;">' +
+            '<span style="margin-left:auto;display:flex;gap:4px;">' +
+              '<button class="btn secondary" data-ocr-rename style="margin:0;padding:4px 8px;font-size:12px;" title="Change the correct word">✏️</button>' +
+              '<button class="btn secondary" data-ocr-del style="margin:0;padding:4px 8px;font-size:12px;" title="Remove the word and its misreadings">🗑</button></span>' +
+          '</div>').join('');
+        box.querySelectorAll('.ocr-word').forEach(row => {
+          const word = row.getAttribute('data-word');
+          row.querySelectorAll('[data-ocr-rmv]').forEach(b => b.addEventListener('click', () =>
+            change([{ op: 'removeVariant', word: word, incorrect: b.getAttribute('data-ocr-rmv') }], '"' + b.getAttribute('data-ocr-rmv') + '" removed.')));
+          const input = row.querySelector('[data-ocr-add]');
+          input.addEventListener('keydown', (ev) => {
+            if (ev.key !== 'Enter' || !input.value.trim()) return;
+            change([{ op: 'addVariant', word: word, incorrect: input.value.trim() }], '"' + input.value.trim() + '" now reads as "' + word + '".');
+          });
+          row.querySelector('[data-ocr-rename]').addEventListener('click', () => {
+            const nw = prompt('Correct word "' + word + '" becomes:', word);
+            if (nw && nw.trim() && nw.trim() !== word) change([{ op: 'renameWord', word: word, newWord: nw.trim() }], '"' + word + '" is now "' + nw.trim() + '".');
+          });
+          row.querySelector('[data-ocr-del]').addEventListener('click', () => {
+            if (confirm('Remove "' + word + '" and its ' + (list.find(c => c.word === word) || { variants: [] }).variants.length + ' misreading(s)?'))
+              change([{ op: 'removeWord', word: word }], '"' + word + '" removed.');
+          });
+        });
+      }
+      function addWord() {
+        const el = document.getElementById('ocrNewWord');
+        const w = (el.value || '').trim();
+        if (!w) return;
+        el.value = '';
+        change([{ op: 'addWord', word: w }], '"' + w + '" added. Add its misreadings on its line.');
+      }
+      return { load, render, addWord };
+    })();
+
+    // 🏷️ Chest Point Values: the points per chest (old "Chests 2.0" tab), changed on the
+    // database site (getChestPointsTable / updateChestPoints). Saving re-scores the active period.
+    window.ChestPointValues = (function () {
+      let state = { rows: [], unmatched: [], log: [], period: null };
+      let edits = {};        // row id → new points (not saved yet)
+      let editing = null;    // row being edited in the form (null = adding)
+      let sort = { key: null, dir: 1 };  // header click: ascending → descending → list order
+      const esc = (t) => { const d = document.createElement('div'); d.textContent = t == null ? '' : String(t); return d.innerHTML; };
+      const attr = (t) => esc(t).replace(/"/g, '&quot;');
+      const fmt = (n) => Number(n || 0).toLocaleString();
+      const post = async (body) => {
+        const res = await fetch(window.GAS_WEB_APP_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+        return res.json();
+      };
+      const status = (msg, ok) => {
+        const el = document.getElementById('cpvStatus');
+        el.style.display = msg ? '' : 'none';
+        el.className = 'status ' + (ok ? 'ok' : 'err');
+        el.textContent = msg || '';
+      };
+      const when = (at) => (window.cccDateTime ? cccDateTime(at) : at);
+      const rowText = (r) => r ? r.type + ' / ' + r.name + (r.crypt ? ' / ' + r.crypt : '') : '';
+      const show = (r) => {
+        state = r;
+        edits = {};
+        const last = (r.log || [])[0];
+        document.getElementById('cpvInfo').textContent = (r.rows || []).length + ' chests' +
+          (r.period ? ' · active period ' + r.period.start + ' – ' + (r.period.end || '…') : ' · no active period') +
+          (last ? ' · last change ' + when(last.at) + ' by ' + (last.by || '?') : '');
+        render();
+        renderUnmatched();
+        renderLog();
+      };
+      async function load() {
+        status('');
+        try {
+          const r = await post({ action: 'getChestPointsTable' });
+          if (!r || !r.success) throw new Error((r && (r.message || r.error)) || 'Could not load the chest points');
+          show(r);
+        } catch (e) {
+          document.getElementById('cpvBody').innerHTML = '';
+          status(e.message, false);
+        }
+      }
+      async function change(changes) {
+        status('');
+        const btn = document.getElementById('cpvSaveBtn');
+        btn.disabled = true;
+        try {
+          let email = '';
+          try { email = (JSON.parse(localStorage.getItem('leg_auth') || '{}').email) || ''; } catch (e) {}
+          const r = await post({ action: 'updateChestPoints', changes: changes, userEmail: email });
+          if (!r || !r.success) throw new Error((r && (r.message || r.error)) || 'The change failed');
+          show(r);
+          status(r.message, true);
+          return true;
+        } catch (e) {
+          updateSaveBtn();
+          status(e.message, false);
+          return false;
+        }
+      }
+      function updateSaveBtn() {
+        const n = Object.keys(edits).length;
+        const btn = document.getElementById('cpvSaveBtn');
+        btn.disabled = !n;
+        btn.textContent = n ? '💾 Save changes (' + n + ')' : '💾 Save changes';
+      }
+      function render() {
+        const q = (document.getElementById('cpvSearch').value || '').toLowerCase().trim();
+        const rows = (state.rows || []).filter(r => !q || (r.type + ' ' + r.name + ' ' + r.crypt).toLowerCase().includes(q));
+        if (sort.key) {
+          // saved points, so a row doesn't jump away while its points are being typed
+          const cmp = sort.key === 'points' ? (a, b) => a.points - b.points
+            : (a, b) => String(a[sort.key]).localeCompare(String(b[sort.key]), undefined, { numeric: true, sensitivity: 'base' });
+          rows.sort((a, b) => sort.dir * cmp(a, b) || a.id - b.id);
+        }
+        document.querySelectorAll('#chestValuesTab [data-cpv-sort]').forEach(th => {
+          th.querySelector('.cpv-arrow').textContent = th.dataset.cpvSort === sort.key ? (sort.dir > 0 ? '▲' : '▼') : '';
+        });
+        const body = document.getElementById('cpvBody');
+        if (!rows.length) {
+          body.innerHTML = '<tr><td colspan="5" style="padding:8px;color:var(--text-muted);">' + ((state.rows || []).length ? 'Nothing matches.' : 'The list is empty.') + '</td></tr>';
+          updateSaveBtn();
+          return;
+        }
+        body.innerHTML = rows.map(r => {
+          const val = Object.prototype.hasOwnProperty.call(edits, r.id) ? edits[r.id] : r.points;
+          const dirty = Object.prototype.hasOwnProperty.call(edits, r.id);
+          return '<tr style="border-top:1px solid var(--border);' + (dirty ? 'background:var(--accent-light);' : '') + '">' +
+            '<td style="padding:6px 8px;">' + esc(r.type) + '</td>' +
+            '<td style="padding:6px 8px;">' + esc(r.name) + '</td>' +
+            '<td style="padding:6px 8px;">' + esc(r.crypt) + '</td>' +
+            '<td style="padding:4px 8px;text-align:right;"><input type="number" min="0" step="1" data-cpv-pts="' + r.id + '" value="' + attr(val) + '" title="Was ' + attr(r.points) + '" style="width:90px;padding:4px 6px;font-size:0.85em;text-align:right;' + (dirty ? 'border-color:var(--primary-hover);' : '') + '"></td>' +
+            '<td style="padding:4px 8px;white-space:nowrap;text-align:right;">' +
+              '<button class="btn secondary" data-cpv-edit="' + r.id + '" style="margin:0;padding:4px 8px;font-size:12px;" title="Change type, name or level">✏️</button> ' +
+              '<button class="btn secondary" data-cpv-del="' + r.id + '" style="margin:0;padding:4px 8px;font-size:12px;" title="Remove this chest">🗑</button></td></tr>';
+        }).join('');
+        const byId = (id) => state.rows.find(r => r.id === Number(id));
+        body.querySelectorAll('[data-cpv-pts]').forEach(input => {
+          input.addEventListener('change', () => {
+            const r = byId(input.dataset.cpvPts);
+            const v = input.value.trim();
+            if (v === '' || Number(v) === r.points) delete edits[r.id];
+            else edits[r.id] = Number(v);
+            render();
+          });
+          input.addEventListener('keydown', (ev) => { if (ev.key === 'Enter') { input.blur(); } });
+        });
+        body.querySelectorAll('[data-cpv-edit]').forEach(b => b.addEventListener('click', () => openForm(byId(b.dataset.cpvEdit))));
+        body.querySelectorAll('[data-cpv-del]').forEach(b => b.addEventListener('click', () => {
+          const r = byId(b.dataset.cpvDel);
+          if (confirm('Remove "' + rowText(r) + '" (' + fmt(r.points) + ' points)? Its chests in the active period get 0 points.'))
+            change([{ op: 'remove', id: r.id, was: r }]);
+        }));
+        updateSaveBtn();
+      }
+      function renderUnmatched() {
+        const box = document.getElementById('cpvUnmatched');
+        const list = state.unmatched || [];
+        if (!list.length) { box.innerHTML = ''; return; }
+        box.innerHTML = '<div style="margin-bottom:12px;border:1px solid var(--accent-strong);background:#fffbe6;border-radius:8px;padding:10px 12px;text-align:left;">' +
+          '<div style="color:var(--accent-deep);font-size:0.85em;font-weight:600;margin-bottom:6px;">⚠️ ' + list.length + ' chest kind(s) in the active period have no points yet</div>' +
+          list.map((u, i) => '<div style="display:flex;gap:8px;align-items:center;padding:3px 0;font-size:0.85em;">' +
+            '<span style="flex:1;">' + esc(u.type) + ' / ' + esc(u.name) + ' / level ' + esc(u.level) + ' <span style="color:var(--text-muted);">(' + u.count + '×)</span></span>' +
+            '<button class="btn secondary" data-cpv-add="' + i + '" style="margin:0;padding:3px 10px;font-size:12px;">➕ Add</button></div>').join('') +
+          '</div>';
+        box.querySelectorAll('[data-cpv-add]').forEach(b => b.addEventListener('click', () => {
+          const u = list[+b.dataset.cpvAdd];
+          // "Level 35 Epic Crypt" → type "Epic Crypt", level 35 (how the list is usually written)
+          const m = String(u.type || '').match(/^Level\s+\d+\s+(.+)$/i);
+          openForm(null, { type: m ? m[1] : u.type, name: u.name, crypt: String(u.level || ''), points: '' });
+        }));
+      }
+      function renderLog() {
+        const box = document.getElementById('cpvLog');
+        const log = state.log || [];
+        box.innerHTML = log.length ? log.map(l => {
+          const what = l.op === 'add' ? '➕ ' + esc(rowText(l.after)) + ': ' + fmt(l.after.points)
+            : l.op === 'remove' ? '🗑 ' + esc(rowText(l.before)) + ' (' + fmt(l.before.points) + ')'
+            : '✏️ ' + esc(rowText(l.before)) + ': ' + fmt(l.before.points) + ' → ' + (rowText(l.before) !== rowText(l.after) ? esc(rowText(l.after)) + ': ' : '') + fmt(l.after.points);
+          return '<div style="padding:2px 0;">' + esc(when(l.at)) + ' · ' + esc(l.by || '?') + ' · ' + what + '</div>';
+        }).join('') : 'No changes made on the site yet.';
+      }
+      function openForm(row, prefill) {
+        editing = row || null;
+        const v = row || prefill || { type: '', name: '', crypt: '', points: '' };
+        document.getElementById('cpvFormTitle').textContent = row ? 'Change "' + rowText(row) + '"' : 'Add a chest';
+        document.getElementById('cpvType').value = v.type || '';
+        document.getElementById('cpvName').value = v.name || '';
+        document.getElementById('cpvCrypt').value = v.crypt || '';
+        document.getElementById('cpvPoints').value = v.points === '' || v.points == null ? '' : v.points;
+        const form = document.getElementById('cpvForm');
+        form.style.display = '';
+        form.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        document.getElementById(row || !prefill ? 'cpvType' : 'cpvPoints').focus();
+      }
+      function closeForm() {
+        editing = null;
+        document.getElementById('cpvForm').style.display = 'none';
+      }
+      async function submitForm() {
+        const row = {
+          type: document.getElementById('cpvType').value.trim(),
+          name: document.getElementById('cpvName').value.trim(),
+          crypt: document.getElementById('cpvCrypt').value.trim(),
+          points: document.getElementById('cpvPoints').value.trim(),
+        };
+        if (!row.type || !row.name || row.points === '') { status('Chest type, chest name and points are needed.', false); return; }
+        row.points = Number(row.points);
+        const ok = await change([editing ? { op: 'set', id: editing.id, was: editing, ...row } : { op: 'add', ...row }]);
+        if (ok) closeForm();
+      }
+      function sortBy(key) {
+        if (sort.key !== key) sort = { key: key, dir: 1 };
+        else if (sort.dir > 0) sort.dir = -1;
+        else sort = { key: null, dir: 1 };
+        render();
+      }
+      function save() {
+        const changes = Object.keys(edits).map(id => {
+          const r = state.rows.find(x => x.id === Number(id));
+          return { op: 'set', id: r.id, points: edits[id], was: r };
+        });
+        if (changes.length) change(changes);
+      }
+      return { load, render, save, sortBy, openForm: () => openForm(null), closeForm, submitForm };
+    })();
+
+    // 👑 Superiors (owner only; the Worker refuses anyone else): who may use the management
+    // pages — members ticked here (through their linked Google accounts) and extra e-mails.
+    window.Superiors = (function () {
+      let data = null;   // { members: [{ name, email, superior, notMember }], emails: [{ email, note }] }
+      const esc = (t) => { const d = document.createElement('div'); d.textContent = t == null ? '' : String(t); return d.innerHTML.replace(/"/g, '&quot;'); };
+      const $ = (id) => document.getElementById(id);
+      const status = (msg, ok) => {
+        const el = $('superiorsStatus');
+        el.style.display = msg ? '' : 'none';
+        el.className = 'status' + (ok === true ? ' ok' : ok === false ? ' err' : '');
+        el.textContent = msg || '';
+      };
+      async function fetchList() {
+        const res = await fetch(window.GAS_WEB_APP_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'getSuperiors' }) });
+        const r = await res.json();
+        if (!res.ok || !r || !r.success) throw new Error((r && (r.message || r.error)) || ('HTTP ' + res.status));
+        return r;
+      }
+      // Show the tab only to the owner: the list answers only for her.
+      function checkAccess() {
+        fetchList().then(r => { data = r; $('superiorsTabBtn').style.display = ''; }).catch(() => {});
+      }
+      // after a rename: reload the list if it was loaded (only the owner has it)
+      function refresh() { if (data) load(true, true); }
+      function load(force, keepStatus) {
+        if (data && !force) { render(); return; }
+        if (!keepStatus) status('Loading superiors…');
+        fetchList().then(r => { data = r; if (!keepStatus) status(''); render(); }).catch(e => status('Error: ' + e.message, false));
+      }
+      function summary() {
+        if (!data) return;
+        const ticked = data.members.filter(m => m.superior);
+        const noAccount = ticked.filter(m => !m.email && !m.notMember).length;
+        $('superiorsSummary').textContent = ticked.length + ' superior member(s), ' + data.emails.filter(e => e.email).length + ' extra e-mail(s).'
+          + (noAccount ? ' ' + noAccount + " ticked member(s) have no Google account linked yet, so they can't sign in as superior." : '');
+      }
+      function render() {
+        if (!data) return;
+        const term = ($('superiorsSearchInput').value || '').toLowerCase().trim();
+        const rows = data.members.filter(m => !term || m.name.toLowerCase().includes(term))
+          .sort((a, b) => a.name.localeCompare(b.name));
+        summary();
+        const th = 'style="text-align:left;padding:6px 8px;position:sticky;top:0;z-index:1;"';
+        $('superiorsList').innerHTML = rows.length ? '<table id="superiorsTable" data-sortable data-sort-col="1" data-name-col="1" style="width:100%;border-collapse:collapse;font-size:0.9em;">' +
+          '<thead><tr><th ' + th.replace('text-align:left;', 'text-align:center;width:70px;') + '>Superior</th><th ' + th + '>Member</th><th ' + th + '>Google account</th></tr></thead><tbody>' +
+          rows.map(m => '<tr>' +
+          '<td style="padding:4px 8px;text-align:center;"><input type="checkbox" ' + (m.superior ? 'checked ' : '') + 'data-superior="' + esc(m.name) + '" style="width:auto;margin:0;cursor:pointer;"></td>' +
+          '<td style="padding:4px 8px;">' + esc(m.name) + '</td>' +
+          '<td style="padding:4px 8px;font-size:0.9em;color:' + (m.notMember ? '#c62828' : 'var(--text-muted)') + ';"' + (m.email || m.notMember ? '' : ' data-sort=""') + '>' + (m.notMember ? 'no longer a member (untick and save)' : (m.email ? esc(m.email) : 'no Google account linked')) + '</td></tr>').join('') +
+          '</tbody></table>'
+          : '<p style="color:var(--text-muted);font-size:0.85em;margin:0;">No members match this filter.</p>';
+        $('superiorsList').querySelectorAll('[data-superior]').forEach(cb => cb.addEventListener('change', () => {
+          const m = data.members.find(x => x.name === cb.getAttribute('data-superior'));
+          if (m) m.superior = cb.checked;
+          summary();
+        }));
+        renderEmails();
+      }
+      function renderEmails() {
+        const box = $('superiorEmailsList');
+        box.innerHTML = data.emails.length ? data.emails.map((e, i) => '<div style="display:grid;grid-template-columns:2fr 1fr 40px;gap:8px;align-items:center;padding:4px 0;">' +
+          '<input type="email" value="' + esc(e.email) + '" placeholder="name@gmail.com" data-idx="' + i + '" data-field="email" style="padding:6px 8px;border:1px solid var(--border);border-radius:6px;">' +
+          '<input type="text" value="' + esc(e.note || '') + '" placeholder="note (who is it?)" data-idx="' + i + '" data-field="note" style="padding:6px 8px;border:1px solid var(--border);border-radius:6px;">' +
+          '<button class="btn secondary" title="Remove" style="margin:0;padding:4px 8px;" data-remove="' + i + '">✕</button></div>').join('')
+          : '<p style="color:var(--text-muted);font-size:0.85em;margin:0;">No extra e-mails.</p>';
+        box.querySelectorAll('input[data-idx]').forEach(inp => inp.addEventListener('change', () => {
+          const e = data.emails[+inp.dataset.idx];
+          if (e) e[inp.dataset.field] = inp.dataset.field === 'email' ? inp.value.trim().toLowerCase() : inp.value;
+        }));
+        box.querySelectorAll('[data-remove]').forEach(b => b.addEventListener('click', () => { data.emails.splice(+b.dataset.remove, 1); renderEmails(); summary(); }));
+      }
+      function addEmail() {
+        if (!data) return;
+        data.emails.push({ email: '', note: '' });
+        renderEmails();
+        const inputs = $('superiorEmailsList').querySelectorAll('input[data-field="email"]');
+        if (inputs.length) inputs[inputs.length - 1].focus();
+      }
+      async function save() {
+        if (!data) return;
+        status('Saving…');
+        try {
+          const res = await fetch(window.GAS_WEB_APP_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
+            action: 'setSuperiors', members: data.members.filter(m => m.superior).map(m => m.name), emails: data.emails.filter(e => e.email) }) });
+          const r = await res.json();
+          status((r && (r.message || r.error)) || 'Saved.', !!(r && r.success));
+          if (r && r.success) load(true, true);
+        } catch (e) { status('Error: ' + e.message, false); }
+      }
+      return { checkAccess, load, refresh, render, addEmail, save };
+    })();
+</script>
+</body>
+</html>
