@@ -629,6 +629,81 @@
     el.title = top ? `${top.name}: Hero Level ${top.level}` : '';
   }
 
+  function populateSelects() {
+    const sorted = [...membersData].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+    const options = '<option value="">-- Select member --</option>' +
+      sorted.map(m => `<option value="${escapeHtml(m.name)}">${escapeHtml(m.name)}</option>`).join('');
+    ['troopMemberSelect', 'heroMemberSelect', 'carterMemberSelect', 'removeMemberSelect'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.innerHTML = options;
+    });
+  }
+
+  // RENDER TABLE
+  function renderTable() {
+    const tbody = document.getElementById('membersTableBody');
+    tbody.innerHTML = '';
+
+    const sorted = [...membersData].sort((a, b) => {
+      let va, vb;
+      const keyA = (a.name || '').toLowerCase();
+      const keyB = (b.name || '').toLowerCase();
+      const tA = troopData[keyA] || {};
+      const tB = troopData[keyB] || {};
+      const hA = heroData[keyA];
+      const hB = heroData[keyB];
+
+      switch (sortField) {
+        case 'name': va = keyA; vb = keyB; break;
+        case 'joinDate': va = a.joinDate || ''; vb = b.joinDate || ''; break;
+        case 'heroLevel': va = hA ? hA.level : -1; vb = hB ? hB.level : -1; break;
+        case 'category':
+          va = CATEGORY_ORDER.indexOf(determineTroopCategory(tA.G, tA.M, tA.S));
+          vb = CATEGORY_ORDER.indexOf(determineTroopCategory(tB.G, tB.M, tB.S));
+          break;
+        case 'G': case 'M': case 'S': case 'E': case 'C':
+          va = tA[sortField] || 0; vb = tB[sortField] || 0; break;
+        default: va = 0; vb = 0;
+      }
+      if (typeof va === 'string') return sortAsc ? va.localeCompare(vb) : vb.localeCompare(va);
+      return sortAsc ? va - vb : vb - va;
+    });
+
+    sorted.forEach(m => {
+      const key = (m.name || '').toLowerCase();
+      const troops = troopData[key] || {};
+      const hero = heroData[key];
+      const tr = document.createElement('tr');
+
+      const heroHtml = hero && hero.level != null
+        ? `<span class="hero-badge" style="background:${getHeroBg(hero.level)};color:${getHeroFg(hero.level)}" title="Updated: ${hero.timestamp || '?'}">${hero.level}</span>`
+        : '<span style="color:var(--text-muted)">—</span>';
+
+      const cat = determineTroopCategory(troops.G, troops.M, troops.S);
+
+      tr.innerHTML = `
+        <td><strong>${escapeHtml(m.name)}</strong></td>
+        <td>${escapeHtml(m.joinDate)}</td>
+        <td style="text-align:center">${heroHtml}</td>
+        <td style="text-align:center">${categoryBadge(cat)}</td>
+        <td style="text-align:center">${troopBadge('g', troops.G)}</td>
+        <td style="text-align:center">${troopBadge('m', troops.M)}</td>
+        <td style="text-align:center">${troopBadge('s', troops.S)}</td>
+        <td style="text-align:center">${troopBadge('e', troops.E)}</td>
+        <td style="text-align:center">${troopBadge('c', troops.C)}</td>
+        ${isLoggedIn ? `<td class="member-actions">
+          <button title="Edit troops" onclick="quickEditTroop('${escapeAttr(m.name)}')">&nbsp;⚔️&nbsp;</button>
+          <button title="Edit hero" onclick="quickEditHero('${escapeAttr(m.name)}')">&nbsp;🦸&nbsp;</button>
+          <button title="Rename" onclick="renameMember('${escapeAttr(m.name)}')">&nbsp;✏️&nbsp;</button>
+        </td>` : ''}
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  // Troop category order for sorting (low → high)
+  const CATEGORY_ORDER = [null, 'G4', 'G5', 'G6', 'G7', 'T7', 'G8', 'T8', 'G9', 'T9'];
+
   function determineTroopCategory(gLevel, mLevel, sLevel) {
     const g = Number(gLevel);
     const m = Number(mLevel);
