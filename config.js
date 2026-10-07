@@ -53,7 +53,13 @@ window.GAS_WEB_APP_URL = window.CLOUDFLARE_WORKER_URL;
 		document.documentElement.classList.add(signedIn ? 'portal-signed-in' : 'portal-signed-out');
 		var style = document.createElement('style');
 		style.textContent = 'html.portal-signed-in #loginGate, html.portal-signed-in #loginBtn { display: none; }'
-			+ ' html.portal-signed-out #mainContent { display: none; }';
+			+ ' html.portal-signed-out #mainContent { display: none; }'
+			// Desktop menu: keep the links clear of Logout at the top right, a little
+			// tighter on laptops, and the e-mail address only on wide screens.
+			+ ' @media (min-width: 601px) { nav.tab-nav { padding-right: 110px; padding-left: 8px; } nav.tab-nav .nav-links a { padding-left: 12px; padding-right: 12px; white-space: nowrap; } }'
+			+ ' @media (min-width: 601px) and (max-width: 1180px) { nav.tab-nav .nav-links a { padding-left: 7px; padding-right: 7px; font-size: 0.85em; } }'
+			+ ' @media (min-width: 601px) and (max-width: 960px) { nav.tab-nav { padding-right: 96px; } nav.tab-nav .nav-links .nav-icon { display: none; } nav.tab-nav .nav-links a { padding-left: 5px; padding-right: 5px; font-size: 0.8em; } }'
+			+ ' @media (min-width: 601px) and (max-width: 1500px) { nav.tab-nav #userEmail { display: none !important; } }';
 		(document.head || document.documentElement).appendChild(style);
 	})();
 
