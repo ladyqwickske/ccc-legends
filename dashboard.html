@@ -145,6 +145,8 @@
     .player-red { color: #c62828; font-weight: 500; }
     .player-orange { color: #ef6c00; font-weight: 500; }
     .player-green { color: #2e7d32; font-weight: 600; }
+    /* Joined during the period shown: name in blue (as on the Champions site), whatever the points */
+    .player-blue, .new-member-row .cell:nth-child(2) { color: #1565c0; font-style: italic; }
     .troop-category { font-size: 10px; font-style: normal; font-weight: 700; letter-spacing: 0.5px; }
     .troop-category.cat-G4, .troop-category.cat-G5 { color: #777; }
     .troop-category.cat-G6 { color: #b88600; }
@@ -328,7 +330,8 @@
   <div class="color-legend" style="text-align:center;margin-bottom:16px;font-size:0.82em;color:var(--text-muted);">
     <span class="player-green">&#9632;</span> ≥ Required &nbsp;
     <span class="player-orange" style="font-weight:600;">&#9632;</span> ≥ 90% &nbsp;
-    <span class="player-red" style="font-weight:600;">&#9632;</span> Below 90%
+    <span class="player-red" style="font-weight:600;">&#9632;</span> Below 90% &nbsp;
+    <span class="player-blue" style="font-weight:600;font-style:normal;">&#9632;</span> Joined this period
   </div>
 
   <!-- Player Rankings -->
@@ -747,7 +750,7 @@
         const joinDateStr = String(player.joinDate).substring(0, 10);
         const joinDate = new Date(joinDateStr + 'T00:00:00Z');
         const viewStartDate = new Date(currentPeriodDates.start + 'T00:00:00Z');
-        isNewMember = joinDate > viewStartDate;
+        isNewMember = joinDate >= viewStartDate;   // joined on or after the period's first day
         if (isNewMember) {
           const now = new Date();
           const todayUtc = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
