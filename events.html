@@ -1439,8 +1439,10 @@
   function outcomeLine(r) {
     let line = r.memberName;
     if (r.category) line += ` [${r.category}]`;
-    line += ' ' + (Number(r.achieved) || 0).toLocaleString();
-    if (r.target > 0) line += ` (${Math.floor((Number(r.achieved) || 0) / r.target * 100)}%)`;
+    const pts = Number(r.achieved) || 0;
+    if (pts <= 0) return line + ' Not Participated';
+    line += ' ' + pts.toLocaleString();
+    if (r.target > 0) line += ` (${Math.floor(pts / r.target * 100) || '<1'}%)`;
     return line;
   }
 
