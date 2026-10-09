@@ -1440,7 +1440,7 @@
     let line = r.memberName;
     if (r.category) line += ` [${r.category}]`;
     const pts = Number(r.achieved) || 0;
-    if (pts <= 0) return line + ' Not Participated';
+    if (pts <= 0) return line + ' - Not Participated';
     line += ' ' + pts.toLocaleString();
     if (r.target > 0) line += ` (${Math.floor(pts / r.target * 100) || '<1'}%)`;
     return line;
