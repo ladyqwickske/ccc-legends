@@ -646,6 +646,7 @@
         return `<td>${escapeHtml(String(row[h] || ''))}</td>`;
       }).join('') + '</tr>'
     ).join('');
+    renderOutcomeSummary(currentPartBodyId, sorted);
   }
   let currentUser = null;
   let editingEvent = null;
@@ -1231,8 +1232,9 @@
     document.getElementById('troopParticipationTitle').textContent = `🎖️ ${ev.eventName} — Participation`;
     const headersEl = document.getElementById('troopParticipationHeaders');
     const bodyEl = document.getElementById('troopParticipationBody');
+    clearOutcomeSummary('troopParticipationBody');
     try {
-      const result = await callFunction('getEventParticipation', [ev.eventName]);
+      const [result] = await Promise.all([callFunction('getEventParticipation', [ev.eventName]), ensureTroopCategories()]);
       if (result && result.success && result.data && result.data.length > 0) {
         // Use dedicated troop columns if calculated, otherwise show raw
         const firstRow = result.data[0];
@@ -1295,6 +1297,7 @@
         return `<td>${escapeHtml(val)}</td>`;
       }).join('') + '</tr>';
     }).join('');
+    renderOutcomeSummary('troopParticipationBody', sorted);
   }
 
   async function saveTroopEntry() {
@@ -1347,8 +1350,9 @@
     const section = document.getElementById(sectionId);
     section.style.display = 'block';
     document.getElementById(titleId).textContent = `📊 ${ev.eventName} — Participation`;
+    clearOutcomeSummary(bodyId);
     try {
-      const result = await callFunction('getEventParticipation', [ev.eventName]);
+      const [result] = await Promise.all([callFunction('getEventParticipation', [ev.eventName]), ensureTroopCategories()]);
       if (result && result.success && result.data.length > 0) {
         const headers = Object.keys(result.data[0]);
         document.getElementById(headersId).innerHTML = headers.map(h => `<th onclick="sortParticipation('${escapeHtml(h)}')">${escapeHtml(h)}</th>`).join('');
@@ -1362,6 +1366,140 @@
         document.getElementById(bodyId).innerHTML = '<tr><td style="text-align:center;color:var(--text-muted)">No participation data yet</td></tr>';
       }
     } catch (err) { showToast('Error loading participation', 'error'); }
+  }
+
+  // --- Results summary + copy/paste export, above each participation table ---
+  // Met = reached the target, Tried = at least 50% of it, Didn't try = some points but under 50%,
+  // Didn't participate = no points. Exempt members (joined after the event) are left out.
+  const OUTCOME_GROUPS = [
+    { key: 'met', label: 'Met target', color: '#2e7d32' },
+    { key: 'tried', label: 'Tried (≥ 50%)', color: '#f0a500' },
+    { key: 'low', label: "Didn't try (< 50%)", color: '#e53935' },
+    { key: 'none', label: "Didn't participate", color: '#9e9e9e' },
+    { key: 'noTarget', label: 'No target', color: '#78909c' },
+  ];
+  let outcomeRowsByBody = {};
+  let troopCategoryByName = null;
+
+  /** Troop levels (G8, T9, ...) by lower-case name, loaded once: the [level] in the export. */
+  async function ensureTroopCategories() {
+    if (troopCategoryByName) return;
+    troopCategoryByName = {};
+    try {
+      const result = await callFunction('getTroopCategories');
+      const rows = Array.isArray(result) ? result : (Array.isArray(result?.data) ? result.data : []);
+      rows.forEach(r => {
+        const name = String(r?.playerName || r?.name || '').trim().toLowerCase();
+        if (name && r.category) troopCategoryByName[name] = r.category;
+      });
+    } catch (e) { /* without troop levels the export leaves the [level] out */ }
+  }
+
+  /** A participation sheet row as { memberName, category, achieved, target, exempt, fallback }. */
+  function outcomeRowOf(row, ev) {
+    const name = String(row['Member Name'] || '').trim();
+    const typeConfig = eventTypesData.find(t => t.name === ev?.eventType) || {};
+    const threshold = Number(typeConfig.threshold) || 0;
+    const sheetCategory = String(row['Troop Category'] || '').trim();
+    const category = (sheetCategory && sheetCategory !== 'Unknown' && sheetCategory !== '-')
+      ? sheetCategory : ((troopCategoryByName || {})[name.toLowerCase()] || '');
+    if (ev?.participationMethod === 'chest-based') {
+      // Target = the event type's chest threshold; without one, 1 chest (Participated = Yes) is enough
+      const chests = Number(row['Chest Count']) || 0;
+      const participated = String(row['Participated'] || '').trim();
+      return { memberName: name, category, achieved: chests, target: threshold, exempt: participated === 'N/A',
+        fallback: participated === 'Yes' ? 'met' : chests > 0 ? 'low' : 'none' };
+    }
+    // Troop / manual: the calculated Target, else the event's troop targets (unknown level: T9 or the highest,
+    // as the penalties do), else the event's target points or the event type's threshold
+    let targets = null;
+    try { if (ev?.troopTargets) targets = JSON.parse(ev.troopTargets); } catch (e) {}
+    let target = Number(row['Target']) || 0;
+    if (!target && targets && Object.keys(targets).length) {
+      const fallbackCategory = targets.T9 !== undefined ? 'T9'
+        : Object.keys(targets).reduce((best, c) => !best || Number(targets[c]) > Number(targets[best]) ? c : best, '');
+      const knownCategory = category !== '' && targets[category] !== undefined;
+      // Troop events with an unknown level have no target (no penalty either)
+      target = knownCategory ? Number(targets[category]) || 0 : ev.participationMethod === 'troop-based' ? 0 : Number(targets[fallbackCategory]) || 0;
+    } else if (!target) {
+      target = Number(ev?.targetPoints) || threshold;
+    }
+    return { memberName: name, category, achieved: Number(row['Points']) || 0, target,
+      exempt: String(row['Notes'] || '').includes('Not Applicable') };
+  }
+
+  function outcomeOf(r) {
+    const pts = Number(r.achieved) || 0;
+    if (r.target > 0) return pts >= r.target ? 'met' : pts >= r.target * 0.5 ? 'tried' : pts > 0 ? 'low' : 'none';
+    if (r.fallback) return r.fallback;
+    return pts > 0 ? 'noTarget' : 'none';
+  }
+
+  // "Name [G9] 12,345 (85%)" — the troop level and % only when known
+  function outcomeLine(r) {
+    let line = r.memberName;
+    if (r.category) line += ` [${r.category}]`;
+    line += ' ' + (Number(r.achieved) || 0).toLocaleString();
+    if (r.target > 0) line += ` (${Math.floor((Number(r.achieved) || 0) / r.target * 100)}%)`;
+    return line;
+  }
+
+  function clearOutcomeSummary(bodyId) {
+    const el = document.getElementById(bodyId + 'Outcome');
+    if (el) el.remove();
+    delete outcomeRowsByBody[bodyId];
+  }
+
+  /** The summary bar above the table; data = the sheet rows in table order. */
+  function renderOutcomeSummary(bodyId, data) {
+    const box = document.getElementById(bodyId).closest('.table-container');
+    let el = document.getElementById(bodyId + 'Outcome');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = bodyId + 'Outcome';
+      el.style.cssText = 'margin:0 0 10px 0; padding:10px 12px; border:1px solid var(--border); border-radius:8px; background:var(--bg-card-soft); font-size:0.88em; color:var(--text);';
+      box.parentNode.insertBefore(el, box);
+    }
+    const rows = data.map(row => outcomeRowOf(row, selectedEvent)).filter(r => r.memberName);
+    const counted = rows.filter(r => !r.exempt).map(r => Object.assign(r, { outcome: outcomeOf(r) }));
+    outcomeRowsByBody[bodyId] = counted;
+    const counts = {};
+    counted.forEach(r => { counts[r.outcome] = (counts[r.outcome] || 0) + 1; });
+    const exempt = rows.length - counted.length;
+    const chips = OUTCOME_GROUPS.filter(g => g.key !== 'noTarget' || counts.noTarget).map(g =>
+      `<button type="button" class="btn secondary" style="margin:0;padding:4px 10px;font-size:0.9em;border-left:4px solid ${g.color};" title="Copy this group" onclick="copyOutcome('${bodyId}','${g.key}')">${escapeHtml(g.label)}: <strong>${counts[g.key] || 0}</strong></button>`).join('');
+    el.innerHTML = `<div style="display:flex;flex-wrap:wrap;gap:6px 8px;align-items:center;">`
+      + `<strong style="color:var(--primary-strong);">Results (${counted.length} members${exempt ? `, ${exempt} exempt` : ''}):</strong>${chips}`
+      + `<button type="button" class="btn" style="margin:0 0 0 auto;padding:4px 10px;font-size:0.9em;" title="Name [troop level] points (% of target), in the order of the table" onclick="copyOutcome('${bodyId}','')">📋 Copy all</button>`
+      + `<span id="${bodyId}OutcomeStatus" style="font-size:0.9em;"></span></div>`
+      + `<details style="margin-top:8px;"><summary style="cursor:pointer;color:var(--text-muted);font-size:0.9em;">Show text to copy</summary>`
+      + `<textarea id="${bodyId}OutcomeText" readonly rows="8" style="width:100%;margin-top:6px;font-family:monospace;font-size:0.9em;border:1px solid var(--border);border-radius:6px;padding:6px;"></textarea></details>`;
+    document.getElementById(bodyId + 'OutcomeText').value = counted.map(outcomeLine).join('\n');
+  }
+
+  /** Copy the list (one group, or everyone when groupKey is empty) for the game chat or Telegram. */
+  function copyOutcome(bodyId, groupKey) {
+    const rows = (outcomeRowsByBody[bodyId] || []).filter(r => !groupKey || r.outcome === groupKey);
+    const text = rows.map(outcomeLine).join('\n');
+    const ta = document.getElementById(bodyId + 'OutcomeText');
+    const status = document.getElementById(bodyId + 'OutcomeStatus');
+    if (ta) ta.value = text;
+    const group = OUTCOME_GROUPS.find(g => g.key === groupKey);
+    const done = (ok) => {
+      if (!status) return;
+      status.style.color = ok ? 'var(--success)' : 'var(--danger)';
+      status.textContent = ok ? `Copied ${rows.length} ${group ? '"' + group.label + '"' : ''} line(s).` : 'Copy blocked by the browser: select the text below and copy it.';
+    };
+    const fallback = () => {
+      if (!ta) return done(false);
+      ta.closest('details').open = true;
+      ta.select();
+      let ok = false;
+      try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      done(ok);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(() => done(true), fallback);
+    else fallback();
   }
 
   let currentPartBodyId = 'chestParticipationBody';
