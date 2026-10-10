@@ -1061,7 +1061,7 @@
       let html = '<table id="ptTargetsTable" data-sortable data-sort-col="0" style="width:100%;border-collapse:collapse;font-size:0.88em;">';
       html += '<thead><tr style="background:var(--bg-card-soft);"><th style="text-align:left;padding:6px 8px;position:sticky;top:0;z-index:1;">Member</th><th style="text-align:left;padding:6px 8px;position:sticky;top:0;z-index:1;">Custom Target</th></tr></thead><tbody>';
       sorted.forEach(m => {
-        const current = targets[m.name] || '';
+        const current = targets[m.name] != null ? targets[m.name] : ''; // 0 = lowered by carried-over surplus
         html += `<tr style="border-bottom:1px solid #eee;">`;
         html += `<td style="padding:4px 8px;">${escapeHtml(m.name)}</td>`;
         html += `<td style="padding:4px 8px;"><input type="number" min="0" step="100" class="pt-input" data-member="${escapeAttr(m.name)}" value="${current}" placeholder="default" style="width:120px;padding:4px 8px;border:1px solid var(--border);border-radius:4px;font-size:0.9em;"></td>`;
@@ -1082,7 +1082,7 @@
     inputs.forEach(input => {
       const member = input.dataset.member;
       const val = parseInt(input.value, 10);
-      if (member && !isNaN(val) && val > 0) targets[member] = val;
+      if (member && !isNaN(val) && val >= 0) targets[member] = val; // 0 only stays on a row that banks surplus
     });
     try {
       const result = await callFunction('savePointTargets', [targets, ptCurrentPeriod]);

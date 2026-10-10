@@ -740,7 +740,8 @@
     playerArray.forEach((player, idx) => {
       const playerName = player.name || player.player;
       const totalPointsVal = player.totalPoints || 0;
-      const effectiveTarget = (playerTargets[playerName] != null && playerTargets[playerName] > 0) ? playerTargets[playerName] : targetPoints;
+      // a custom target of 0 is a target too (lowered by carried-over surplus)
+      const effectiveTarget = (playerTargets[playerName] != null && playerTargets[playerName] >= 0) ? playerTargets[playerName] : targetPoints;
       const pointsClass = totalPointsVal >= effectiveTarget ? 'player-green' : (totalPointsVal >= effectiveTarget * 0.9 ? 'player-orange' : 'player-red');
 
       // Check if member joined after the current viewing period start
@@ -770,7 +771,9 @@
       const troopLabel = troopCategory
         ? ` <span class="troop-category cat-${escapeHtml(troopCategory)}">${escapeHtml(troopCategory)}</span>`
         : '';
-      const customTargetLabel = (effectiveTarget !== targetPoints) ? ` <span title="Custom target: ${effectiveTarget.toLocaleString()}" style="font-size:10px;opacity:0.7;">🎯${effectiveTarget.toLocaleString()}</span>` : '';
+      const customTargetLabel = (effectiveTarget < targetPoints)
+        ? ` <span title="Lowered target: ${effectiveTarget.toLocaleString()} (surplus points carried over from an earlier period)" style="font-size:10px;color:#66bb6a;font-weight:600;">⬇${effectiveTarget.toLocaleString()}</span>`
+        : (effectiveTarget !== targetPoints) ? ` <span title="Custom target: ${effectiveTarget.toLocaleString()}" style="font-size:10px;opacity:0.7;">🎯${effectiveTarget.toLocaleString()}</span>` : '';
       rowsHtml += `<div class="${rowClass}">`;
       rowsHtml += `<div class="cell rank-col">${idx + 1}</div>`;
       rowsHtml += `<div class="cell ${pointsClass}">${escapeHtml(playerName)}${troopLabel}${customTargetLabel}${joinDateLabel}</div>`;
