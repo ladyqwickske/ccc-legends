@@ -453,6 +453,7 @@
           <label style="font-size:0.85em; color:var(--text); cursor:pointer;"><input type="checkbox" class="gen-type-cb" value="Restoration of Balance" checked> Restoration of Balance</label>
           <label style="font-size:0.85em; color:var(--text); cursor:pointer;"><input type="checkbox" class="gen-type-cb" value="Dark Omens Essence" checked> Dark Omens Essence</label>
           <label style="font-size:0.85em; color:var(--text); cursor:pointer;"><input type="checkbox" class="gen-type-cb" value="Olympus" checked> Olympus</label>
+          <label style="font-size:0.85em; color:var(--text); cursor:pointer;"><input type="checkbox" class="gen-type-cb" value="Trial of Olympus Points" checked> Trial of Olympus Points</label>
           <label style="font-size:0.85em; color:var(--text); cursor:pointer;"><input type="checkbox" class="gen-type-cb" value="Hermes' Chests" checked> Hermes' Chests</label>
           <label style="font-size:0.85em; color:var(--text); cursor:pointer;"><input type="checkbox" class="gen-type-cb" value="Olympus Tartarus" checked> Olympus Tartarus</label>
           <label style="font-size:0.85em; color:var(--text); cursor:pointer;"><input type="checkbox" class="gen-type-cb" value="Senator Rank" checked> Senator Rank</label>
@@ -630,6 +631,8 @@
     }
   }
   function renderParticipation(data, headers) {
+    // The penalty exemption badge goes in the status column (chest events: Participated, manual: Notes)
+    const statusCol = ['Status', 'Participated', 'Notes'].find(h => headers.includes(h));
     let sorted = [...data];
     if (partSortField && headers.includes(partSortField)) {
       sorted.sort((a, b) => {
@@ -643,7 +646,8 @@
       '<tr>' + headers.map(h => {
         if (h === 'Penalty') return penaltyCellHtml(row);
         if (h === 'Penalty Status') return penaltyStatusCellHtml(row);
-        if (h === 'Member Name') return `<td>${memberNameCellHtml(String(row[h] || ''))}</td>`;
+        const badge = h === statusCol ? penaltyExemptBadge(row['Member Name']) : '';
+        if (badge) return `<td>${badge}${h === 'Notes' && row[h] ? ' ' + escapeHtml(String(row[h])) : ''}</td>`;
         return `<td>${escapeHtml(String(row[h] || ''))}</td>`;
       }).join('') + '</tr>'
     ).join('');
@@ -1275,8 +1279,8 @@
     bodyEl.innerHTML = sorted.map(row => {
       return '<tr>' + headers.map(h => {
         const val = String(row[h] || '');
-        if (h === 'Member Name') return `<td>${memberNameCellHtml(val)}</td>`;
-        // Style status column
+        // Style status column (penalty-exempt members: the Exempt badge)
+        if (h === 'Status' && penaltyExemptBadge(row['Member Name'])) return `<td style="text-align:center">${penaltyExemptBadge(row['Member Name'])}</td>`;
         if (h === 'Status') {
           const icon = val === 'Pass' ? '✅' : val === 'Partial' ? '⚠️' : val === 'Fail' ? '❌' : '—';
           const color = val === 'Pass' ? 'var(--success)' : val === 'Partial' ? '#f0a500' : val === 'Fail' ? 'var(--danger)' : 'var(--text-muted)';
@@ -1439,15 +1443,16 @@
     return until ? `until ${until}` : from ? `from ${from}` : '';
   }
 
-  /** The member's name, with an Exempt (permanent) or Temp. exempt (with dates) badge. */
-  function memberNameCellHtml(memberName) {
+  /** For the status column: an Exempt (permanent) or Temp. exempt badge with its dates; '' when not exempt. */
+  function penaltyExemptBadge(memberName) {
     const entry = penaltyExemptionOf(memberName);
-    if (!entry) return escapeHtml(memberName);
+    if (!entry) return '';
     const dates = exemptionDatesText(entry);
     const tip = 'Penalty exemption' + (entry.reason ? ': ' + entry.reason : '') + ' (' + (dates || 'permanent') + '). Not counted in the results, no penalty.';
-    const style = 'display:inline-block;margin-left:6px;padding:1px 8px;border-radius:10px;font-size:0.8em;font-weight:600;white-space:nowrap;'
+    const style = 'display:inline-block;padding:1px 8px;border-radius:10px;font-size:0.8em;font-weight:600;white-space:nowrap;'
       + (dates ? 'background:#fff3cd;color:#7a5b00;border:1px solid #e6c35c;' : 'background:#e3f5e1;color:#1b5e20;border:1px solid #81c784;');
-    return `${escapeHtml(memberName)}<span style="${style}" title="${escapeHtml(tip).replace(/"/g, '&quot;')}">🛡️ ${dates ? 'Temp. exempt · ' + escapeHtml(dates) : 'Exempt'}</span>`;
+    return `<span style="${style}" title="${escapeHtml(tip).replace(/"/g, '&quot;')}">🛡️ ${dates ? 'Temp. exempt' : 'Exempt'}</span>`
+      + (dates ? `<div style="font-size:0.78em;color:var(--text-muted);margin-top:2px;">${escapeHtml(dates)}</div>` : '');
   }
 
   /** A participation sheet row as { memberName, category, achieved, target, exempt, fallback }. */
