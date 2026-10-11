@@ -483,6 +483,12 @@
         </div>
         <div class="note">Select which chest types count for this event type.</div>
       </div>
+      <div id="typeTroopTargetSection" style="display:none; margin-bottom:12px; padding:12px; border:1px solid var(--border); border-radius:8px; background:var(--bg-card-soft);">
+        <label style="font-weight:600; color:var(--primary); margin-bottom:8px; display:block;">🎯 Default Troop Category Targets</label>
+        <div class="note" style="margin-bottom:8px;">Filled in for every new event of this type (also the generated ones). An event's own targets can still be changed.</div>
+        <div id="typeTroopTargetRows"></div>
+        <button class="btn secondary" onclick="addTroopTargetRow('', '', 'typeTroopTargetRows')" style="margin-top:6px; font-size:0.8em;">+ Add Category</button>
+      </div>
       <div class="form-row">
         <input type="text" id="typeDescription" placeholder="Description">
         <input type="number" id="typeThreshold" placeholder="Threshold">
@@ -496,7 +502,7 @@
           <tr>
             <th onclick="sortTypes('name')">Type Name</th>
             <th onclick="sortTypes('trackingMethod')">Method</th>
-            <th onclick="sortTypes('chestTypes')">Chest Types</th>
+            <th onclick="sortTypes('chestTypes')">Chest Types / Targets</th>
             <th onclick="sortTypes('threshold')">Threshold</th>
             <th id="typeActionsHeader" style="display:none">Actions</th>
           </tr>
@@ -799,6 +805,7 @@
   function toggleMethodSections() {
     const method = document.getElementById('typeMethod').value;
     document.getElementById('chestTypesSection').style.display = method === 'chest-based' ? 'block' : 'none';
+    document.getElementById('typeTroopTargetSection').style.display = method === 'troop-based' ? 'block' : 'none';
   }
 
   // Show/hide troop targets on event form based on selected event type
@@ -807,13 +814,23 @@
     const et = eventTypesData.find(t => t.name === selectedType);
     const isTroop = et && et.trackingMethod === 'troop-based';
     document.getElementById('eventTroopTargetSection').style.display = isTroop ? 'block' : 'none';
+    // A new event (or one without targets yet) starts with the event type's default targets
+    if (isTroop && et.troopTargets && !getTroopTargetsJson()) setTroopTargetsFromJson(et.troopTargets);
+  }
+
+  /** "🎯 G8 1,000 · T9 2,000" for the event types table; '-' without targets. */
+  function troopTargetsText(json) {
+    let targets = null;
+    try { targets = json ? JSON.parse(json) : null; } catch (e) {}
+    if (!targets || !Object.keys(targets).length) return '-';
+    return '🎯 ' + Object.entries(targets).map(([cat, pts]) => `${escapeHtml(cat)} ${Number(pts).toLocaleString()}`).join(' · ');
   }
 
   // Troop target row management
   const TROOP_CATEGORIES = ['G4','G5','G6','G7','T7','G8','T8','G9','T9'];
 
-  function addTroopTargetRow(category, points) {
-    const container = document.getElementById('troopTargetRows');
+  function addTroopTargetRow(category, points, containerId) {
+    const container = document.getElementById(containerId || 'troopTargetRows');
     const row = document.createElement('div');
     row.style.cssText = 'display:flex; gap:8px; align-items:center; margin-bottom:4px;';
     const sel = document.createElement('select');
@@ -838,8 +855,8 @@
     container.appendChild(row);
   }
 
-  function getTroopTargetsJson() {
-    const rows = document.querySelectorAll('#troopTargetRows > div');
+  function getTroopTargetsJson(containerId) {
+    const rows = document.querySelectorAll('#' + (containerId || 'troopTargetRows') + ' > div');
     const targets = {};
     rows.forEach(row => {
       const cat = row.querySelector('.troop-cat-select')?.value;
@@ -849,12 +866,12 @@
     return Object.keys(targets).length > 0 ? JSON.stringify(targets) : '';
   }
 
-  function setTroopTargetsFromJson(jsonStr) {
-    document.getElementById('troopTargetRows').innerHTML = '';
+  function setTroopTargetsFromJson(jsonStr, containerId) {
+    document.getElementById(containerId || 'troopTargetRows').innerHTML = '';
     if (!jsonStr) return;
     try {
       const targets = typeof jsonStr === 'string' ? JSON.parse(jsonStr) : jsonStr;
-      Object.entries(targets).forEach(([cat, pts]) => addTroopTargetRow(cat, pts));
+      Object.entries(targets).forEach(([cat, pts]) => addTroopTargetRow(cat, pts, containerId));
     } catch (e) { /* ignore invalid JSON */ }
   }
 
@@ -961,7 +978,7 @@
       tr.innerHTML = `
         <td><strong>${escapeHtml(et.name)}</strong></td>
         <td>${et.trackingMethod}</td>
-        <td>${escapeHtml(et.chestTypes)}</td>
+        <td>${et.trackingMethod === 'troop-based' ? troopTargetsText(et.troopTargets) : escapeHtml(et.chestTypes)}</td>
         <td>${et.threshold || '-'}</td>
         ${isLoggedIn ? `<td class="event-actions">
           <button onclick="editEventType('${escapeAttr(et.name)}')">✏️</button>
@@ -1063,14 +1080,15 @@
     const chestTypes = method === 'chest-based' ? getSelectedChestTypes().join(',') : '';
     const description = document.getElementById('typeDescription').value;
     const threshold = document.getElementById('typeThreshold').value;
+    const troopTargets = method === 'troop-based' ? getTroopTargetsJson('typeTroopTargetRows') : '';
     if (!name || !method) { showToast('Name and method required', 'error'); return; }
 
     try {
       let result;
       if (editingType) {
-        result = await callFunction('updateEventType', [editingType, name, method, chestTypes, description, threshold ? Number(threshold) : 0]);
+        result = await callFunction('updateEventType', [editingType, name, method, chestTypes, description, threshold ? Number(threshold) : 0, troopTargets]);
       } else {
-        result = await callFunction('addEventType', [name, method, chestTypes, description, threshold ? Number(threshold) : 0]);
+        result = await callFunction('addEventType', [name, method, chestTypes, description, threshold ? Number(threshold) : 0, troopTargets]);
       }
       showToast(result?.message || 'Done', result?.success ? 'success' : 'error');
       if (result?.success) { cancelTypeEdit(); loadEventTypes(); }
@@ -1085,6 +1103,7 @@
     document.getElementById('typeMethod').value = et.trackingMethod;
     toggleMethodSections();
     setSelectedChestTypes(et.chestTypes);
+    setTroopTargetsFromJson(et.troopTargets || '', 'typeTroopTargetRows');
     document.getElementById('typeDescription').value = et.description || '';
     document.getElementById('typeThreshold').value = et.threshold || '';
     document.getElementById('typeFormTitle').textContent = '✏️ Edit Event Type';
@@ -1097,6 +1116,7 @@
     document.getElementById('typeMethod').value = 'chest-based';
     toggleMethodSections();
     document.querySelectorAll('#chestTypesList input[type="checkbox"]').forEach(cb => { cb.checked = false; });
+    document.getElementById('typeTroopTargetRows').innerHTML = '';
     document.getElementById('typeDescription').value = '';
     document.getElementById('typeThreshold').value = '';
     document.getElementById('typeFormTitle').textContent = '➕ Add Event Type';
