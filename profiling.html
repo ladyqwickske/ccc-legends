@@ -465,7 +465,7 @@
     // Build a ranking card HTML helper
     function rankingCardHtml(m, rank) {
       const rankClass = rank === 1 ? 'top1' : rank === 2 ? 'top2' : rank === 3 ? 'top3' : '';
-      const medal = rank <= 3 ? ['🥇','🥈','🥉'][rank - 1] + ' ' : '';
+      const medal = rank && rank <= 3 ? ['🥇','🥈','🥉'][rank - 1] + ' ' : '';
       const b = m.breakdown || {};
       const barHtml = parts.map(p => ({ score: b[p.key]?.score, color: partColor(p, b[p.key]?.score), title: p.label })).map(bar => {
         const w = bar.score !== null && bar.score !== undefined ? Math.max(2, bar.score * 0.5) : 0;
@@ -476,7 +476,7 @@
       if (b.target?.total > 0) metaParts.push(b.target.met + '/' + b.target.total + ' targets met');
       if (b.warnings?.count > 0) metaParts.push('⚠️ ' + b.warnings.count + ' warning' + (b.warnings.count > 1 ? 's' : ''));
       return '<div class="ranking-card">'
-        + '<div class="ranking-rank ' + rankClass + '">#' + rank + '</div>'
+        + '<div class="ranking-rank ' + rankClass + '"' + (rank ? '>#' + rank : ' title="New member: ranked after ' + NEW_MEMBER_DAYS + ' days in the clan">🆕') + '</div>'
         + '<div class="ranking-info">'
         + '<div class="ranking-name" onclick="jumpToProfile(\'' + escapeAttr(m.name) + '\')">' + medal + escapeHtml(m.name) + '</div>'
         + '<div class="ranking-meta">' + metaParts.join(' · ') + '</div>'
@@ -487,13 +487,16 @@
     }
 
     const HIGHLIGHT_COUNT = 5;
-    const NEW_MEMBER_DAYS = 5; // exclude members who joined < 5 days ago from top/bottom lists
+    // New members (joined in the last 7 days; the Worker marks them newMember) aren't ranked yet
+    const NEW_MEMBER_DAYS = 7;
     const today = new Date();
-    const seasoned = sorted.filter(m => {
-      if (!m.joinDate) return true; // no join date = include
-      const jd = new Date(m.joinDate + 'T00:00:00Z');
-      return (today - jd) / 86400000 >= NEW_MEMBER_DAYS;
-    });
+    const isNew = m => {
+      if (m.newMember !== undefined) return !!m.newMember;
+      if (!m.joinDate) return false; // no join date = ranked
+      return (today - new Date(m.joinDate + 'T00:00:00Z')) / 86400000 < NEW_MEMBER_DAYS;
+    };
+    const seasoned = sorted.filter(m => !isNew(m));
+    const newcomers = sorted.filter(isNew);
     const top = seasoned.slice(0, HIGHLIGHT_COUNT);
     const bottom = seasoned.length > HIGHLIGHT_COUNT ? seasoned.slice(-HIGHLIGHT_COUNT).reverse() : [];
 
@@ -501,7 +504,7 @@
     let html = '<div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:20px;">';
     html += '<div style="flex:1;min-width:280px;">'
       + '<div class="ranking-section-title">🏆 Top Performers' + metaNote + '</div>' + eventNote;
-    top.forEach((m) => { html += rankingCardHtml(m, sorted.indexOf(m) + 1); });
+    top.forEach((m) => { html += rankingCardHtml(m, seasoned.indexOf(m) + 1); });
     html += '</div>';
 
     // ── Needs Attention ──
@@ -509,7 +512,7 @@
       html += '<div style="flex:1;min-width:280px;">'
         + '<div class="ranking-section-title">⚠️ Needs Attention</div>';
       bottom.forEach((m) => {
-        const globalRank = sorted.indexOf(m) + 1;
+        const globalRank = seasoned.indexOf(m) + 1;
         html += rankingCardHtml(m, globalRank);
       });
       html += '</div>';
@@ -517,10 +520,16 @@
     html += '</div>';
 
     // ── Full Rankings ──
-    html += '<details style="margin-top:8px;"><summary style="cursor:pointer;font-size:0.95em;font-weight:600;color:var(--primary);padding:8px 0;">📋 Full Rankings (' + sorted.length + ' members)</summary>'
+    html += '<details style="margin-top:8px;"><summary style="cursor:pointer;font-size:0.95em;font-weight:600;color:var(--primary);padding:8px 0;">📋 Full Rankings (' + seasoned.length + ' members)</summary>'
       + '<div style="margin-top:8px;">';
-    sorted.forEach((m, i) => { html += rankingCardHtml(m, i + 1); });
+    seasoned.forEach((m, i) => { html += rankingCardHtml(m, i + 1); });
     html += '</div></details>';
+    if (newcomers.length) {
+      html += '<details style="margin-top:8px;"><summary style="cursor:pointer;font-size:0.95em;font-weight:600;color:var(--primary);padding:8px 0;">🆕 New members, not ranked yet (' + newcomers.length + ')</summary>'
+        + '<div style="font-size:0.8em;color:var(--text-muted);margin:4px 0 8px;">Joined in the last ' + NEW_MEMBER_DAYS + ' days: ranked once they have been in the clan for ' + NEW_MEMBER_DAYS + ' days.</div><div>';
+      newcomers.forEach(m => { html += rankingCardHtml(m, null); });
+      html += '</div></details>';
+    }
 
     document.getElementById('rankingsContent').innerHTML = html;
   }
@@ -694,7 +703,7 @@
         m.zeroChestPeriods ? '<span class="badge badge-orange">' + m.zeroChestPeriods + ' period' + (m.zeroChestPeriods > 1 ? 's' : '') + ' without chests</span>' : '',
         m.warnings ? '<span class="badge badge-orange">⚠️ ' + m.warnings + ' warning' + (m.warnings > 1 ? 's' : '') + '</span>' : '',
       ].join(' ');
-      const meta = ['Score ' + m.score];
+      const meta = [(m.newMember ? '🆕 New member · ' : '') + 'Score ' + m.score];
       if (m.joinDate) meta.push('Joined ' + escapeHtml(m.joinDate));
       if (m.penaltyTotal) meta.push('Penalties on these norms: ' + formatNumber(m.penaltyTotal));
 
