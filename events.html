@@ -643,6 +643,7 @@
       '<tr>' + headers.map(h => {
         if (h === 'Penalty') return penaltyCellHtml(row);
         if (h === 'Penalty Status') return penaltyStatusCellHtml(row);
+        if (h === 'Member Name') return `<td>${memberNameCellHtml(String(row[h] || ''))}</td>`;
         return `<td>${escapeHtml(String(row[h] || ''))}</td>`;
       }).join('') + '</tr>'
     ).join('');
@@ -1234,7 +1235,7 @@
     const bodyEl = document.getElementById('troopParticipationBody');
     clearOutcomeSummary('troopParticipationBody');
     try {
-      const [result] = await Promise.all([callFunction('getEventParticipation', [ev.eventName]), ensureTroopCategories()]);
+      const [result] = await Promise.all([callFunction('getEventParticipation', [ev.eventName]), ensureTroopCategories(), ensurePenaltyExemptions()]);
       if (result && result.success && result.data && result.data.length > 0) {
         // Use dedicated troop columns if calculated, otherwise show raw
         const firstRow = result.data[0];
@@ -1274,6 +1275,7 @@
     bodyEl.innerHTML = sorted.map(row => {
       return '<tr>' + headers.map(h => {
         const val = String(row[h] || '');
+        if (h === 'Member Name') return `<td>${memberNameCellHtml(val)}</td>`;
         // Style status column
         if (h === 'Status') {
           const icon = val === 'Pass' ? '✅' : val === 'Partial' ? '⚠️' : val === 'Fail' ? '❌' : '—';
@@ -1352,7 +1354,7 @@
     document.getElementById(titleId).textContent = `📊 ${ev.eventName} — Participation`;
     clearOutcomeSummary(bodyId);
     try {
-      const [result] = await Promise.all([callFunction('getEventParticipation', [ev.eventName]), ensureTroopCategories()]);
+      const [result] = await Promise.all([callFunction('getEventParticipation', [ev.eventName]), ensureTroopCategories(), ensurePenaltyExemptions()]);
       if (result && result.success && result.data.length > 0) {
         const headers = Object.keys(result.data[0]);
         document.getElementById(headersId).innerHTML = headers.map(h => `<th onclick="sortParticipation('${escapeHtml(h)}')">${escapeHtml(h)}</th>`).join('');
@@ -1370,7 +1372,8 @@
 
   // --- Results summary + copy/paste export, above each participation table ---
   // Met = reached the target, Tried = at least 50% of it, Didn't try = some points but under 50%,
-  // Didn't participate = no points. Exempt members (joined after the event) are left out.
+  // Didn't participate = no points. Exempt members (joined after the event, or a penalty
+  // exemption covering the event) are left out.
   const OUTCOME_GROUPS = [
     { key: 'met', label: 'Met target', color: '#2e7d32' },
     { key: 'tried', label: 'Tried (≥ 50%)', color: '#f0a500' },
@@ -1393,6 +1396,58 @@
         if (name && r.category) troopCategoryByName[name] = r.category;
       });
     } catch (e) { /* without troop levels the export leaves the [level] out */ }
+  }
+
+  // Penalty exemptions (Admin → 🛡️ Penalty Exemptions), loaded once: an Exempt label next to the
+  // member's name, and those members left out of the results, as the penalties leave them out.
+  let penaltyExemptions = null; // lower-case name → { name, reason, startDate, endDate }
+
+  async function ensurePenaltyExemptions() {
+    if (penaltyExemptions) return;
+    try {
+      const result = await callFunction('getExemptMembers');
+      if (!result || !Array.isArray(result.members)) return;
+      penaltyExemptions = {};
+      result.members.forEach(entry => {
+        const key = String(entry?.name || '').trim().toLowerCase();
+        if (key) penaltyExemptions[key] = entry;
+      });
+    } catch (e) { /* no labels this time; tried again on the next load */ }
+  }
+
+  function isoDay(value) {
+    const m = String(value || '').trim().match(/^(\d{4}-\d{2}-\d{2})/);
+    return m ? m[1] : '';
+  }
+
+  /** The member's exemption when it covers the selected event's dates (no dates = always), else null. */
+  function penaltyExemptionOf(memberName) {
+    const entry = (penaltyExemptions || {})[String(memberName || '').trim().toLowerCase()];
+    if (!entry) return null;
+    const from = isoDay(entry.startDate), until = isoDay(entry.endDate);
+    const eventStart = isoDay(selectedEvent?.startDate || selectedEvent?.endDate);
+    const eventEnd = isoDay(selectedEvent?.endDate || selectedEvent?.startDate);
+    if (from && eventEnd && from > eventEnd) return null;
+    if (until && eventStart && until < eventStart) return null;
+    return entry;
+  }
+
+  /** "until 2026-11-15" / "from 2026-10-01" for a temporary exemption, '' for a permanent one. */
+  function exemptionDatesText(entry) {
+    const from = isoDay(entry.startDate), until = isoDay(entry.endDate);
+    if (from && until) return `${from} → ${until}`;
+    return until ? `until ${until}` : from ? `from ${from}` : '';
+  }
+
+  /** The member's name, with an Exempt (permanent) or Temp. exempt (with dates) badge. */
+  function memberNameCellHtml(memberName) {
+    const entry = penaltyExemptionOf(memberName);
+    if (!entry) return escapeHtml(memberName);
+    const dates = exemptionDatesText(entry);
+    const tip = 'Penalty exemption' + (entry.reason ? ': ' + entry.reason : '') + ' (' + (dates || 'permanent') + '). Not counted in the results, no penalty.';
+    const style = 'display:inline-block;margin-left:6px;padding:1px 8px;border-radius:10px;font-size:0.8em;font-weight:600;white-space:nowrap;'
+      + (dates ? 'background:#fff3cd;color:#7a5b00;border:1px solid #e6c35c;' : 'background:#e3f5e1;color:#1b5e20;border:1px solid #81c784;');
+    return `${escapeHtml(memberName)}<span style="${style}" title="${escapeHtml(tip).replace(/"/g, '&quot;')}">🛡️ ${dates ? 'Temp. exempt · ' + escapeHtml(dates) : 'Exempt'}</span>`;
   }
 
   /** A participation sheet row as { memberName, category, achieved, target, exempt, fallback }. */
@@ -1463,7 +1518,8 @@
       box.parentNode.insertBefore(el, box);
     }
     const rows = data.map(row => outcomeRowOf(row, selectedEvent)).filter(r => r.memberName);
-    const counted = rows.filter(r => !r.exempt).map(r => Object.assign(r, { outcome: outcomeOf(r) }));
+    const exemptions = rows.filter(r => penaltyExemptionOf(r.memberName));
+    const counted = rows.filter(r => !r.exempt && !penaltyExemptionOf(r.memberName)).map(r => Object.assign(r, { outcome: outcomeOf(r) }));
     outcomeRowsByBody[bodyId] = counted;
     const counts = {};
     counted.forEach(r => { counts[r.outcome] = (counts[r.outcome] || 0) + 1; });
@@ -1474,6 +1530,10 @@
       + `<strong style="color:var(--primary-strong);">Results (${counted.length} members${exempt ? `, ${exempt} exempt` : ''}):</strong>${chips}`
       + `<button type="button" class="btn" style="margin:0 0 0 auto;padding:4px 10px;font-size:0.9em;" title="Name [troop level] points (% of target), in the order of the table" onclick="copyOutcome('${bodyId}','')">📋 Copy all</button>`
       + `<span id="${bodyId}OutcomeStatus" style="font-size:0.9em;"></span></div>`
+      + (exemptions.length ? `<div style="margin-top:8px;color:var(--text-muted);">🛡️ <strong style="color:var(--text);">Penalty exempt (${exemptions.length}):</strong> ${exemptions.map(r => {
+          const dates = exemptionDatesText(penaltyExemptionOf(r.memberName));
+          return escapeHtml(r.memberName) + (dates ? ` <em>(temp., ${escapeHtml(dates)})</em>` : '');
+        }).join(', ')}</div>` : '')
       + `<details style="margin-top:8px;"><summary style="cursor:pointer;color:var(--text-muted);font-size:0.9em;">Show text to copy</summary>`
       + `<textarea id="${bodyId}OutcomeText" readonly rows="8" style="width:100%;margin-top:6px;font-family:monospace;font-size:0.9em;border:1px solid var(--border);border-radius:6px;padding:6px;"></textarea></details>`;
     document.getElementById(bodyId + 'OutcomeText').value = counted.map(outcomeLine).join('\n');
