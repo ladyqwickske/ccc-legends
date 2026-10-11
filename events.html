@@ -816,6 +816,9 @@
     document.getElementById('eventTroopTargetSection').style.display = isTroop ? 'block' : 'none';
     // A new event (or one without targets yet) starts with the event type's default targets
     if (isTroop && et.troopTargets && !getTroopTargetsJson()) setTroopTargetsFromJson(et.troopTargets);
+    // A new Active Period event starts with the event type's points as its target
+    const targetInput = document.getElementById('eventTargetPoints');
+    if (et && et.trackingMethod === 'period-marker' && !editingEvent && !targetInput.value && Number(et.threshold) > 0) targetInput.value = Number(et.threshold);
   }
 
   /** "🎯 G8 1,000 · T9 2,000" for the event types table; '-' without targets. */
