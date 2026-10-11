@@ -143,6 +143,24 @@
     .badge-gray { background: rgba(127,140,141,0.15); color: #7f8c8d; }
 
     /* Table */
+    /* Missed Norms tab */
+    .mn-controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin: 12px 0; }
+    .mn-controls select, .mn-controls input { padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.85em; background: #fff; color: var(--text); }
+    .mn-controls input { flex: 1; min-width: 160px; }
+    .mn-summary { font-size: 0.78em; color: var(--text-muted); margin-bottom: 12px; }
+    .mn-member { background: linear-gradient(180deg, #ffffff 0%, var(--bg-card-soft) 100%); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 10px; }
+    .mn-member > summary { list-style: none; cursor: pointer; padding: 12px 14px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .mn-member > summary::-webkit-details-marker { display: none; }
+    .mn-member[open] > summary { border-bottom: 1px solid var(--border); }
+    .mn-rank { font-size: 1.1em; font-weight: 700; color: var(--primary); width: 34px; text-align: center; flex-shrink: 0; }
+    .mn-name { font-size: 0.95em; font-weight: 600; color: var(--text); flex: 1; min-width: 140px; }
+    .mn-name small { display: block; font-size: 0.75em; font-weight: 400; color: var(--text-muted); margin-top: 2px; }
+    .mn-stats { display: flex; gap: 6px; flex-wrap: wrap; }
+    .mn-body { padding: 4px 14px 14px; }
+    .mn-body h3 { font-size: 0.85em; color: var(--text-muted); margin: 14px 0 6px; font-weight: 600; }
+    .mn-body td.num, .mn-body th.num { text-align: right; white-space: nowrap; }
+    .mn-bar { display: inline-block; vertical-align: middle; width: 60px; height: 6px; background: #e3e3e3; border-radius: 3px; margin-right: 6px; overflow: hidden; }
+    .mn-bar span { display: block; height: 100%; border-radius: 3px; }
     .table-container { overflow-x: auto; margin: 12px 0; border-radius: 8px; border: 1px solid var(--border); }
     table { width: 100%; border-collapse: collapse; background: #fff; }
     th { padding: 10px 8px; font-size: 0.7em; color: var(--primary); text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 2px solid var(--border); text-align: left; background: #f8f4ea; }
@@ -206,6 +224,7 @@
   <div class="sub-tabs">
     <button class="sub-tab active" data-tab="rankings" onclick="switchSubTab('rankings')">🏆 Rankings</button>
     <button class="sub-tab" data-tab="individual" onclick="switchSubTab('individual')">👤 Individual</button>
+    <button class="sub-tab" data-tab="missed" onclick="switchSubTab('missed')">📉 Missed Norms</button>
   </div>
 
   <!-- Rankings Tab -->
@@ -253,6 +272,27 @@
         </table>
       </div>
     </div>
+  </div>
+
+  <!-- Missed Norms Tab: which norms and chest targets each member missed, and by how much -->
+  <div id="tabMissed" style="display:none;">
+    <div class="mn-controls">
+      <select id="mnDays" onchange="loadMissedNorms()">
+        <option value="30">Last 30 days</option>
+        <option value="61" selected>Last 2 months</option>
+        <option value="91">Last 3 months</option>
+      </select>
+      <select id="mnShow" onchange="renderMissedNorms()">
+        <option value="10" selected>Worst 10</option>
+        <option value="20">Worst 20</option>
+        <option value="missed">Everyone who missed something</option>
+        <option value="all">All members</option>
+      </select>
+      <input id="mnSearch" type="search" placeholder="Find a member…" oninput="renderMissedNorms()">
+      <button type="button" class="btn" onclick="downloadMissedNormsCsv()">⬇️ CSV</button>
+    </div>
+    <div id="mnSummary" class="mn-summary"></div>
+    <div id="mnContent"></div>
   </div>
 </div>
 
@@ -377,6 +417,8 @@
     document.querySelectorAll('.sub-tab').forEach(btn => btn.classList.toggle('active', btn.dataset.tab === tab));
     document.getElementById('tabRankings').style.display = tab === 'rankings' ? '' : 'none';
     document.getElementById('tabIndividual').style.display = tab === 'individual' ? '' : 'none';
+    document.getElementById('tabMissed').style.display = tab === 'missed' ? '' : 'none';
+    if (tab === 'missed' && !missedData) loadMissedNorms();
     if (pushHistory !== false) {
       history.pushState({ tab: tab }, '', '#' + tab);
     }
@@ -592,6 +634,120 @@
       + '<td style="text-align:center;">' + weight + '%</td>'
       + '<td style="font-size:0.8em;color:var(--text-muted);">' + detail + '</td>'
       + '</tr>';
+  }
+
+  // ─── Missed Norms: per member, the norms and chest targets missed (worst first) ───
+  let missedData = null;
+
+  async function loadMissedNorms() {
+    const content = document.getElementById('mnContent');
+    document.getElementById('mnSummary').textContent = '';
+    content.innerHTML = '<div class="loading"><div class="spinner"></div><p>Checking norms and chest targets...</p></div>';
+    try {
+      const res = await callFunction('getMissedNorms', [{ days: Number(document.getElementById('mnDays').value) }]);
+      if (!res || !res.success) {
+        missedData = null;
+        content.innerHTML = '<div class="empty-state"><p>' + escapeHtml((res && (res.message || res.error)) || 'Could not load missed norms.') + '</p></div>';
+        return;
+      }
+      missedData = res;
+      renderMissedNorms();
+    } catch (e) {
+      missedData = null;
+      content.innerHTML = '<div class="empty-state"><p>Error: ' + escapeHtml(e.message) + '</p></div>';
+    }
+  }
+
+  function missedNormsRows() {
+    if (!missedData) return [];
+    const show = document.getElementById('mnShow').value;
+    const q = document.getElementById('mnSearch').value.trim().toLowerCase();
+    let rows = missedData.members.map((m, i) => Object.assign({ rank: i + 1 }, m));
+    if (q) return rows.filter(m => m.member.toLowerCase().indexOf(q) !== -1);
+    if (show === 'all') return rows;
+    rows = rows.filter(m => m.missed > 0);
+    return show === 'missed' ? rows : rows.slice(0, Number(show));
+  }
+
+  function pctColor(p) { return p >= 100 ? '#27ae60' : p >= 70 ? '#2980b9' : p >= 40 ? '#e67e22' : '#c0392b'; }
+  function pctCell(p) { return '<span class="mn-bar"><span style="width:' + Math.max(2, p) + '%;background:' + pctColor(p) + '"></span></span>' + p + '%'; }
+  function eventDates(s, e) { return (s && e && s !== e) ? s + ' – ' + e : (s || e || ''); }
+
+  function renderMissedNorms() {
+    const content = document.getElementById('mnContent');
+    if (!missedData) return;
+    const all = missedData.members;
+    const withMisses = all.filter(m => m.missed > 0).length;
+    document.getElementById('mnSummary').innerHTML = escapeHtml(missedData.from) + ' → ' + escapeHtml(missedData.to)
+      + ' · ' + withMisses + ' of ' + all.length + ' members missed at least one norm or chest target'
+      + ' · ' + missedData.eventsChecked + ' events with a norm'
+      + ' · Calculated live: ' + escapeHtml(missedData.calculated)
+      + '<br>Exempt members are left out. Events still running and periods not finished yet are not judged. Worst first: most misses, then the lowest average % of target reached.';
+    const rows = missedNormsRows();
+    if (!rows.length) { content.innerHTML = '<div class="empty-state"><p>Nobody to show — no missed norms or chest targets.</p></div>'; return; }
+    const openFirst = rows.length <= 10;
+    content.innerHTML = rows.map(m => {
+      const stats = [
+        '<span class="badge ' + (m.normsMissed ? 'badge-red' : 'badge-green') + '">Norms ' + m.normsMissed + '/' + m.normsChecked + ' missed</span>',
+        '<span class="badge ' + (m.chestsMissed ? 'badge-red' : 'badge-green') + '">Chest targets ' + m.chestsMissed + '/' + m.chestsChecked + ' missed</span>',
+        '<span class="badge" style="background:' + pctColor(m.averagePercent) + '22;color:' + pctColor(m.averagePercent) + '">Avg ' + m.averagePercent + '% of target</span>',
+        m.zeroChestPeriods ? '<span class="badge badge-orange">' + m.zeroChestPeriods + ' period' + (m.zeroChestPeriods > 1 ? 's' : '') + ' without chests</span>' : '',
+        m.warnings ? '<span class="badge badge-orange">⚠️ ' + m.warnings + ' warning' + (m.warnings > 1 ? 's' : '') + '</span>' : '',
+      ].join(' ');
+      const meta = ['Score ' + m.score];
+      if (m.joinDate) meta.push('Joined ' + escapeHtml(m.joinDate));
+      if (m.penaltyTotal) meta.push('Penalties on these norms: ' + formatNumber(m.penaltyTotal));
+
+      let body = '';
+      if (m.missedNorms.length) {
+        body += '<h3>Norms not met (' + m.missedNorms.length + ')</h3><div class="table-container"><table><thead><tr>'
+          + '<th>Event</th><th>Date</th><th class="num">Result</th><th class="num">Norm</th><th class="num">Short by</th><th>Reached</th><th class="num">Penalty</th></tr></thead><tbody>'
+          + m.missedNorms.map(n => {
+            const status = n.penaltyStatus ? ' <span style="color:var(--text-muted);font-size:0.85em;">' + escapeHtml(n.penaltyStatus) + '</span>' : '';
+            const pen = n.penalty ? formatNumber(n.penalty) + status : (status || '—');
+            return '<tr><td>' + escapeHtml(n.event) + '<div style="font-size:0.8em;color:var(--text-muted);">' + escapeHtml(n.type) + '</div></td>'
+              + '<td style="white-space:nowrap;">' + escapeHtml(eventDates(n.start, n.end)) + '</td>'
+              + '<td class="num">' + formatNumber(n.achieved) + '</td>'
+              + '<td class="num">' + formatNumber(n.target) + '</td>'
+              + '<td class="num" style="color:#c0392b;">' + formatNumber(n.shortBy) + '</td>'
+              + '<td style="white-space:nowrap;">' + pctCell(n.percent) + '</td>'
+              + '<td class="num">' + pen + '</td></tr>';
+          }).join('') + '</tbody></table></div>';
+      }
+      if (m.missedChests.length) {
+        body += '<h3>Chest targets not met (' + m.missedChests.length + ')</h3><div class="table-container"><table><thead><tr>'
+          + '<th>Period</th><th class="num">Points</th><th class="num">Target</th><th class="num">Short by</th><th>Reached</th></tr></thead><tbody>'
+          + m.missedChests.map(c => '<tr><td>' + escapeHtml(c.period || 'Period') + '<div style="font-size:0.8em;color:var(--text-muted);">' + escapeHtml(eventDates(c.start, c.end)) + '</div></td>'
+            + '<td class="num">' + formatNumber(c.points) + '</td><td class="num">' + formatNumber(c.target) + '</td>'
+            + '<td class="num" style="color:#c0392b;">' + formatNumber(c.shortBy) + '</td>'
+            + '<td style="white-space:nowrap;">' + pctCell(c.percent) + '</td></tr>').join('') + '</tbody></table></div>';
+      }
+      if (!body) body = '<p style="color:#27ae60;font-size:0.85em;margin:12px 0 0;">✓ Every norm and chest target met in this period.</p>';
+
+      return '<details class="mn-member"' + (openFirst && m.missed ? ' open' : '') + '><summary>'
+        + '<div class="mn-rank">#' + m.rank + '</div>'
+        + '<div class="mn-name">' + escapeHtml(m.member) + '<small>' + meta.join(' · ') + '</small></div>'
+        + '<div class="mn-stats">' + stats + '</div></summary>'
+        + '<div class="mn-body">' + body
+        + '<p style="margin:10px 0 0;font-size:0.8em;"><a href="#" style="color:var(--primary);" onclick="jumpToProfile(\'' + escapeAttr(m.member) + '\');return false;">Open full profile →</a></p>'
+        + '</div></details>';
+    }).join('');
+  }
+
+  function downloadMissedNormsCsv() {
+    if (!missedData) return;
+    const cell = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
+    const lines = [['Rank', 'Member', 'Kind', 'Event / period', 'Type', 'Start', 'End', 'Result', 'Norm / target', 'Short by', '% reached', 'Penalty', 'Penalty status'].map(cell).join(',')];
+    missedNormsRows().forEach(m => {
+      m.missedNorms.forEach(n => lines.push([m.rank, m.member, 'Norm', n.event, n.type, n.start, n.end, n.achieved, n.target, n.shortBy, n.percent, n.penalty || '', n.penaltyStatus].map(cell).join(',')));
+      m.missedChests.forEach(c => lines.push([m.rank, m.member, 'Chest target', c.period, '', c.start, c.end, c.points, c.target, c.shortBy, c.percent, '', ''].map(cell).join(',')));
+    });
+    const blob = new Blob(['\ufeff' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'missed-norms-' + missedData.from + '-to-' + missedData.to + '.csv';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   }
 
   // ─── Helpers ───
