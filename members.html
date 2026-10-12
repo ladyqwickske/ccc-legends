@@ -377,11 +377,11 @@
       </div>
       <div id="returningMemberForm" style="display:none;"></div>
       <div id="newMemberForm">
-        <div class="form-grid" style="grid-template-columns: repeat(2, 1fr);">
+        <div class="form-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
           <div><label>Player Name</label><input type="text" id="newMemberName" placeholder="Player Name"></div>
           <div><label>Join Date</label><input type="date" id="newMemberJoinDate">
-            <label style="display:flex;align-items:center;gap:6px;margin-top:6px;font-size:0.85em;cursor:pointer;text-transform:none;"><input type="checkbox" id="newMemberBeforeReset" style="width:auto;margin:0;"> Joined before reset (17:00 UTC)</label>
-            <div class="note" style="font-size:0.75em;color:var(--text-muted);">Then they take part in the events starting that day; otherwise those are exempt for them.</div></div>
+            <label style="display:flex;align-items:center;gap:6px;margin-top:6px;font-size:0.85em;cursor:pointer;text-transform:none;white-space:nowrap;"><input type="checkbox" id="newMemberBeforeReset" style="width:auto;margin:0;"> Joined before reset (17:00 UTC)</label>
+            <div class="note" style="font-size:0.75em;color:var(--text-muted);">Takes part in the events starting that day</div></div>
         </div>
         <div id="returningMemberHint" class="status" style="display:none;margin-bottom:10px;"></div>
         <button class="btn" onclick="addNewMember()">➕ Add Member</button>
@@ -685,7 +685,7 @@
 
       tr.innerHTML = `
         <td><strong>${escapeHtml(m.name)}</strong></td>
-        <td>${escapeHtml(m.joinDate)}<br><button type="button" style="margin-top:3px;padding:1px 7px;font-size:0.75em;border-radius:8px;border:1px solid ${m.beforeReset ? '#e6a418' : 'var(--border)'};background:${m.beforeReset ? '#fff3cd' : 'transparent'};color:${m.beforeReset ? '#7a5b00' : 'var(--text-muted)'};cursor:pointer;" title="Joined before or after the daily reset (17:00 UTC) on the join day. Before: takes part in the events starting that day. Click to change." onclick="toggleJoinedBeforeReset('${escapeAttr(m.name)}')">${m.beforeReset ? '🌅 before reset' : 'after reset'}</button></td>
+        <td style="white-space:nowrap;">${escapeHtml(m.joinDate)}<br><button type="button" style="white-space:nowrap;margin-top:3px;padding:1px 7px;font-size:0.75em;border-radius:8px;border:1px solid ${m.beforeReset ? '#e6a418' : 'var(--border)'};background:${m.beforeReset ? '#fff3cd' : 'transparent'};color:${m.beforeReset ? '#7a5b00' : 'var(--text-muted)'};cursor:pointer;" title="Joined before or after the daily reset (17:00 UTC) on the join day. Before: takes part in the events starting that day. Click to change." onclick="toggleJoinedBeforeReset('${escapeAttr(m.name)}')">${m.beforeReset ? '🌅 before reset' : 'after reset'}</button></td>
         <td style="text-align:center">${heroHtml}</td>
         <td style="text-align:center">${categoryBadge(cat)}</td>
         <td style="text-align:center">${troopBadge('g', troops.G)}</td>
