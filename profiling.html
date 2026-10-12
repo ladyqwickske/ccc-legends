@@ -476,7 +476,7 @@
       if (b.target?.total > 0) metaParts.push(b.target.met + '/' + b.target.total + ' targets met');
       if (b.warnings?.count > 0) metaParts.push('⚠️ ' + b.warnings.count + ' warning' + (b.warnings.count > 1 ? 's' : ''));
       return '<div class="ranking-card">'
-        + '<div class="ranking-rank ' + rankClass + '"' + (rank ? '>#' + rank : ' title="New member: ranked after ' + NEW_MEMBER_DAYS + ' days in the clan">🆕') + '</div>'
+        + '<div class="ranking-rank ' + rankClass + '"' + (rank ? '>#' + rank : ' title="Not ranked yet: new member, or nothing to score yet">🆕') + '</div>'
         + '<div class="ranking-info">'
         + '<div class="ranking-name" onclick="jumpToProfile(\'' + escapeAttr(m.name) + '\')">' + medal + escapeHtml(m.name) + '</div>'
         + '<div class="ranking-meta">' + metaParts.join(' · ') + '</div>'
@@ -487,10 +487,11 @@
     }
 
     const HIGHLIGHT_COUNT = 5;
-    // New members (joined in the last 7 days; the Worker marks them newMember) aren't ranked yet
+    // New members (joined in the last 7 days) and members with nothing to score yet aren't ranked (the Worker marks them notRanked)
     const NEW_MEMBER_DAYS = 7;
     const today = new Date();
     const isNew = m => {
+      if (m.notRanked !== undefined) return !!m.notRanked;
       if (m.newMember !== undefined) return !!m.newMember;
       if (!m.joinDate) return false; // no join date = ranked
       return (today - new Date(m.joinDate + 'T00:00:00Z')) / 86400000 < NEW_MEMBER_DAYS;
@@ -525,8 +526,8 @@
     seasoned.forEach((m, i) => { html += rankingCardHtml(m, i + 1); });
     html += '</div></details>';
     if (newcomers.length) {
-      html += '<details style="margin-top:8px;"><summary style="cursor:pointer;font-size:0.95em;font-weight:600;color:var(--primary);padding:8px 0;">🆕 New members, not ranked yet (' + newcomers.length + ')</summary>'
-        + '<div style="font-size:0.8em;color:var(--text-muted);margin:4px 0 8px;">Joined in the last ' + NEW_MEMBER_DAYS + ' days: ranked once they have been in the clan for ' + NEW_MEMBER_DAYS + ' days.</div><div>';
+      html += '<details style="margin-top:8px;"><summary style="cursor:pointer;font-size:0.95em;font-weight:600;color:var(--primary);padding:8px 0;">🆕 Not ranked yet (' + newcomers.length + ')</summary>'
+        + '<div style="font-size:0.8em;color:var(--text-muted);margin:4px 0 8px;">New members (joined in the last ' + NEW_MEMBER_DAYS + ' days) and members with nothing to score yet, for example exempt the whole time.</div><div>';
       newcomers.forEach(m => { html += rankingCardHtml(m, null); });
       html += '</div></details>';
     }
@@ -691,7 +692,7 @@
       + ' · ' + withMisses + ' of ' + all.length + ' members missed at least one norm or chest target'
       + ' · ' + missedData.eventsChecked + ' events with a norm'
       + ' · Calculated live: ' + escapeHtml(missedData.calculated)
-      + '<br>Exempt members are left out. Events still running and periods not finished yet are not judged. Worst first: most misses, then the lowest average % of target reached.';
+      + '<br>Permanently exempt members are left out; what a member missed during a temporary exemption is ignored. Events still running and periods not finished yet are not judged. Worst first: most misses, then the lowest average % of target reached.';
     const rows = missedNormsRows();
     if (!rows.length) { content.innerHTML = '<div class="empty-state"><p>Nobody to show — no missed norms or chest targets.</p></div>'; return; }
     const openFirst = rows.length <= 10;
