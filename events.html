@@ -1466,12 +1466,14 @@
     return until ? `until ${until}` : from ? `from ${from}` : '';
   }
 
-  /** The member's join date (yyyy-MM-dd) when they joined on or after the selected event's start day, else ''. */
+  /** The member's join date (yyyy-MM-dd) when they joined after the selected event started, else ''.
+   *  Events start at the reset (17:00 UTC) of their start day: joined that day counts as after it,
+   *  unless the Members page says "joined before reset". */
   function joinedAfterEventStart(memberName) {
     const key = String(memberName || '').trim().toLowerCase();
     const m = (membersData || []).find(x => String(x.name || '').trim().toLowerCase() === key);
     const join = isoDay(m && m.joinDate), start = isoDay(selectedEvent?.startDate);
-    return join && start && join >= start ? join : '';
+    return join && start && (join > start || (join === start && !m.beforeReset)) ? join : '';
   }
 
   /** For the status column: an Exempt (permanent) or Temp. exempt badge with its dates; '' when not exempt. */

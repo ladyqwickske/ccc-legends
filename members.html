@@ -379,7 +379,9 @@
       <div id="newMemberForm">
         <div class="form-grid" style="grid-template-columns: repeat(2, 1fr);">
           <div><label>Player Name</label><input type="text" id="newMemberName" placeholder="Player Name"></div>
-          <div><label>Join Date</label><input type="date" id="newMemberJoinDate"></div>
+          <div><label>Join Date</label><input type="date" id="newMemberJoinDate">
+            <label style="display:flex;align-items:center;gap:6px;margin-top:6px;font-size:0.85em;cursor:pointer;text-transform:none;"><input type="checkbox" id="newMemberBeforeReset" style="width:auto;margin:0;"> Joined before reset (17:00 UTC)</label>
+            <div class="note" style="font-size:0.75em;color:var(--text-muted);">Then they take part in the events starting that day; otherwise those are exempt for them.</div></div>
         </div>
         <div id="returningMemberHint" class="status" style="display:none;margin-bottom:10px;"></div>
         <button class="btn" onclick="addNewMember()">➕ Add Member</button>
@@ -683,7 +685,7 @@
 
       tr.innerHTML = `
         <td><strong>${escapeHtml(m.name)}</strong></td>
-        <td>${escapeHtml(m.joinDate)}</td>
+        <td>${escapeHtml(m.joinDate)}<br><button type="button" style="margin-top:3px;padding:1px 7px;font-size:0.75em;border-radius:8px;border:1px solid ${m.beforeReset ? '#e6a418' : 'var(--border)'};background:${m.beforeReset ? '#fff3cd' : 'transparent'};color:${m.beforeReset ? '#7a5b00' : 'var(--text-muted)'};cursor:pointer;" title="Joined before or after the daily reset (17:00 UTC) on the join day. Before: takes part in the events starting that day. Click to change." onclick="toggleJoinedBeforeReset('${escapeAttr(m.name)}')">${m.beforeReset ? '🌅 before reset' : 'after reset'}</button></td>
         <td style="text-align:center">${heroHtml}</td>
         <td style="text-align:center">${categoryBadge(cat)}</td>
         <td style="text-align:center">${troopBadge('g', troops.G)}</td>
@@ -920,6 +922,13 @@
     try {
       const result = await callFunction('addMember', [name, joinDate, 0]);
       if (result && result.success) {
+        // Joined before the reset on the join day: saved in the Members tab's "Joined Before Reset" column
+        const box = document.getElementById('newMemberBeforeReset');
+        if (box.checked) {
+          const r = await callFunction('setMemberJoinedBeforeReset', [name, true]).catch(e => ({ success: false, message: e.message }));
+          if (!r || !r.success) showToast('Added, but "joined before reset" was not saved: ' + ((r && r.message) || 'error'), 'error');
+        }
+        box.checked = false;
         status.textContent = result.message || `Added "${name}".`;
         status.className = 'status ok';
         document.getElementById('newMemberName').value = '';
@@ -929,6 +938,22 @@
         status.className = 'status err';
       }
     } catch (err) { status.textContent = 'Error: ' + err.message; status.className = 'status err'; }
+  }
+
+  // JOINED BEFORE / AFTER THE RESET on the join day
+  async function toggleJoinedBeforeReset(name) {
+    const member = membersData.find(m => m.name === name);
+    if (!member) return;
+    const next = !member.beforeReset;
+    if (!confirm(`${name} joined ${next ? 'BEFORE' : 'AFTER'} the reset (17:00 UTC) on their join day?\n\n`
+      + (next ? 'They take part in the events starting that day (penalties and results count them).' : 'The events starting that day are exempt for them.'))) return;
+    try {
+      const r = await callFunction('setMemberJoinedBeforeReset', [name, next]);
+      if (!r || !r.success) { showToast((r && r.message) || 'Not saved', 'error'); return; }
+      member.beforeReset = next;
+      renderTable();
+      showToast(r.message || 'Saved', 'success');
+    } catch (e) { showToast('Error: ' + e.message, 'error'); }
   }
 
   // RENAME MEMBER (inline prompt)
