@@ -255,7 +255,6 @@
       <button class="tab-btn-inner" hidden data-group="progress" data-tab="heroTab" onclick="switchTab('heroTab', this)">🦸 Hero Level</button>
       <button class="tab-btn-inner" hidden data-group="progress" data-tab="carterTab" onclick="switchTab('carterTab', this)">🏗️ Carter Level</button>
       <button class="tab-btn-inner" hidden data-group="progress" data-tab="chestOverviewTab" onclick="switchTab('chestOverviewTab', this)">📦 Chest Points</button>
-      <button class="tab-btn-inner" hidden data-group="progress" data-tab="pointTargetsTab" onclick="switchTab('pointTargetsTab', this)">🎯 Point Targets</button>
     </div>
 
     <div id="troopTab" class="tab-panel">
@@ -340,30 +339,11 @@
         <label style="display:flex;align-items:center;gap:6px;font-size:0.85em;color:var(--text-muted);white-space:nowrap;"><input type="checkbox" id="cpoCustomOnly" onchange="ChestOverview.render()"> Only custom targets</label>
         <button class="btn secondary" style="margin:0;" onclick="ChestOverview.load(true)">↻ Reload</button>
       </div>
-      <p id="cpoMeta" style="font-size:0.8em;color:var(--text-muted);margin-bottom:8px;">Each member's chest points per period against their target (🎯 Point Targets, else the period's target, else 3000): green ≥ target, orange ≥ 90%, red below. The period's target is under its dates; a member's own (custom) target is shown as 🎯 under their points — e.g. a shortfall carried over from the period before. '-' = not a member yet in that period, '*' = joined during that period.</p>
+      <p id="cpoMeta" style="font-size:0.8em;color:var(--text-muted);margin-bottom:8px;">Each member's chest points per period against their target (Admin → 🎯 Point Targets, else the period's target, else 3000): green ≥ target, orange ≥ 90%, red below. The period's target is under its dates; a member's own (custom) target is shown as 🎯 under their points — e.g. a shortfall carried over from the period before. '-' = not a member yet in that period, '*' = joined during that period.</p>
       <div id="cpoStatus" class="status" style="display:none;"></div>
       <div class="table-container" style="max-height:65vh;overflow-y:auto;"><table style="font-size:0.85em;">
         <thead id="cpoHead"></thead>
         <tbody id="cpoBody"><tr><td style="padding:8px;color:var(--text-muted);">Loading…</td></tr></tbody>
-      </table></div>
-    </div>
-
-
-    <div id="pointTargetsTab" class="tab-panel">
-      <h3 style="margin:0 0 10px;color:var(--primary)">Custom Point Targets per Period</h3>
-      <p style="font-size:0.82em;color:var(--text-muted);margin-bottom:12px;">Set a custom required-points target for individual players. Leave blank or 0 to use the global period default. These overrides apply to the selected period only.</p>
-      <div class="form-grid" style="grid-template-columns: 1fr;">
-        <div><label>Period</label><select id="ptPeriodSelect"><option value="">Loading periods...</option></select></div>
-      </div>
-      <div id="ptTargetsList" style="max-height:340px;overflow-y:auto;margin:10px 0;border:1px solid var(--border);border-radius:8px;padding:8px;background:#fff;">Loading...</div>
-      <button class="btn" onclick="savePointTargets()">💾 Save Point Targets</button>
-      <button class="btn secondary" style="margin-left:8px;" onclick="loadPointTargets()">↻ Reload</button>
-      <div id="ptStatus" class="status"></div>
-      <h4 style="margin:16px 0 6px;color:var(--primary);">Point penalties in this period</h4>
-      <p style="font-size:0.8em;color:var(--text-muted);margin:0 0 8px;">Applied point penalties are included in the targets above. Until the fix of October 2026, applying a points penalty counted it twice (and once more with every new Apply or edit of the event). A member marked ⚠️ has a target without the penalty above the period target: either an own target you set, or a leftover of that — then correct the target above.</p>
-      <div class="table-container"><table id="ptPenaltyTable" data-sortable data-sort-col="0" style="font-size:0.85em;text-align:left;">
-        <thead><tr><th style="text-align:left;padding:6px 8px;">Member</th><th style="text-align:left;padding:6px 8px;">Penalties (event)</th><th style="text-align:right;padding:6px 8px;">Target</th><th style="text-align:right;padding:6px 8px;">Without penalty</th><th></th></tr></thead>
-        <tbody id="ptPenaltyBody"><tr><td colspan="5" style="padding:8px;color:var(--text-muted);">Loading…</td></tr></tbody>
       </table></div>
     </div>
 
@@ -822,12 +802,11 @@
     lastTabInGroup[group] = tabId;
     document.querySelectorAll('.tab-btn-inner[data-group]').forEach(b => { b.hidden = b.getAttribute('data-group') !== group; });
     document.querySelectorAll('.tab-group').forEach(g => g.classList.toggle('active', g.getAttribute('data-group') === group));
-    document.body.classList.toggle('wide-tab', tabId === 'chestOverviewTab' || tabId === 'pointTargetsTab');
-    if (tabId === 'pointTargetsTab') loadPointTargetPeriods();
+    document.body.classList.toggle('wide-tab', tabId === 'chestOverviewTab');
     if (tabId === 'chestOverviewTab' && window.ChestOverview) window.ChestOverview.load();
   }
   // Tabs that moved to the Admin page: old links go there.
-  const ADMIN_PAGE_TABS = ['manualChestsTab', 'chestNameFixTab', 'ocrTab', 'chestValuesTab', 'exemptTab', 'linkFormerTab', 'transfersTab', 'accountsTab', 'superiorsTab'];
+  const ADMIN_PAGE_TABS = ['manualChestsTab', 'chestNameFixTab', 'ocrTab', 'chestValuesTab', 'exemptTab', 'linkFormerTab', 'transfersTab', 'accountsTab', 'superiorsTab', 'pointTargetsTab'];
   (function openTabFromLink() {
     const tab = (location.hash || '').slice(1);
     if (ADMIN_PAGE_TABS.indexOf(tab) !== -1) { location.replace('admin.html#' + tab); return; }
@@ -1004,123 +983,6 @@
       status.textContent = 'Error: ' + err.message;
       status.className = 'status err';
       showToast('Error: ' + err.message, 'error');
-    }
-  }
-
-  // ===========================
-  // POINT TARGETS
-  // ===========================
-  let ptCurrentPeriod = '';
-  let ptPeriodsLoaded = false;
-
-  async function loadPointTargetPeriods() {
-    if (ptPeriodsLoaded) return;
-    try {
-      const eventsResult = await callFunction('getAllEvents');
-      const select = document.getElementById('ptPeriodSelect');
-      select.innerHTML = '';
-      if (eventsResult && eventsResult.success && Array.isArray(eventsResult.events)) {
-        const periods = eventsResult.events.filter(e => e.participationMethod === 'period-marker');
-        periods.sort((a, b) => (b.startDate || '').localeCompare(a.startDate || ''));
-        periods.forEach(p => {
-          const opt = document.createElement('option');
-          opt.value = p.eventName;
-          opt.textContent = `${p.eventName} (${p.startDate} → ${p.endDate})` + (p.targetPoints ? ` [default: ${p.targetPoints}]` : '');
-          select.appendChild(opt);
-        });
-        if (periods.length > 0) {
-          // Auto-select current active period
-          try {
-            const active = await callFunction('getActivePeriodDates');
-            if (active && active.source) {
-              select.value = active.source;
-            }
-          } catch (e) {}
-          ptCurrentPeriod = select.value;
-        }
-      }
-      select.addEventListener('change', () => { ptCurrentPeriod = select.value; loadPointTargets(); });
-      ptPeriodsLoaded = true;
-      loadPointTargets();
-    } catch (err) {
-      document.getElementById('ptPeriodSelect').innerHTML = '<option>Error loading periods</option>';
-    }
-  }
-
-  // Point penalties of the period next to the targets (getPointPenaltyCheck).
-  async function loadPointPenaltyCheck(period) {
-    const body = document.getElementById('ptPenaltyBody');
-    if (!body) return;
-    const fmt = (n) => Number(n || 0).toLocaleString();
-    try {
-      const res = await fetch(window.GAS_WEB_APP_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'getPointPenaltyCheck', periodSource: period }) });
-      const r = await res.json();
-      if (!r || !r.success) throw new Error((r && (r.message || r.error)) || 'Could not load the point penalties');
-      body.innerHTML = r.rows.length ? r.rows.map(row => {
-        const odd = row.withoutPenalty > r.periodDefault;
-        return `<tr style="border-top:1px solid var(--border);"><td style="padding:6px 8px;">${escapeHtml(row.member)}</td>`
-          + `<td style="padding:6px 8px;">${row.events.map(e => `${fmt(e.points)} (${escapeHtml(e.event)})`).join('<br>')}</td>`
-          + `<td style="padding:6px 8px;text-align:right;">${fmt(row.target)}</td>`
-          + `<td style="padding:6px 8px;text-align:right;${odd ? 'color:#ef6c00;font-weight:600;' : ''}">${fmt(row.withoutPenalty)}</td>`
-          + `<td style="padding:6px 8px;">${odd ? `<span title="Higher than the period target (${fmt(r.periodDefault)})">⚠️</span>` : ''}</td></tr>`;
-      }).join('') : '<tr><td colspan="5" style="padding:8px;color:var(--text-muted);">No point penalties in this period.</td></tr>';
-    } catch (err) {
-      body.innerHTML = `<tr><td colspan="5" style="padding:8px;color:var(--danger);">${escapeHtml(err.message)}</td></tr>`;
-    }
-  }
-
-  async function loadPointTargets() {
-    const container = document.getElementById('ptTargetsList');
-    const period = document.getElementById('ptPeriodSelect').value;
-    ptCurrentPeriod = period;
-    loadPointPenaltyCheck(period);
-    container.innerHTML = '<div style="text-align:center;padding:12px;color:var(--text-muted)">Loading...</div>';
-    try {
-      const result = await callFunction('getPointTargets', [period]);
-      const targets = (result && result.targets) ? result.targets : {};
-      const sorted = [...membersData].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-      if (sorted.length === 0) {
-        container.innerHTML = '<div style="padding:12px;color:var(--text-muted)">No members loaded. Load members first.</div>';
-        return;
-      }
-      let html = '<table id="ptTargetsTable" data-sortable data-sort-col="0" style="width:100%;border-collapse:collapse;font-size:0.88em;">';
-      html += '<thead><tr style="background:var(--bg-card-soft);"><th style="text-align:left;padding:6px 8px;position:sticky;top:0;z-index:1;">Member</th><th style="text-align:left;padding:6px 8px;position:sticky;top:0;z-index:1;">Custom Target</th></tr></thead><tbody>';
-      sorted.forEach(m => {
-        const current = targets[m.name] != null ? targets[m.name] : ''; // 0 = lowered by carried-over surplus
-        html += `<tr style="border-bottom:1px solid #eee;">`;
-        html += `<td style="padding:4px 8px;">${escapeHtml(m.name)}</td>`;
-        html += `<td style="padding:4px 8px;"><input type="number" min="0" step="100" class="pt-input" data-member="${escapeAttr(m.name)}" value="${current}" placeholder="default" style="width:120px;padding:4px 8px;border:1px solid var(--border);border-radius:4px;font-size:0.9em;"></td>`;
-        html += '</tr>';
-      });
-      html += '</tbody></table>';
-      container.innerHTML = html;
-    } catch (err) {
-      container.innerHTML = '<div style="color:var(--danger);padding:12px">Error: ' + err.message + '</div>';
-    }
-  }
-
-  async function savePointTargets() {
-    const status = document.getElementById('ptStatus');
-    status.textContent = 'Saving...'; status.className = 'status';
-    const inputs = document.querySelectorAll('.pt-input');
-    const targets = {};
-    inputs.forEach(input => {
-      const member = input.dataset.member;
-      const val = parseInt(input.value, 10);
-      if (member && !isNaN(val) && val >= 0) targets[member] = val; // 0 only stays on a row that banks surplus
-    });
-    try {
-      const result = await callFunction('savePointTargets', [targets, ptCurrentPeriod]);
-      if (result && result.success) {
-        status.textContent = result.message || 'Saved!';
-        status.className = 'status ok';
-      } else {
-        status.textContent = result?.message || 'Failed to save.';
-        status.className = 'status err';
-      }
-    } catch (err) {
-      status.textContent = 'Error: ' + err.message;
-      status.className = 'status err';
     }
   }
 

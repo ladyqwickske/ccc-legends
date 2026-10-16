@@ -247,6 +247,7 @@
       <button class="tab-btn-inner" data-group="chestdata" data-tab="removeChestsTab" onclick="switchTab('removeChestsTab', this)">🗑️ Remove Chests</button>
       <button class="tab-btn-inner" hidden data-group="rules" data-tab="chestValuesTab" onclick="switchTab('chestValuesTab', this)">🏷️ Chest Point Values</button>
       <button class="tab-btn-inner" hidden data-group="rules" data-tab="exemptTab" onclick="switchTab('exemptTab', this)">🛡️ Penalty Exemptions</button>
+      <button class="tab-btn-inner" hidden data-group="rules" data-tab="pointTargetsTab" onclick="switchTab('pointTargetsTab', this)">🎯 Point Targets</button>
       <button class="tab-btn-inner" hidden data-group="clans" data-tab="linkFormerTab" onclick="switchTab('linkFormerTab', this)">🔗 Link Former Members</button>
       <button class="tab-btn-inner" hidden data-group="clans" data-tab="transfersTab" id="transfersTabBtn" onclick="switchTab('transfersTab', this)">🔁 Member Transfers</button>
       <button class="tab-btn-inner" hidden data-group="access" data-tab="accountsTab" onclick="switchTab('accountsTab', this)">🔐 Login Accounts</button>
@@ -412,6 +413,27 @@
       <button class="btn" onclick="saveExemptMembers()">💾 Save Exemptions</button>
       <button class="btn secondary" style="margin-left:8px;" onclick="loadExemptMembers(true)">↻ Reload</button>
       <div id="exemptStatus" class="status"></div>
+    </div>
+
+
+    <div id="pointTargetsTab" class="tab-panel">
+      <h3 style="margin:0 0 10px;color:var(--primary)">Point Targets</h3>
+      <p style="font-size:0.82em;color:var(--text-muted);margin-bottom:12px;">A member's own chest points target for one period (e.g. a shortfall carried over, or a lower target for a new member). Leave it empty to use the period's target. Only current members are listed; targets of members who left stay as they are.</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin-bottom:8px;">
+        <div style="flex:1;min-width:220px;"><label>Period</label><select id="ptPeriodSelect" onchange="PointTargets.load()"><option value="">Loading periods...</option></select></div>
+        <div style="flex:1;min-width:180px;"><label>Search</label><input type="text" id="ptSearchInput" placeholder="Filter members..." oninput="PointTargets.render()"></div>
+      </div>
+      <div id="ptSummary" style="font-size:0.82em;color:var(--text-muted);margin-bottom:8px;"></div>
+      <div id="ptTargetsList" style="max-height:55vh;overflow-y:auto;margin:10px 0;border:1px solid var(--border);border-radius:8px;padding:8px;background:#fff;">Loading...</div>
+      <button class="btn" onclick="PointTargets.save()">💾 Save Point Targets</button>
+      <button class="btn secondary" style="margin-left:8px;" onclick="PointTargets.load()">↻ Reload</button>
+      <div id="ptStatus" class="status"></div>
+      <h4 style="margin:16px 0 6px;color:var(--primary);">Point penalties in this period</h4>
+      <p style="font-size:0.8em;color:var(--text-muted);margin:0 0 8px;">Applied point penalties are included in the targets above. Until the fix of October 2026, applying a points penalty counted it twice (and once more with every new Apply or edit of the event). A member marked ⚠️ has a target without the penalty above the period target: either an own target you set, or a leftover of that — then correct the target above.</p>
+      <div class="table-container"><table id="ptPenaltyTable" data-sortable data-sort-col="0" style="font-size:0.85em;text-align:left;">
+        <thead><tr><th style="text-align:left;padding:6px 8px;">Member</th><th style="text-align:left;padding:6px 8px;">Penalties (event)</th><th style="text-align:right;padding:6px 8px;">Target</th><th style="text-align:right;padding:6px 8px;">Without penalty</th><th></th></tr></thead>
+        <tbody id="ptPenaltyBody"><tr><td colspan="5" style="padding:8px;color:var(--text-muted);">Loading…</td></tr></tbody>
+      </table></div>
     </div>
 
 
@@ -585,6 +607,7 @@
       const members = await callFunction('getMembersList');
       if (Array.isArray(members)) membersData = members;
       if (exemptSelection) renderExemptList();
+      PointTargets.render();
     } catch (err) { console.error(err); }
   }
 
@@ -612,6 +635,7 @@
     document.querySelectorAll('.tab-btn-inner[data-group]').forEach(b => { b.hidden = b.getAttribute('data-group') !== group; });
     document.querySelectorAll('.tab-group').forEach(g => g.classList.toggle('active', g.getAttribute('data-group') === group));
     if (tabId === 'exemptTab') loadExemptMembers();
+    if (tabId === 'pointTargetsTab') PointTargets.load(true);
     if (tabId === 'accountsTab') loadMemberAccounts();
     if (tabId === 'chestValuesTab' && window.ChestPointValues) window.ChestPointValues.load();
     if (tabId === 'chestNameFixTab' && window.ChestNameFix) window.ChestNameFix.load();
@@ -791,6 +815,148 @@
       status.className = 'status err';
     }
   }
+
+  // ===========================
+  // POINT TARGETS (per member, per period; getPointTargets / savePointTargets)
+  // ===========================
+  // Only the current members are listed. Saving replaces the period's rows, so
+  // the rows of members who left (and anything changed elsewhere since loading)
+  // are read again right before the save and kept; only the edited rows change.
+  const PointTargets = (() => {
+    let periods = null;   // period markers, newest first
+    let loaded = {};      // { member name: target } as stored for the chosen period
+    let edits = {};       // { lowercased member name: '' | number } typed since loading
+    let periodDefault = 3000;
+
+    const ptAttr = (s) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+    const periodName = () => document.getElementById('ptPeriodSelect').value;
+    const storedFor = (targets, name) => {
+      const key = String(name || '').toLowerCase();
+      const found = Object.keys(targets).find(k => k.toLowerCase() === key);
+      return found === undefined ? null : { key: found, value: targets[found] };
+    };
+
+    async function loadPeriods() {
+      const select = document.getElementById('ptPeriodSelect');
+      const result = await callFunction('getAllEvents');
+      periods = (result && result.success && Array.isArray(result.events) ? result.events : [])
+        .filter(e => e.participationMethod === 'period-marker')
+        .sort((a, b) => (b.startDate || '').localeCompare(a.startDate || ''));
+      select.innerHTML = periods.length ? periods.map(p => `<option value="${ptAttr(p.eventName)}">${escapeHtml(p.eventName)} (${escapeHtml(p.startDate)} → ${escapeHtml(p.endDate)})${p.targetPoints ? ' [period target: ' + escapeHtml(String(p.targetPoints)) + ']' : ''}</option>`).join('') : '<option value="">No periods</option>';
+      try {
+        const active = await callFunction('getActivePeriodDates');
+        if (active && active.source && periods.some(p => p.eventName === active.source)) select.value = active.source;
+      } catch (e) {}
+    }
+
+    async function load(keepEdits, keepStatus) {
+      const list = document.getElementById('ptTargetsList');
+      const status = document.getElementById('ptStatus');
+      if (keepEdits === true && periods && periodName()) { render(); return; }
+      if (!keepStatus) { status.textContent = ''; status.className = 'status'; }
+      list.innerHTML = '<div style="text-align:center;padding:12px;color:var(--text-muted)">Loading...</div>';
+      try {
+        if (!periods) await loadPeriods();
+        const period = periodName();
+        const marker = (periods || []).find(p => p.eventName === period);
+        periodDefault = marker && Number(marker.targetPoints) > 0 ? Number(marker.targetPoints) : 3000;
+        loadPenaltyCheck(period);
+        const result = await callFunction('getPointTargets', [period]);
+        loaded = (result && result.targets) ? result.targets : {};
+        edits = {};
+        render();
+      } catch (err) {
+        list.innerHTML = '<div style="color:var(--danger);padding:12px">Error: ' + escapeHtml(err.message) + '</div>';
+      }
+    }
+
+    function render() {
+      const list = document.getElementById('ptTargetsList');
+      const summary = document.getElementById('ptSummary');
+      if (!list || !periods) return;
+      if (membersData.length === 0) { list.innerHTML = '<div style="padding:12px;color:var(--text-muted)">Loading members...</div>'; return; }
+      const filter = (document.getElementById('ptSearchInput')?.value || '').toLowerCase().trim();
+      const members = membersData.map(m => m.name).filter(Boolean).sort((a, b) => a.localeCompare(b));
+      const custom = members.filter(n => storedFor(loaded, n)).length;
+      summary.textContent = `${custom} of ${members.length} current member(s) have their own target in this period · period target: ${periodDefault.toLocaleString()}`;
+      const rows = members.filter(n => !filter || n.toLowerCase().includes(filter));
+      if (rows.length === 0) { list.innerHTML = '<div style="padding:12px;color:var(--text-muted)">No matching members.</div>'; return; }
+      list.innerHTML = `<table id="ptTargetsTable" data-sortable data-sort-col="0" data-name-col="0" style="width:100%;border-collapse:collapse;font-size:0.9em;">
+        <thead><tr><th style="text-align:left;padding:6px 8px;position:sticky;top:0;z-index:1;">Member</th><th style="text-align:left;padding:6px 8px;position:sticky;top:0;z-index:1;">Own target</th></tr></thead>
+        <tbody>${rows.map(name => {
+          const key = name.toLowerCase();
+          const stored = storedFor(loaded, name);
+          const value = key in edits ? edits[key] : (stored ? stored.value : ''); // 0 = lowered by carried-over surplus
+          const changed = key in edits ? ' style="background:var(--accent-light);"' : '';
+          return `<tr${changed}>
+            <td style="padding:4px 8px;">${escapeHtml(name)}</td>
+            <td style="padding:4px 8px;"><input type="number" min="0" step="100" data-member="${ptAttr(name)}" value="${ptAttr(String(value))}" placeholder="${periodDefault}" oninput="PointTargets.edit(this)" style="width:140px;padding:4px 8px;border:1px solid var(--border);border-radius:4px;"></td>
+          </tr>`;
+        }).join('')}</tbody></table>`;
+    }
+
+    function edit(input) {
+      const key = (input.dataset.member || '').toLowerCase();
+      if (!key) return;
+      const raw = input.value.trim();
+      const stored = storedFor(loaded, input.dataset.member);
+      const value = raw === '' ? '' : parseInt(raw, 10);
+      if (value !== '' && (isNaN(value) || value < 0)) return;
+      if ((stored ? stored.value : '') === value) delete edits[key]; else edits[key] = value;
+      input.closest('tr').style.background = key in edits ? 'var(--accent-light)' : '';
+    }
+
+    async function save() {
+      const status = document.getElementById('ptStatus');
+      const period = periodName();
+      if (!period) return;
+      const names = Object.keys(edits);
+      if (names.length === 0) { status.textContent = 'Nothing changed.'; status.className = 'status'; return; }
+      status.textContent = 'Saving...'; status.className = 'status';
+      try {
+        // Start from what is stored now, then apply the edited rows only
+        const fresh = await callFunction('getPointTargets', [period]);
+        const targets = Object.assign({}, (fresh && fresh.targets) || {});
+        names.forEach(key => {
+          const name = (membersData.find(m => (m.name || '').toLowerCase() === key) || {}).name || key;
+          const stored = storedFor(targets, name);
+          if (stored) delete targets[stored.key];
+          if (edits[key] !== '') targets[name] = edits[key];
+        });
+        const result = await callFunction('savePointTargets', [targets, period]);
+        status.textContent = result?.message || (result?.success ? 'Saved!' : 'Failed to save.');
+        status.className = result?.success ? 'status ok' : 'status err';
+        if (result?.success) { showToast('Point targets saved', 'success'); load(false, true); }
+      } catch (err) {
+        status.textContent = 'Error: ' + err.message;
+        status.className = 'status err';
+      }
+    }
+
+    // Point penalties of the period next to the targets (getPointPenaltyCheck).
+    async function loadPenaltyCheck(period) {
+      const body = document.getElementById('ptPenaltyBody');
+      if (!body) return;
+      const fmt = (n) => Number(n || 0).toLocaleString();
+      try {
+        const res = await fetch(window.GAS_WEB_APP_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'getPointPenaltyCheck', periodSource: period }) });
+        const r = await res.json();
+        if (!r || !r.success) throw new Error((r && (r.message || r.error)) || 'Could not load the point penalties');
+        body.innerHTML = r.rows.length ? r.rows.map(row => {
+          const odd = row.withoutPenalty > r.periodDefault;
+          return `<tr style="border-top:1px solid var(--border);"><td style="padding:6px 8px;">${escapeHtml(row.member)}</td>`
+            + `<td style="padding:6px 8px;">${row.events.map(e => `${fmt(e.points)} (${escapeHtml(e.event)})`).join('<br>')}</td>`
+            + `<td style="padding:6px 8px;text-align:right;">${fmt(row.target)}</td>`
+            + `<td style="padding:6px 8px;text-align:right;${odd ? 'color:#ef6c00;font-weight:600;' : ''}">${fmt(row.withoutPenalty)}</td>`
+            + `<td style="padding:6px 8px;">${odd ? `<span title="Higher than the period target (${fmt(r.periodDefault)})">⚠️</span>` : ''}</td></tr>`;
+        }).join('') : '<tr><td colspan="5" style="padding:8px;color:var(--text-muted);">No point penalties in this period.</td></tr>';
+      } catch (err) {
+        body.innerHTML = `<tr><td colspan="5" style="padding:8px;color:var(--danger);">${escapeHtml(err.message)}</td></tr>`;
+      }
+    }
+
+    return { load, render, edit, save };
+  })();
 
   // UTILITIES
   function escapeHtml(str) {
