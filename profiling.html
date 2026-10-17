@@ -11,6 +11,7 @@
   <script src="site-config.js"></script>
   <script src="portal-shim.js"></script>
   <script src="portal-auth.js"></script>
+  <script src="evolution.js"></script>
   <style>
     :root {
       --primary: #1fc1e6;
@@ -259,6 +260,10 @@
         <div class="score-breakdown" id="scoreBreakdown"></div>
       </div>
 
+      <!-- 📈 Evolution: drawn by evolution.js (the same file on the Champions, Legends and Masters sites) -->
+      <h2>📈 Evolution <span style="font-size:0.75em;font-weight:400;color:var(--text-muted);">every norm and chest target of the member, by date</span></h2>
+      <div id="evoSection"></div>
+
       <!-- Metric Detail Cards -->
       <h2>Metric Details</h2>
       <div class="info-grid" id="metricCards"></div>
@@ -487,8 +492,8 @@
     }
 
     const HIGHLIGHT_COUNT = 5;
-    // New members (joined in the last 7 days) and members with nothing to score yet aren't ranked (the Worker marks them notRanked)
-    const NEW_MEMBER_DAYS = 7;
+    // New members (joined in the last 3 weeks) and members with nothing to score yet aren't ranked (the Worker marks them notRanked)
+    const NEW_MEMBER_DAYS = 21;
     const today = new Date();
     const isNew = m => {
       if (m.notRanked !== undefined) return !!m.notRanked;
@@ -561,7 +566,18 @@
     document.getElementById('individualEmpty').style.display = 'none';
     renderIndividual(member);
     document.getElementById('individualContent').style.display = 'block';
+    CCCEvolution.load(member.name);
   }
+
+  // 📈 Evolution (Individual tab): only the event types that count in this clan's profiling
+  document.addEventListener('DOMContentLoaded', () => {
+    CCCEvolution.setup({
+      el: document.getElementById('evoSection'),
+      call: (params) => callFunction('getMemberEvolution', [params]),
+      fmtDate: (d) => d,
+      theme: 'light',
+    });
+  });
 
   function renderIndividual(m) {
     const W = profilingData.weights || {};
