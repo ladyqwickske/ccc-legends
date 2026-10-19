@@ -264,6 +264,10 @@
       <h2>📈 Evolution <span style="font-size:0.75em;font-weight:400;color:var(--text-muted);">every norm and chest target of the member, by date</span></h2>
       <div id="evoSection"></div>
 
+      <!-- 🦸 Hero level: history + hero level events (getMemberHeroHistory, superiors only) -->
+      <h2>🦸 Hero Level <span style="font-size:0.75em;font-weight:400;color:var(--text-muted);">hero level history and hero level events (superiors only)</span></h2>
+      <div id="heroHistorySection"></div>
+
       <!-- Metric Detail Cards -->
       <h2>Metric Details</h2>
       <div class="info-grid" id="metricCards"></div>
@@ -567,6 +571,50 @@
     renderIndividual(member);
     document.getElementById('individualContent').style.display = 'block';
     CCCEvolution.load(member.name);
+    loadHeroHistory(member.name);
+  }
+
+  // ─── Hero level history + hero level events (getMemberHeroHistory, superiors only) ───
+  async function loadHeroHistory(name) {
+    const el = document.getElementById('heroHistorySection');
+    el.innerHTML = '<p style="color:var(--text-muted);">Loading hero levels...</p>';
+    try {
+      const res = await callFunction('getMemberHeroHistory', [name]);
+      if (document.getElementById('memberSelect').value !== name) return; // another member was chosen meanwhile
+      if (!res || !res.success) { el.innerHTML = '<p style="color:var(--text-muted);">' + escapeHtml((res && (res.message || res.error)) || 'Could not load the hero levels.') + '</p>'; return; }
+      el.innerHTML = renderHeroHistory(res);
+    } catch (e) {
+      el.innerHTML = '<p style="color:var(--danger);">Error: ' + escapeHtml(e.message) + '</p>';
+    }
+  }
+
+  function renderHeroHistory(h) {
+    const dash = '<span style="color:var(--text-muted);">—</span>';
+    const v = (x) => (x === '' || x === null || x === undefined ? dash : escapeHtml(String(x)));
+    const result = (s) => s === 'Yes' ? '<span style="color:var(--success);font-weight:600;">✅ Yes</span>'
+      : s === 'No' ? '<span style="color:var(--danger);font-weight:600;">❌ No</span>'
+      : s === 'No data' ? '<span style="color:#b7791f;font-weight:600;" title="No hero level entered before the start, or none since">❔ No data</span>'
+      : s ? '<span style="color:var(--text-muted);" title="' + escapeHtml(s) + '">N/A</span>' : '<span style="color:var(--text-muted);">Not calculated yet</span>';
+    let html = '<p style="margin:0 0 10px;">Current hero level: <strong>' + (h.currentLevel === null ? '—' : h.currentLevel) + '</strong>'
+      + (h.entries.length ? ' (entered ' + escapeHtml(h.entries[0].date) + ')' : '') + '</p>';
+    if (h.events.length) {
+      html += '<h3>Hero level events</h3><div class="table-container"><table><thead><tr><th>Event</th><th>Dates</th><th>Gained / Level</th><th>Target</th><th>Result</th><th>Levels</th><th>Penalty</th></tr></thead><tbody>'
+        + h.events.map(e => {
+          const reach = e.method === 'hero-reach';
+          const got = e.achieved === '' || e.achieved === undefined ? '' : (reach ? e.achieved : (Number(e.achieved) >= 0 ? '+' : '') + e.achieved);
+          const pen = Number(e.penalty) > 0 ? Number(e.penalty).toLocaleString() + (e.penaltyStatus ? ' (' + escapeHtml(e.penaltyStatus) + ')' : '') : (e.penaltyStatus ? escapeHtml(e.penaltyStatus) : dash);
+          return '<tr><td>' + escapeHtml(e.eventName) + '</td><td style="white-space:nowrap;">' + escapeHtml(e.start || '') + ' → ' + escapeHtml(e.end || '') + '</td><td>' + v(got) + '</td><td>' + v(e.target)
+            + '</td><td>' + result(e.status) + '</td><td>' + v(e.note) + '</td><td>' + pen + '</td></tr>';
+        }).join('') + '</tbody></table></div>';
+    }
+    html += '<h3>Hero level history</h3>';
+    html += h.entries.length
+      ? '<div class="table-container"><table><thead><tr><th>Date</th><th>Level</th><th>Change</th></tr></thead><tbody>'
+        + h.entries.map(e => '<tr><td>' + escapeHtml(e.date) + '</td><td>' + e.level + '</td><td>'
+          + (e.change === null ? dash : (e.change > 0 ? '<span style="color:var(--success);">+' + e.change + '</span>' : e.change < 0 ? '<span style="color:var(--danger);">' + e.change + '</span>' : '0')) + '</td></tr>').join('')
+        + '</tbody></table></div>'
+      : '<p style="color:var(--text-muted);">No hero level entered for this member yet.</p>';
+    return html;
   }
 
   // 📈 Evolution (Individual tab): only the event types that count in this clan's profiling
