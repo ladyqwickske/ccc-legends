@@ -222,9 +222,9 @@
     <button onclick="switchTab('chestEventsTab', this)">📊 Chest Events</button>
     <button onclick="switchTab('manualEventsTab', this)">✏️ Manual Events</button>
     <button onclick="switchTab('troopEventsTab', this)">🎖️ Troop Events</button>
+    <button onclick="switchTab('heroEventsTab', this)">🦸 Hero Events</button>
     <button onclick="switchTab('createTab', this)">➕ Create Event</button>
     <button onclick="switchTab('typesTab', this)">⚙️ Event Types</button>
-    <button onclick="switchTab('heroEventsTab', this)">🦸 Hero Events</button>
   </div>
 
   <!-- ===== MANAGE EVENTS TAB ===== -->
@@ -1086,7 +1086,7 @@
     document.getElementById('eventFormTitle').textContent = '✏️ Edit Event';
     document.getElementById('cancelEditBtn').style.display = 'inline';
     // Switch to Create tab to show the form
-    const createBtn = document.querySelector('.sub-tabs button:nth-child(5)');
+    const createBtn = document.querySelector(`.sub-tabs button[onclick*="'createTab'"]`);
     switchTab('createTab', createBtn);
   }
 
@@ -1185,22 +1185,22 @@
     const ev = eventsData.find(e => e.eventName === name);
     if (!ev) return;
     if (ev.participationMethod === 'chest-based') {
-      const btn = document.querySelector('.sub-tabs button:nth-child(2)');
+      const btn = document.querySelector(`.sub-tabs button[onclick*="'chestEventsTab'"]`);
       switchTab('chestEventsTab', btn);
       document.getElementById('chestEventSelect').value = name;
       onChestEventSelected();
     } else if (ev.participationMethod === 'troop-based') {
-      const btn = document.querySelector('.sub-tabs button:nth-child(4)');
+      const btn = document.querySelector(`.sub-tabs button[onclick*="'troopEventsTab'"]`);
       switchTab('troopEventsTab', btn);
       document.getElementById('troopEventSelect').value = name;
       onTroopEventSelected();
     } else if (isHeroMethod(ev.participationMethod)) {
-      const btn = document.querySelector('.sub-tabs button:nth-child(7)');
+      const btn = document.querySelector(`.sub-tabs button[onclick*="'heroEventsTab'"]`);
       switchTab('heroEventsTab', btn);
       document.getElementById('heroEventSelect').value = name;
       onHeroEventSelected();
     } else if (ev.participationMethod === 'manual-entry') {
-      const btn = document.querySelector('.sub-tabs button:nth-child(3)');
+      const btn = document.querySelector(`.sub-tabs button[onclick*="'manualEventsTab'"]`);
       switchTab('manualEventsTab', btn);
       document.getElementById('manualEventSelect').value = name;
       onManualEventSelected();
