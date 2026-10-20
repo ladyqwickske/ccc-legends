@@ -246,7 +246,7 @@
       <button class="tab-btn-inner" data-group="chestdata" data-tab="ocrTab" onclick="switchTab('ocrTab', this)">🔤 OCR Corrections</button>
       <button class="tab-btn-inner" data-group="chestdata" data-tab="removeChestsTab" onclick="switchTab('removeChestsTab', this)">🛠️ Manage Chest Data</button>
       <button class="tab-btn-inner" hidden data-group="rules" data-tab="chestValuesTab" onclick="switchTab('chestValuesTab', this)">🏷️ Chest Point Values</button>
-      <button class="tab-btn-inner" hidden data-group="rules" data-tab="exemptTab" onclick="switchTab('exemptTab', this)">🛡️ Penalty Exemptions</button>
+      <button class="tab-btn-inner" hidden data-group="rules" data-tab="exemptTab" onclick="switchTab('exemptTab', this)">🛡️ Exemptions</button>
       <button class="tab-btn-inner" hidden data-group="rules" data-tab="pointTargetsTab" onclick="switchTab('pointTargetsTab', this)">🎯 Point Targets</button>
       <button class="tab-btn-inner" hidden data-group="clans" data-tab="linkFormerTab" onclick="switchTab('linkFormerTab', this)">🔗 Link Former Members</button>
       <button class="tab-btn-inner" hidden data-group="clans" data-tab="transfersTab" id="transfersTabBtn" onclick="switchTab('transfersTab', this)">🔁 Member Transfers</button>
@@ -418,8 +418,8 @@
 
 
     <div id="exemptTab" class="tab-panel">
-      <h3 style="margin:0 0 10px;color:var(--primary)">Penalty Exemptions</h3>
-      <p style="font-size:0.82em;color:var(--text-muted);margin-bottom:12px;">Members selected here are excluded from automated penalties and period-end underperformer reports.</p>
+      <h3 style="margin:0 0 10px;color:var(--primary)">Exemptions</h3>
+      <p style="font-size:0.82em;color:var(--text-muted);margin-bottom:12px;">Members selected here are excluded from automated penalties and period-end underperformer reports, during the dates given (no dates = always). <b>Vacation</b>: tick it (with the vacation dates) for a member who goes on vacation. They are <b>not</b> exempt from penalties, but the chest points they score above their target in the period before the vacation carry over in full (normally only what is above 150% of the period's target carries over), so they can crypt ahead.</p>
       <div class="form-grid" style="grid-template-columns: 1fr;">
         <div><label>Search</label><input type="text" id="exemptSearchInput" placeholder="Filter members..." oninput="renderExemptList()"></div>
       </div>
@@ -663,7 +663,7 @@
   }
 
   // ===========================
-  // PENALTY EXEMPTIONS
+  // EXEMPTIONS (penalty exemptions and vacations)
   // ===========================
   let exemptSelection = null;
   let exemptMeta = {};
@@ -683,7 +683,7 @@
         const key = name.toLowerCase();
         if (!key) return;
         exemptSelection.add(key);
-        exemptMeta[key] = { name: name, reason: entry.reason || '', startDate: entry.startDate || '', endDate: entry.endDate || '' };
+        exemptMeta[key] = { name: name, reason: entry.reason || '', startDate: entry.startDate || '', endDate: entry.endDate || '', vacation: !!entry.vacation };
       });
       renderExemptList();
     } catch (err) {
@@ -704,14 +704,13 @@
       .filter(Boolean)
       .filter(name => !filter || name.toLowerCase().includes(filter))
       .sort((a, b) => a.localeCompare(b));
-    const datedCount = [...exemptSelection].filter(key => {
-      const meta = exemptMeta[key] || {};
-      return !!(meta.startDate || meta.endDate);
-    }).length;
-    summary.textContent = `${exemptSelection.size} exempt member(s) (${datedCount} date-limited)`;
+    const metas = [...exemptSelection].map(key => exemptMeta[key] || {});
+    const exemptOnly = metas.filter(m => !m.vacation), vacationCount = metas.length - exemptOnly.length;
+    const datedCount = exemptOnly.filter(m => m.startDate || m.endDate).length;
+    summary.textContent = `${exemptOnly.length} exempt member(s) (${datedCount} date-limited)` + (vacationCount ? `, ${vacationCount} on vacation` : '');
     if (names.length === 0) { list.innerHTML = '<div style="padding:12px;color:var(--text-muted)">No matching members.</div>'; return; }
     list.innerHTML = `<table id="exemptTable" data-sortable data-sort-col="1" data-name-col="1" style="width:100%;border-collapse:collapse;font-size:0.9em;">
-      <thead><tr><th style="text-align:center;width:60px;padding:6px 8px;position:sticky;top:0;z-index:1;">Exempt</th><th style="text-align:left;padding:6px 8px;position:sticky;top:0;z-index:1;">Member</th><th style="text-align:left;padding:6px 8px;position:sticky;top:0;z-index:1;">Reason</th><th style="text-align:left;padding:6px 8px;position:sticky;top:0;z-index:1;">Start</th><th style="text-align:left;padding:6px 8px;position:sticky;top:0;z-index:1;">End</th></tr></thead>
+      <thead><tr><th style="text-align:center;width:60px;padding:6px 8px;position:sticky;top:0;z-index:1;" title="On the list: exempt from penalties during these dates, unless Vacation is ticked">Listed</th><th style="text-align:left;padding:6px 8px;position:sticky;top:0;z-index:1;">Member</th><th style="text-align:left;padding:6px 8px;position:sticky;top:0;z-index:1;">Reason</th><th style="text-align:left;padding:6px 8px;position:sticky;top:0;z-index:1;">Start</th><th style="text-align:left;padding:6px 8px;position:sticky;top:0;z-index:1;">End</th><th style="text-align:center;width:80px;padding:6px 8px;position:sticky;top:0;z-index:1;" title="Going on vacation: not exempt from penalties, but the surplus of the period before carries over in full">Vacation</th></tr></thead>
       <tbody>${names.map(name => {
       const key = name.toLowerCase();
       const checked = exemptSelection.has(key) ? ' checked' : '';
@@ -723,6 +722,7 @@
         <td style="padding:4px 8px;"><input type="text" value="${escapeAttr(meta.reason || '')}" placeholder="Reason" data-member="${escapeAttr(name)}" data-field="reason" onchange="updateExemptField(this)" style="width:100%;padding:4px 8px;border:1px solid var(--border);border-radius:4px;"></td>
         <td style="padding:4px 8px;width:140px;"><input type="date" value="${escapeAttr(meta.startDate || '')}" data-member="${escapeAttr(name)}" data-field="startDate" onchange="updateExemptField(this)" title="Start date (blank = always)" style="width:100%;padding:4px 8px;border:1px solid var(--border);border-radius:4px;"></td>
         <td style="padding:4px 8px;width:140px;"><input type="date" value="${escapeAttr(meta.endDate || '')}" data-member="${escapeAttr(name)}" data-field="endDate" onchange="updateExemptField(this)" title="End date (blank = always)" style="width:100%;padding:4px 8px;border:1px solid var(--border);border-radius:4px;"></td>
+        <td style="padding:4px 8px;text-align:center;"><input type="checkbox" data-member="${escapeAttr(name)}" onchange="toggleExemptVacation(this)"${meta.vacation ? ' checked' : ''} title="Going on vacation (fill in the dates)" style="width:auto;margin:0;"></td>
       </tr>`;
     }).join('')}</tbody></table>`;
   }
@@ -735,6 +735,19 @@
     else exemptSelection.delete(key);
     exemptMeta[key] = exemptMeta[key] || { name: name, reason: '', startDate: '', endDate: '' };
     exemptMeta[key].name = name;
+    if (!input.checked) exemptMeta[key].vacation = false;
+    renderExemptList();
+  }
+
+  // Vacation: listed (ticked) as well, but no exemption from penalties
+  function toggleExemptVacation(input) {
+    if (!exemptSelection) exemptSelection = new Set();
+    const name = input.dataset.member || '';
+    const key = name.toLowerCase();
+    exemptMeta[key] = exemptMeta[key] || { name: name, reason: '', startDate: '', endDate: '' };
+    exemptMeta[key].name = name;
+    exemptMeta[key].vacation = input.checked;
+    if (input.checked) exemptSelection.add(key);
     renderExemptList();
   }
 
@@ -757,8 +770,15 @@
       name: byKey[key] || (exemptMeta[key] && exemptMeta[key].name) || key,
       reason: (exemptMeta[key] && exemptMeta[key].reason) || '',
       startDate: (exemptMeta[key] && exemptMeta[key].startDate) || '',
-      endDate: (exemptMeta[key] && exemptMeta[key].endDate) || ''
+      endDate: (exemptMeta[key] && exemptMeta[key].endDate) || '',
+      vacation: !!(exemptMeta[key] && exemptMeta[key].vacation)
     }));
+    const undated = rows.filter(m => m.vacation && !(m.startDate && m.endDate)).map(m => m.name);
+    if (undated.length) {
+      status.textContent = 'Fill in the start and end date of the vacation of ' + undated.join(', ') + '.';
+      status.className = 'status err';
+      return;
+    }
     try {
       const result = await callFunction('setExemptMembers', [rows]);
       status.textContent = result?.message || 'Saved exemptions.';
