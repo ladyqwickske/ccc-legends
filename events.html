@@ -1477,7 +1477,7 @@
     } catch (e) { /* without troop levels the export leaves the [level] out */ }
   }
 
-  // Penalty exemptions (Admin → 🛡️ Penalty Exemptions), loaded once: an Exempt label next to the
+  // Penalty exemptions (Admin → 🛡️ Exemptions; vacations aren't exemptions), loaded once: an Exempt label next to the
   // member's name, and those members left out of the results, as the penalties leave them out.
   let penaltyExemptions = null; // lower-case name → { name, reason, startDate, endDate }
 
@@ -1502,7 +1502,7 @@
   /** The member's exemption when it covers the selected event's dates (no dates = always), else null. */
   function penaltyExemptionOf(memberName) {
     const entry = (penaltyExemptions || {})[String(memberName || '').trim().toLowerCase()];
-    if (!entry) return null;
+    if (!entry || entry.vacation) return null;
     const from = isoDay(entry.startDate), until = isoDay(entry.endDate);
     const eventStart = isoDay(selectedEvent?.startDate || selectedEvent?.endDate);
     const eventEnd = isoDay(selectedEvent?.endDate || selectedEvent?.startDate);
