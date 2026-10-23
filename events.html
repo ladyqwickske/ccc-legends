@@ -7,7 +7,6 @@
   <link rel="icon" type="image/png" href="logo.png">
   <script src="perf-debug.js"></script>
   <script src="config.js"></script>
-  <script src="translate.js"></script>
   <script src="site-config.js"></script>
   <script src="portal-shim.js"></script>
   <script src="portal-auth.js"></script>
@@ -875,6 +874,10 @@
 
   // Troop target row management
   const TROOP_CATEGORIES = ['G4','G5','G6','G7','T7','G8','T8','G9','T9'];
+  // A clan with Voltron access (site-config.js voltronAccess) can make a tournament title the
+  // target of a troop category (Winner, Podium, Top 10 or Badge, from the Voltron import).
+  const TITLE_TARGETS = !!(typeof SITE_CONFIG !== 'undefined' && SITE_CONFIG.voltronAccess);
+  const isTitleTarget = (v) => String(v ?? '').trim().toLowerCase() === 'title';
 
   function addTroopTargetRow(category, points, containerId) {
     const container = document.getElementById(containerId || 'troopTargetRows');
@@ -893,12 +896,22 @@
     inp.type = 'number'; inp.placeholder = 'Points target';
     inp.className = 'troop-pts-input';
     inp.style.cssText = 'padding:4px 6px; border:1px solid var(--border); border-radius:4px; font-size:0.85em; width:120px;';
-    if (points) inp.value = points;
+    if (points && !isTitleTarget(points)) inp.value = points;
+    let kind = null;
+    if (TITLE_TARGETS) {
+      kind = document.createElement('select');
+      kind.className = 'troop-kind-select';
+      kind.style.cssText = sel.style.cssText;
+      kind.innerHTML = '<option value="points">Points</option><option value="title">Title</option>';
+      kind.value = isTitleTarget(points) ? 'title' : 'points';
+      inp.disabled = kind.value === 'title';
+      kind.onchange = () => { inp.disabled = kind.value === 'title'; if (inp.disabled) inp.value = ''; };
+    }
     const btn = document.createElement('button');
     btn.textContent = '✕'; btn.className = 'btn secondary';
     btn.style.cssText = 'padding:2px 8px; font-size:0.8em;';
     btn.onclick = () => row.remove();
-    row.appendChild(sel); row.appendChild(inp); row.appendChild(btn);
+    row.appendChild(sel); if (kind) row.appendChild(kind); row.appendChild(inp); row.appendChild(btn);
     container.appendChild(row);
   }
 
@@ -908,7 +921,8 @@
     rows.forEach(row => {
       const cat = row.querySelector('.troop-cat-select')?.value;
       const pts = Number(row.querySelector('.troop-pts-input')?.value) || 0;
-      if (cat && pts > 0) targets[cat] = pts;
+      if (cat && row.querySelector('.troop-kind-select')?.value === 'title') targets[cat] = 'title';
+      else if (cat && pts > 0) targets[cat] = pts;
     });
     return Object.keys(targets).length > 0 ? JSON.stringify(targets) : '';
   }
@@ -1320,11 +1334,11 @@
         const firstRow = result.data[0];
         const hasTroopCols = 'Troop Category' in firstRow;
         const displayHeaders = hasTroopCols
-          ? ['Member Name', 'Points', 'Troop Category', 'Target', 'Status'].concat(('Penalty' in firstRow) ? ['Penalty', 'Penalty Status'] : [])
+          ? ['Member Name', 'Points', 'Troop Category', 'Target', 'Status'].concat(TITLE_TARGETS ? ['Notes'] : [], ('Penalty' in firstRow) ? ['Penalty', 'Penalty Status'] : [])
           : Object.keys(firstRow);
 
         headersEl.innerHTML = displayHeaders.map(h =>
-          `<th onclick="sortParticipation('${escapeHtml(h)}')" style="cursor:pointer">${escapeHtml(h)}</th>`
+          `<th onclick="sortParticipation('${escapeHtml(h)}')" style="cursor:pointer">${escapeHtml(TITLE_TARGETS && hasTroopCols && h === 'Notes' ? 'Title' : h)}</th>`
         ).join('');
 
         lastPartData = result.data;

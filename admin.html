@@ -8,7 +8,6 @@
   <script src="perf-debug.js"></script>
   <script src="config.js"></script>
   <script src="table-sort.js"></script>
-  <script src="translate.js"></script>
   <script src="site-config.js"></script>
   <script src="portal-shim.js"></script>
   <script src="portal-auth.js"></script>
@@ -859,7 +858,9 @@
   // are read again right before the save and kept; only the edited rows change.
   const PointTargets = (() => {
     let periods = null;   // period markers, newest first
-    let loaded = {};      // { member name: target } as stored for the chosen period
+    let loaded = {};      // { member name: target } as stored for the chosen period (own target + point penalties)
+    let ownOf = null;     // { member name: own target | null } — null: an older Worker that doesn't keep them apart
+    let penaltyOf = {};   // { member name: point penalties of the period }
     let edits = {};       // { lowercased member name: '' | number } typed since loading
     let periodDefault = 3000;
 
@@ -870,6 +871,16 @@
       const found = Object.keys(targets).find(k => k.toLowerCase() === key);
       return found === undefined ? null : { key: found, value: targets[found] };
     };
+    // Own targets are kept apart from the point penalties (since 2026-10) for every stored row
+    const keptApart = (result) => !!(result && result.own && result.penalties)
+      && Object.keys(result.targets || {}).every(name => Object.prototype.hasOwnProperty.call(result.own, name));
+    // What the input shows: the member's own target ('' = the period's target)
+    const ownValue = (name) => {
+      if (!ownOf) { const s = storedFor(loaded, name); return s ? s.value : ''; }
+      const s = storedFor(ownOf, name);
+      return s && s.value !== null ? s.value : '';
+    };
+    const penaltyFor = (name) => { const s = storedFor(penaltyOf, name); return s ? Number(s.value) || 0 : 0; };
 
     async function loadPeriods() {
       const select = document.getElementById('ptPeriodSelect');
@@ -895,9 +906,12 @@
         const period = periodName();
         const marker = (periods || []).find(p => p.eventName === period);
         periodDefault = marker && Number(marker.targetPoints) > 0 ? Number(marker.targetPoints) : 3000;
-        loadPenaltyCheck(period);
+        const check = await loadPenaltyCheck(period);
+        if (check && Number(check.periodDefault) > 0) periodDefault = Number(check.periodDefault); // as the Worker counts it
         const result = await callFunction('getPointTargets', [period]);
         loaded = (result && result.targets) ? result.targets : {};
+        ownOf = keptApart(result) ? result.own : null;
+        penaltyOf = (result && result.penalties) || {};
         edits = {};
         render();
       } catch (err) {
@@ -910,22 +924,27 @@
       const summary = document.getElementById('ptSummary');
       if (!list || !periods) return;
       if (membersData.length === 0) { list.innerHTML = '<div style="padding:12px;color:var(--text-muted)">Loading members...</div>'; return; }
+      const fmt = (n) => Number(n || 0).toLocaleString();
       const filter = (document.getElementById('ptSearchInput')?.value || '').toLowerCase().trim();
       const members = membersData.map(m => m.name).filter(Boolean).sort((a, b) => a.localeCompare(b));
-      const custom = members.filter(n => storedFor(loaded, n)).length;
-      summary.textContent = `${custom} of ${members.length} current member(s) have their own target in this period · period target: ${periodDefault.toLocaleString()}`;
+      const custom = members.filter(n => ownValue(n) !== '').length;
+      summary.textContent = `${custom} of ${members.length} current member(s) have their own target in this period · period target: ${periodDefault.toLocaleString()}`
+        + (ownOf ? ' · Target = own target (or the period target) + point penalties' : '');
       const rows = members.filter(n => !filter || n.toLowerCase().includes(filter));
       if (rows.length === 0) { list.innerHTML = '<div style="padding:12px;color:var(--text-muted)">No matching members.</div>'; return; }
+      const th = (label, right) => `<th style="text-align:${right ? 'right' : 'left'};padding:6px 8px;position:sticky;top:0;z-index:1;">${label}</th>`;
       list.innerHTML = `<table id="ptTargetsTable" data-sortable data-sort-col="0" data-name-col="0" style="width:100%;border-collapse:collapse;font-size:0.9em;">
-        <thead><tr><th style="text-align:left;padding:6px 8px;position:sticky;top:0;z-index:1;">Member</th><th style="text-align:left;padding:6px 8px;position:sticky;top:0;z-index:1;">Own target</th></tr></thead>
+        <thead><tr>${th('Member')}${th('Own target')}${ownOf ? th('Point penalties', true) + th('Target', true) : ''}</tr></thead>
         <tbody>${rows.map(name => {
           const key = name.toLowerCase();
-          const stored = storedFor(loaded, name);
-          const value = key in edits ? edits[key] : (stored ? stored.value : ''); // 0 = lowered by carried-over surplus
+          const value = key in edits ? edits[key] : ownValue(name); // 0 = lowered by carried-over surplus
           const changed = key in edits ? ' style="background:var(--accent-light);"' : '';
+          const pen = penaltyFor(name);
+          const total = (value === '' ? periodDefault : Number(value)) + pen;
           return `<tr${changed}>
             <td style="padding:4px 8px;">${escapeHtml(name)}</td>
             <td style="padding:4px 8px;"><input type="number" min="0" step="100" data-member="${ptAttr(name)}" value="${ptAttr(String(value))}" placeholder="${periodDefault}" oninput="PointTargets.edit(this)" style="width:140px;padding:4px 8px;border:1px solid var(--border);border-radius:4px;"></td>
+            ${ownOf ? `<td style="padding:4px 8px;text-align:right;">${pen ? fmt(pen) : '—'}</td><td style="padding:4px 8px;text-align:right;" data-total="${ptAttr(name)}">${fmt(total)}</td>` : ''}
           </tr>`;
         }).join('')}</tbody></table>`;
     }
@@ -934,11 +953,12 @@
       const key = (input.dataset.member || '').toLowerCase();
       if (!key) return;
       const raw = input.value.trim();
-      const stored = storedFor(loaded, input.dataset.member);
       const value = raw === '' ? '' : parseInt(raw, 10);
       if (value !== '' && (isNaN(value) || value < 0)) return;
-      if ((stored ? stored.value : '') === value) delete edits[key]; else edits[key] = value;
+      if (ownValue(input.dataset.member) === value) delete edits[key]; else edits[key] = value;
       input.closest('tr').style.background = key in edits ? 'var(--accent-light)' : '';
+      const cell = input.closest('tr').querySelector('[data-total]');
+      if (cell) cell.textContent = (((value === '' ? periodDefault : value)) + penaltyFor(input.dataset.member)).toLocaleString();
     }
 
     async function save() {
@@ -951,14 +971,21 @@
       try {
         // Start from what is stored now, then apply the edited rows only
         const fresh = await callFunction('getPointTargets', [period]);
-        const targets = Object.assign({}, (fresh && fresh.targets) || {});
+        const own = keptApart(fresh);
+        const targets = {};
+        if (own) {
+          // own targets: members without one (null) are left out; a banked row keeps its own target of 0
+          Object.keys(fresh.own).forEach(name => { if (fresh.own[name] !== null) targets[name] = fresh.own[name]; });
+        } else {
+          Object.assign(targets, (fresh && fresh.targets) || {});
+        }
         names.forEach(key => {
           const name = (membersData.find(m => (m.name || '').toLowerCase() === key) || {}).name || key;
           const stored = storedFor(targets, name);
           if (stored) delete targets[stored.key];
           if (edits[key] !== '') targets[name] = edits[key];
         });
-        const result = await callFunction('savePointTargets', [targets, period]);
+        const result = await callFunction('savePointTargets', own ? [targets, period, { own: true }] : [targets, period]);
         status.textContent = result?.message || (result?.success ? 'Saved!' : 'Failed to save.');
         status.className = result?.success ? 'status ok' : 'status err';
         if (result?.success) { showToast('Point targets saved', 'success'); load(false, true); }
@@ -971,7 +998,7 @@
     // Point penalties of the period next to the targets (getPointPenaltyCheck).
     async function loadPenaltyCheck(period) {
       const body = document.getElementById('ptPenaltyBody');
-      if (!body) return;
+      if (!body) return null;
       const fmt = (n) => Number(n || 0).toLocaleString();
       try {
         const res = await fetch(window.GAS_WEB_APP_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'getPointPenaltyCheck', periodSource: period }) });
@@ -985,8 +1012,10 @@
             + `<td style="padding:6px 8px;text-align:right;${odd ? 'color:#ef6c00;font-weight:600;' : ''}">${fmt(row.withoutPenalty)}</td>`
             + `<td style="padding:6px 8px;">${odd ? `<span title="Higher than the period target (${fmt(r.periodDefault)})">⚠️</span>` : ''}</td></tr>`;
         }).join('') : '<tr><td colspan="5" style="padding:8px;color:var(--text-muted);">No point penalties in this period.</td></tr>';
+        return r;
       } catch (err) {
         body.innerHTML = `<tr><td colspan="5" style="padding:8px;color:var(--danger);">${escapeHtml(err.message)}</td></tr>`;
+        return null;
       }
     }
 
