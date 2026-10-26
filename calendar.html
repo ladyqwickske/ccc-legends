@@ -105,6 +105,7 @@
       cursor: pointer;
     }
     .event-dot.ev-doomsday        { background: #fce4ec; color: #c62828; }
+    .event-dot.ev-custom          { background: rgba(124,153,180,0.18); color: var(--primary, #7c99b4); }
     .event-dot.ev-arachne          { background: #e8f5e9; color: #2e7d32; }
     .event-dot.ev-slaughter        { background: #fff3e0; color: #e65100; }
     .event-dot.ev-crypting         { background: #e8eaf6; color: #283593; }
@@ -363,11 +364,50 @@
     VOLTRON = byTitle;
     VOLTRON_INFO = res && res.occurrences && res.occurrences.length ? { kingdom: res.kingdom, syncedAt: res.syncedAt } : null;
   }
+  /* ── This clan's own event schedule (Events page → 🗓️ Schedule, getEventSchedule) ──
+     Once the clan has saved one, its tournaments replace the rhythm above. The schedule counts
+     from the 17:00 UTC reset that starts a tournament; the page shows its game days: from the
+     next day, one day shorter (a 1-day entry stays on its day). Entries that aren't one of the
+     default schedule's tournaments (KvK, the crypting days, Voltron-only events, …) stay. */
+  var SCHEDULE_PAGE_TITLES = { 'arachne': 'Arachne\'s Swarm', 'shadow city': 'Shadow Invasion', 'hellforge': 'HellForge' };
+  var LAST_VOLTRON = null;
+  function applyClanSchedule(res) {
+    if (!res || !res.success || res.source !== 'saved' || !res.schedule) return false;
+    var key = function (t) { return String(t).toLowerCase(); };
+    var pageTitle = function (t) { return SCHEDULE_PAGE_TITLES[key(t)] || String(t); };
+    var own = {};
+    RECURRING.forEach(function (d) { own[key(d.title)] = d; });
+    var defaults = {};
+    ((res.defaultSchedule && res.defaultSchedule.recurring) || []).forEach(function (r) { defaults[key(pageTitle(r.title))] = true; });
+    var mine = res.schedule.recurring.map(function (r) {
+      var title = pageTitle(r.title), look = own[key(title)] || {};
+      var shift = r.duration > 1 ? 1 : 0, days = r.duration - shift;
+      var p = String(r.firstStart).split('-'), first = new Date(Date.UTC(+p[0], +p[1] - 1, +p[2]) + shift * 86400000);
+      var ymd = first.getUTCFullYear() + '-' + String(first.getUTCMonth() + 1).padStart(2, '0') + '-' + String(first.getUTCDate()).padStart(2, '0');
+      return { title: title, firstStart: ymd, duration: days, interval: r.interval, color: look.color || 'ev-custom', category: look.category || 'Tournament',
+        description: title + ' — ' + (days > 1 ? days + '-day event, ' : '') + 'every ' + r.interval + ' days.' };
+    });
+    var taken = {};
+    mine.forEach(function (d) { taken[key(d.title)] = true; });
+    RECURRING = mine.concat(RECURRING.filter(function (d) { return !taken[key(d.title)] && !defaults[key(d.title)]; }));
+    return true;
+  }
+  function loadClanSchedule() {
+    if (!window.GAS_WEB_APP_URL) return;
+    fetch(window.GAS_WEB_APP_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'getEventSchedule' }) })
+      .then(function (r) { return r.json(); })
+      .then(function (res) {
+        if (!applyClanSchedule(res)) return;
+        if (LAST_VOLTRON && typeof setVoltronCalendar === 'function') setVoltronCalendar(LAST_VOLTRON);
+        loadEvents();
+      })
+      .catch(function () { /* the schedule above */ });
+  }
   function loadVoltronCalendar() {
     if (!window.GAS_WEB_APP_URL) return;
     fetch(window.GAS_WEB_APP_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'getVoltronCalendar' }) })
       .then(r => r.json())
-      .then(res => { if (res && res.success) { setVoltronCalendar(res); loadEvents(); } })
+      .then(res => { if (res && res.success) { LAST_VOLTRON = res; setVoltronCalendar(res); loadEvents(); } })
       .catch(() => { /* no Voltron calendar: the recurring rhythm only */ });
   }
 
@@ -429,6 +469,7 @@
     checkLoginState();
     loadEvents();
     loadVoltronCalendar();
+    loadClanSchedule();
   });
 
   // AUTH (identical pattern)
