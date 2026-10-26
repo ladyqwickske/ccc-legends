@@ -499,16 +499,18 @@
 
       <hr style="border:none; border-top:1px solid var(--border); margin:16px 0;">
       <h3 style="color:var(--primary); margin-bottom:8px;">🧹 Clean Up Generated Events</h3>
-      <p style="margin-bottom:10px; color:var(--text-muted); font-size:0.85em;">Removes generated events (named like "Tin Man (Apr 3, 2026)") that have no participation data yet, for the event types ticked above. Events with data, events you named yourself and Active Period events are never removed.</p>
+      <p style="margin-bottom:10px; color:var(--text-muted); font-size:0.85em;">Removes generated events (named like "Tin Man (Apr 3, 2026)") that have no participation data yet, for the event types ticked above. The preview lists them: untick any you want to keep. Events with data, events you named yourself and Active Period events are never removed.</p>
       <div class="form-row" style="align-items:center;">
         <button class="btn secondary" id="cleanupEventsBtn" onclick="previewCleanupEvents()">🔍 Preview Cleanup</button>
         <select id="cleanupRangeSelect" style="flex:0.5; min-width:140px; padding:8px 12px; background:#fff; border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:0.9em;">
           <option value="all" selected>Past and upcoming</option>
           <option value="upcoming">Upcoming only</option>
+          <option value="past">Past only (already ended)</option>
         </select>
         <button class="btn" id="cleanupConfirmBtn" onclick="runCleanupEvents()" style="display:none; background:var(--danger); color:#fff;">🗑️ Delete</button>
       </div>
       <div id="cleanupStatus" style="font-size:0.85em; margin-top:6px;"></div>
+      <div id="cleanupList"></div>
     </div>
   </div>
 
@@ -1970,21 +1972,55 @@
     }
   }
 
-  // CLEAN UP GENERATED EVENTS (only the ones without participation data; the Worker checks again on delete)
-  function cleanupArgs(dryRun) {
+  // CLEAN UP GENERATED EVENTS: the preview lists the generated events without participation data,
+  // each with a checkbox; only the ticked ones are deleted (the Worker checks again on delete)
+  let cleanupCandidates = [];   // the events the last preview listed
+
+  function cleanupArgs(dryRun, eventNames) {
     const allTypes = document.getElementById('genSelectAll').checked;
     const types = allTypes ? [] : Array.from(document.querySelectorAll('.gen-type-cb:checked')).map(cb => cb.value);
-    const from = document.getElementById('cleanupRangeSelect').value === 'upcoming' ? new Date().toISOString().slice(0, 10) : '';
-    return [dryRun, types, from, ''];
+    const range = document.getElementById('cleanupRangeSelect').value;
+    const today = new Date().toISOString().slice(0, 10);
+    // upcoming: starting today or later; past: ended before today
+    return [dryRun, types, range === 'upcoming' ? today : '', '', range === 'past' ? today : '', eventNames];
   }
 
-  function cleanupList(items) {
-    return items.map(x => escapeHtml(x.name)).join(', ');
+  function cleanupDates(x) {
+    return x.startDate === x.endDate ? escapeHtml(x.startDate) : escapeHtml(x.startDate) + ' → ' + escapeHtml(x.endDate);
+  }
+
+  function renderCleanupList() {
+    const box = document.getElementById('cleanupList');
+    if (!cleanupCandidates.length) { box.innerHTML = ''; return; }
+    box.innerHTML = '<div class="table-container" style="max-height:360px; overflow-y:auto; margin-top:8px;"><table>'
+      + '<thead><tr><th style="width:32px;"><input type="checkbox" id="cleanupAll" checked onchange="toggleAllCleanup(this.checked)" title="Select all / none"></th><th>Event</th><th>Type</th><th>Dates</th></tr></thead><tbody>'
+      + cleanupCandidates.map((x, i) => '<tr><td><input type="checkbox" class="cleanup-cb" value="' + i + '" checked onchange="updateCleanupSelection()"></td>'
+        + '<td>' + escapeHtml(x.name) + '</td><td>' + escapeHtml(x.type) + '</td><td>' + cleanupDates(x) + '</td></tr>').join('')
+      + '</tbody></table></div>';
+    updateCleanupSelection();
+  }
+
+  function selectedCleanupNames() {
+    return Array.from(document.querySelectorAll('.cleanup-cb:checked')).map(cb => cleanupCandidates[Number(cb.value)].name);
+  }
+
+  function updateCleanupSelection() {
+    const n = selectedCleanupNames().length;
+    const confirmBtn = document.getElementById('cleanupConfirmBtn');
+    confirmBtn.textContent = '🗑️ Delete ' + n + ' selected';
+    confirmBtn.disabled = n === 0;
+    confirmBtn.style.display = cleanupCandidates.length ? '' : 'none';
+    const all = document.getElementById('cleanupAll');
+    if (all) { all.checked = n === cleanupCandidates.length; all.indeterminate = n > 0 && n < cleanupCandidates.length; }
+  }
+
+  function toggleAllCleanup(checked) {
+    document.querySelectorAll('.cleanup-cb').forEach(cb => { cb.checked = checked; });
+    updateCleanupSelection();
   }
 
   async function previewCleanupEvents() {
     const btn = document.getElementById('cleanupEventsBtn');
-    const confirmBtn = document.getElementById('cleanupConfirmBtn');
     const status = document.getElementById('cleanupStatus');
     if (!document.getElementById('genSelectAll').checked && !document.querySelector('.gen-type-cb:checked')) {
       status.innerHTML = '⚠️ Please select at least one event type.';
@@ -1993,21 +2029,21 @@
     }
     btn.disabled = true;
     btn.textContent = '⏳ Checking...';
-    confirmBtn.style.display = 'none';
+    cleanupCandidates = [];
+    renderCleanupList();
+    updateCleanupSelection();
     status.innerHTML = '';
     try {
       const result = await callFunction('cleanupGeneratedEvents', cleanupArgs(true));
       if (result && result.success) {
-        const parts = [];
-        if (result.deleted.length > 0) parts.push('🗑️ Would delete ' + result.deleted.length + ': ' + cleanupList(result.deleted));
-        else parts.push('Nothing to clean up: no generated events without data.');
+        cleanupCandidates = result.deleted;
+        const parts = [cleanupCandidates.length
+          ? '🗑️ ' + cleanupCandidates.length + ' generated event(s) without participation data. Untick the ones to keep.'
+          : 'Nothing to clean up: no generated events without data.'];
         if (result.keptWithData.length > 0) parts.push('🔒 Kept (have participation data): ' + result.keptWithData.length);
         status.innerHTML = parts.join('<br>');
         status.style.color = 'var(--text)';
-        if (result.deleted.length > 0) {
-          confirmBtn.textContent = '🗑️ Delete ' + result.deleted.length + ' event(s)';
-          confirmBtn.style.display = '';
-        }
+        renderCleanupList();
       } else {
         status.innerHTML = '❌ ' + escapeHtml(result?.message || 'Preview failed.');
         status.style.color = 'var(--danger)';
@@ -2023,16 +2059,22 @@
   async function runCleanupEvents() {
     const confirmBtn = document.getElementById('cleanupConfirmBtn');
     const status = document.getElementById('cleanupStatus');
-    if (!confirm('Delete these generated events without participation data? This cannot be undone.')) return;
+    const names = selectedCleanupNames();
+    if (!names.length) return;
+    if (!confirm('Delete ' + names.length + ' generated event(s) without participation data? This cannot be undone.')) return;
     confirmBtn.disabled = true;
     confirmBtn.textContent = '⏳ Deleting...';
     try {
-      const result = await callFunction('cleanupGeneratedEvents', cleanupArgs(false));
+      const result = await callFunction('cleanupGeneratedEvents', cleanupArgs(false, names));
       if (result && result.success) {
-        const parts = ['✅ Deleted ' + result.deleted.length + (result.deleted.length ? ': ' + cleanupList(result.deleted) : '')];
+        const parts = ['✅ Deleted ' + result.deleted.length + (result.deleted.length ? ': ' + result.deleted.map(x => escapeHtml(x.name)).join(', ') : '')];
+        if (result.keptWithData.length > 0) parts.push('🔒 Not deleted, they have participation data by now: ' + result.keptWithData.map(x => escapeHtml(x.name)).join(', '));
         if (result.errors.length > 0) parts.push('❌ ' + result.errors.length + ' error(s): ' + result.errors.map(e => escapeHtml(e.name + ': ' + e.error)).join(', '));
         status.innerHTML = parts.join('<br>');
         status.style.color = result.errors.length > 0 ? 'var(--danger)' : 'var(--success)';
+        const gone = new Set(result.deleted.map(x => x.name));
+        cleanupCandidates = cleanupCandidates.filter(x => !gone.has(x.name));
+        renderCleanupList();
         loadEvents();
       } else {
         status.innerHTML = '❌ ' + escapeHtml(result?.message || 'Cleanup failed.');
@@ -2042,8 +2084,7 @@
       status.innerHTML = '❌ Error: ' + escapeHtml(err.message);
       status.style.color = 'var(--danger)';
     }
-    confirmBtn.disabled = false;
-    confirmBtn.style.display = 'none';
+    updateCleanupSelection();
   }
 
   // The Worker, google.script.run style (portal-shim.js callFunction)
