@@ -12,6 +12,7 @@
   <script src="portal-shim.js"></script>
   <script src="portal-auth.js"></script>
   <script src="member-transfers.js"></script>
+  <script src="captains.js"></script>
   <style>
     :root {
       --primary: #1fc1e6;
@@ -395,6 +396,8 @@
           <th onclick="sortTable('name')">Name</th>
           <th onclick="sortTable('joinDate')">Joined</th>
           <th onclick="sortTable('heroLevel')">Hero</th>
+          <th class="captain-col" onclick="sortTable('helen')" title="Helen: stars · level (from Voltron)" hidden>Helen</th>
+          <th class="captain-col" onclick="sortTable('epic')" title="Epic captains owned (Hercules, Heimdall, Beowulf, Skadi) · their stars together (from Voltron); hover a cell for each" hidden>Epic</th>
           <th onclick="sortTable('category')" title="Troop Category">Cat</th>
           <th onclick="sortTable('G')" title="Guardsmen">G</th>
           <th onclick="sortTable('M')" title="Monsters">M</th>
@@ -415,6 +418,7 @@
   let membersData = [];
   let troopData = {};   // { lowerName: { G: lvl, M: lvl, S: lvl, E: lvl, C: lvl } }
   let heroData = {};    // { lowerName: { level, timestamp } }
+  let captainData = null; // { lowerName: { Helen: { stars, level, date }, … } }; null: no captain data (columns hidden)
   let sortField = 'name';
   let sortAsc = true;
   let isLoggedIn = false;
@@ -529,11 +533,14 @@
   // LOAD ALL DATA (members + troops + hero levels)
   async function loadAllData() {
     try {
-      const [members, troopSummary, heroLevels] = await Promise.all([
+      const [members, troopSummary, heroLevels, captains] = await Promise.all([
         callFunction('getMembersList'),
         callFunction('getAllTroopLevelsSummary').catch(() => null),
-        callFunction('getHeroLevels').catch(() => null)
+        callFunction('getHeroLevels').catch(() => null),
+        CCCCaptains.loadAll()
       ]);
+      captainData = captains;
+      document.querySelectorAll('th.captain-col').forEach(th => { th.hidden = !captainData; });
 
       if (Array.isArray(members)) {
         membersData = members;
@@ -638,6 +645,8 @@
         case 'name': va = keyA; vb = keyB; break;
         case 'joinDate': va = a.joinDate || ''; vb = b.joinDate || ''; break;
         case 'heroLevel': va = hA ? hA.level : -1; vb = hB ? hB.level : -1; break;
+        case 'helen': va = CCCCaptains.helenSort((captainData || {})[keyA]); vb = CCCCaptains.helenSort((captainData || {})[keyB]); break;
+        case 'epic': va = CCCCaptains.epicSort((captainData || {})[keyA]); vb = CCCCaptains.epicSort((captainData || {})[keyB]); break;
         case 'category':
           va = CATEGORY_ORDER.indexOf(determineTroopCategory(tA.G, tA.M, tA.S));
           vb = CATEGORY_ORDER.indexOf(determineTroopCategory(tB.G, tB.M, tB.S));
@@ -666,6 +675,7 @@
         <td><strong>${escapeHtml(m.name)}</strong></td>
         <td style="white-space:nowrap;">${escapeHtml(m.joinDate)}<br><button type="button" style="white-space:nowrap;margin-top:3px;padding:1px 7px;font-size:0.75em;border-radius:8px;border:1px solid ${m.beforeReset ? '#e6a418' : 'var(--border)'};background:${m.beforeReset ? '#fff3cd' : 'transparent'};color:${m.beforeReset ? '#7a5b00' : 'var(--text-muted)'};cursor:pointer;" title="Joined before or after the daily reset (17:00 UTC) on the join day. Before: takes part in the events starting that day. Click to change." onclick="toggleJoinedBeforeReset('${escapeAttr(m.name)}')">${m.beforeReset ? '🌅 before reset' : 'after reset'}</button></td>
         <td style="text-align:center">${heroHtml}</td>
+        ${captainData ? `<td style="text-align:center">${CCCCaptains.helenCell(captainData[key])}</td><td style="text-align:center">${CCCCaptains.epicCell(captainData[key])}</td>` : ''}
         <td style="text-align:center">${categoryBadge(cat)}</td>
         <td style="text-align:center">${troopBadge('g', troops.G)}</td>
         <td style="text-align:center">${troopBadge('m', troops.M)}</td>

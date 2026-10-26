@@ -11,6 +11,7 @@
   <script src="portal-shim.js"></script>
   <script src="portal-auth.js"></script>
   <script src="evolution.js?v=2026-10-17c"></script>
+  <script src="captains.js"></script>
   <style>
     :root {
       --primary: #1fc1e6;
@@ -266,6 +267,12 @@
       <!-- 🦸 Hero level: history + hero level events (getMemberHeroHistory, superiors only) -->
       <h2>🦸 Hero Level <span style="font-size:0.75em;font-weight:400;color:var(--text-muted);">hero level history and hero level events (superiors only)</span></h2>
       <div id="heroHistorySection"></div>
+
+      <!-- 🛡️ Captains: Helen and the epic captains (captains.js, getMemberCaptainHistory, superiors only); hidden without captain data -->
+      <div data-captain-section style="display:none;">
+        <h2>🛡️ Captains <span style="font-size:0.75em;font-weight:400;color:var(--text-muted);">Helen and the epic captains, from Voltron (superiors only)</span></h2>
+        <div id="captainSection"></div>
+      </div>
 
       <!-- Metric Detail Cards -->
       <h2>Metric Details</h2>
@@ -571,6 +578,7 @@
     document.getElementById('individualContent').style.display = 'block';
     CCCEvolution.load(member.name);
     loadHeroHistory(member.name);
+    CCCCaptains.renderMember(document.getElementById('captainSection'), member.name, () => document.getElementById('memberSelect').value === member.name);
   }
 
   // ─── Hero level history + hero level events (getMemberHeroHistory, superiors only) ───
