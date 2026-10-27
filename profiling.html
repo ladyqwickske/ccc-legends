@@ -13,7 +13,7 @@
   <script src="help-content.js"></script>
   <script src="help.js"></script>
   <script src="evolution.js?v=2026-10-17c"></script>
-  <script src="captains.js"></script>
+  <script src="captains.js?v=2026-10-27"></script>
   <style>
     :root {
       --primary: #1fc1e6;
@@ -580,7 +580,7 @@
     document.getElementById('individualContent').style.display = 'block';
     CCCEvolution.load(member.name);
     loadHeroHistory(member.name);
-    CCCCaptains.renderMember(document.getElementById('captainSection'), member.name, () => document.getElementById('memberSelect').value === member.name);
+    if (window.CCCCaptains) CCCCaptains.renderMember(document.getElementById('captainSection'), member.name, () => document.getElementById('memberSelect').value === member.name);
   }
 
   // ─── Hero level history + hero level events (getMemberHeroHistory, superiors only) ───
