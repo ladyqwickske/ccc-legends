@@ -11,6 +11,8 @@
   <script src="site-config.js"></script>
   <script src="portal-shim.js"></script>
   <script src="portal-auth.js"></script>
+  <script src="help-content.js"></script>
+  <script src="help.js"></script>
   <script src="member-transfers.js"></script>
   <script src="captains.js"></script>
   <style>
@@ -253,7 +255,6 @@
       <button class="tab-btn-inner" data-group="roster" data-tab="removeMemberTab" onclick="switchTab('removeMemberTab', this)">🚪 Remove Member</button>
       <button class="tab-btn-inner" hidden data-group="progress" data-tab="troopTab" onclick="switchTab('troopTab', this)">⚔️ Track Troops</button>
       <button class="tab-btn-inner" hidden data-group="progress" data-tab="heroTab" onclick="switchTab('heroTab', this)">🦸 Hero Level</button>
-      <button class="tab-btn-inner" hidden data-group="progress" data-tab="carterTab" onclick="switchTab('carterTab', this)">🏗️ Carter Level</button>
       <button class="tab-btn-inner" hidden data-group="progress" data-tab="chestOverviewTab" onclick="switchTab('chestOverviewTab', this)">📦 Chest Points</button>
     </div>
 
@@ -300,33 +301,6 @@
         <div style="max-height:50vh;overflow-y:auto;"><table id="heroBatchTable" data-sortable data-sort-col="0" style="width:100%;border-collapse:collapse;">
           <thead><tr style="background:var(--bg-card-soft);"><th style="text-align:left;padding:6px 8px;">Member</th><th style="text-align:center;padding:6px 8px;width:100px;">Level</th><th style="text-align:center;padding:6px 8px;width:60px;"></th></tr></thead>
           <tbody id="heroBatchBody"></tbody>
-        </table></div>
-      </div>
-    </div>
-
-
-    <div id="carterTab" class="tab-panel">
-      <h3 style="margin:0 0 10px;color:var(--primary)">Track Carter (C) Level</h3>
-      <div class="form-grid" style="grid-template-columns: repeat(3, 1fr);">
-        <div><label>Member</label><select id="carterMemberSelect"></select></div>
-        <div><label>Carter Level</label><input type="number" id="carterLevelInput" placeholder="e.g. 150" min="1" max="500" onkeypress="if(event.key==='Enter'){var bp=document.getElementById('carterBatchPanel');if(bp&&bp.style.display!=='none'){addToCarterBatch();}else{submitCarterLevel();}}"></div>
-        <div><label>Date</label><input type="date" id="carterDateInput"><div class="note">Defaults to today (applies to all batch entries)</div></div>
-      </div>
-      <div style="margin-bottom:12px;">
-        <button class="btn" onclick="var bp=document.getElementById('carterBatchPanel');if(bp&&bp.style.display!=='none'){addToCarterBatch();}else{submitCarterLevel();}">💾 Save Carter Level</button>
-        <button class="btn" style="background:var(--accent);color:#fff;margin-left:8px;" onclick="toggleCarterBatch()">📋 Batch Entry</button>
-        <div id="carterStatus" class="status"></div>
-      </div>
-      <div id="carterBatchPanel" style="display:none;border:1px solid var(--border);border-radius:8px;padding:14px;background:#f9f6ef;margin-bottom:14px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-          <h4 style="margin:0;color:var(--primary);">⚡ Batch Carter Level — <span id="carterBatchCount" style="color:var(--accent);font-weight:700;">0</span> queued</h4>
-          <div><button class="btn" onclick="saveCarterBatch()">💾 Save All</button><button class="btn secondary" style="margin-left:6px;" onclick="toggleCarterBatch()">✖ Close</button></div>
-        </div>
-        <p style="color:var(--text-muted);font-size:0.82em;margin-bottom:10px;">Use the Member dropdown & Carter Level field above, press Enter to queue each entry. Click Save All when done.</p>
-        <div id="carterBatchStatus" class="status" style="margin-bottom:8px;"></div>
-        <div style="max-height:50vh;overflow-y:auto;"><table id="carterBatchTable" data-sortable data-sort-col="0" style="width:100%;border-collapse:collapse;">
-          <thead><tr style="background:var(--bg-card-soft);"><th style="text-align:left;padding:6px 8px;">Member</th><th style="text-align:center;padding:6px 8px;width:100px;">Level</th><th style="text-align:center;padding:6px 8px;width:60px;"></th></tr></thead>
-          <tbody id="carterBatchBody"></tbody>
         </table></div>
       </div>
     </div>
@@ -450,7 +424,7 @@
 
   function setTodayDefaults() {
     const today = new Date().toISOString().split('T')[0];
-    ['troopDateInput', 'heroDateInput', 'carterDateInput', 'newMemberJoinDate', 'removeEndDateInput'].forEach(id => {
+    ['troopDateInput', 'heroDateInput', 'newMemberJoinDate', 'removeEndDateInput'].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.value = today;
     });
@@ -621,7 +595,7 @@
     const sorted = [...membersData].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
     const options = '<option value="">-- Select member --</option>' +
       sorted.map(m => `<option value="${escapeHtml(m.name)}">${escapeHtml(m.name)}</option>`).join('');
-    ['troopMemberSelect', 'heroMemberSelect', 'carterMemberSelect', 'removeMemberSelect'].forEach(id => {
+    ['troopMemberSelect', 'heroMemberSelect', 'removeMemberSelect'].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.innerHTML = options;
     });
@@ -776,12 +750,6 @@
     switchTab('heroTab');
     document.getElementById('heroLevelInput').focus();
   }
-  function quickEditCarter(name) {
-    document.getElementById('carterMemberSelect').value = name;
-    switchTab('carterTab');
-    document.getElementById('carterLevelInput').focus();
-  }
-
   function sortTable(field) {
     if (sortField === field) sortAsc = !sortAsc;
     else { sortField = field; sortAsc = true; }
@@ -996,42 +964,6 @@
   }
 
   // ===========================
-  // CARTER LEVEL ENTRY
-  // ===========================
-  async function submitCarterLevel() {
-    const playerName = document.getElementById('carterMemberSelect').value;
-    const levelRaw = document.getElementById('carterLevelInput').value;
-    const date = document.getElementById('carterDateInput').value;
-    const status = document.getElementById('carterStatus');
-    status.textContent = ''; status.className = 'status';
-
-    if (!playerName) { status.textContent = 'Please select a member.'; status.className = 'status err'; return; }
-    const level = parseInt(levelRaw, 10);
-    if (isNaN(level) || level < 1 || level > 500) { status.textContent = 'Enter a valid Carter level (1–500).'; status.className = 'status err'; return; }
-
-    status.textContent = 'Saving...';
-    const customTimestamp = date ? date + 'T12:00:00Z' : null;
-    try {
-      const result = await callFunction('addTroopEntry', [playerName, 'C', level, '', customTimestamp]);
-      if (result && result.success) {
-        status.textContent = result.message || `Carter level ${level} saved for ${playerName}.`;
-        status.className = 'status ok';
-        document.getElementById('carterLevelInput').value = '';
-        const key = playerName.toLowerCase();
-        if (!troopData[key]) troopData[key] = {};
-        troopData[key].C = level;
-        renderTable();
-      } else {
-        status.textContent = result?.message || 'Failed to save.';
-        status.className = 'status err';
-      }
-    } catch (err) {
-      status.textContent = 'Error: ' + err.message;
-      status.className = 'status err';
-    }
-  }
-
-  // ===========================
   // HERO BATCH ENTRY (Toggle)
   // ===========================
   let heroBatchQueue = {};
@@ -1113,91 +1045,6 @@
         renderTable();
         heroBatchQueue = {};
         renderHeroBatchTable();
-      } else { status.textContent = result?.message || 'Failed to save.'; status.className = 'status err'; }
-    } catch (err) { status.textContent = 'Error: ' + err.message; status.className = 'status err'; }
-  }
-
-  // ===========================
-  // CARTER BATCH ENTRY (Toggle)
-  // ===========================
-  let carterBatchQueue = {};
-
-  function toggleCarterBatch() {
-    const panel = document.getElementById('carterBatchPanel');
-    if (!panel) return;
-    const isVisible = panel.style.display !== 'none';
-    if (isVisible) { panel.style.display = 'none'; return; }
-    panel.style.display = 'block';
-    carterBatchQueue = {};
-    document.getElementById('carterBatchStatus').textContent = '';
-    renderCarterBatchTable();
-    document.getElementById('carterMemberSelect').focus();
-  }
-
-  function renderCarterBatchTable() {
-    const tbody = document.getElementById('carterBatchBody');
-    if (!tbody) return;
-    const countEl = document.getElementById('carterBatchCount');
-    const keys = Object.keys(carterBatchQueue);
-    if (countEl) countEl.textContent = keys.length;
-    if (keys.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;padding:20px;color:var(--text-muted);">No entries queued yet. Use the Member dropdown above and press Enter.</td></tr>';
-      return;
-    }
-    let html = '';
-    keys.forEach(key => {
-      const entry = carterBatchQueue[key];
-      html += '<tr style="border-bottom:1px solid #eee;">'
-        + '<td style="padding:4px 8px;">' + escapeHtml(entry.name) + '</td>'
-        + '<td style="text-align:center;padding:4px 8px;font-weight:700;color:var(--primary);">' + entry.level + '</td>'
-        + '<td style="text-align:center;padding:4px 8px;"><button onclick="removeCarterBatchEntry(\'' + escapeAttr(key) + '\')" style="background:none;border:none;color:#c0392b;cursor:pointer;font-size:1.1em;" title="Remove">✕</button></td>'
-        + '</tr>';
-    });
-    tbody.innerHTML = html;
-  }
-
-  function addToCarterBatch() {
-    const status = document.getElementById('carterStatus');
-    status.textContent = ''; status.className = 'status';
-    const memberSel = document.getElementById('carterMemberSelect');
-    const levelInput = document.getElementById('carterLevelInput');
-    const name = memberSel.value;
-    const level = parseInt(levelInput.value, 10);
-    if (!name) { status.textContent = 'Select a member.'; status.className = 'status err'; return; }
-    if (isNaN(level) || level < 1 || level > 500) { status.textContent = 'Carter level must be 1\u2013500.'; status.className = 'status err'; return; }
-    carterBatchQueue[name.toLowerCase()] = { name: name, level: level };
-    status.textContent = '\u2713 Queued: ' + name + ' \u2192 Level ' + level;
-    status.className = 'status ok';
-    levelInput.value = '';
-    memberSel.value = '';
-    renderCarterBatchTable();
-    memberSel.focus();
-  }
-
-  function removeCarterBatchEntry(key) {
-    delete carterBatchQueue[key];
-    renderCarterBatchTable();
-  }
-
-  async function saveCarterBatch() {
-    const status = document.getElementById('carterBatchStatus');
-    status.textContent = ''; status.className = 'status';
-    const keys = Object.keys(carterBatchQueue);
-    if (keys.length === 0) { status.textContent = 'No entries queued.'; status.className = 'status err'; return; }
-    const dateVal = document.getElementById('carterDateInput').value;
-    const customTimestamp = dateVal ? dateVal + 'T12:00:00Z' : null;
-    const records = keys.map(k => ({ playerName: carterBatchQueue[k].name, level: carterBatchQueue[k].level }));
-    status.textContent = 'Saving ' + records.length + ' entries...';
-    try {
-      const result = await callFunction('batchRecordCarterLevel', [records, customTimestamp]);
-      if (result && result.success) {
-        const saved = result.successCount || records.length;
-        status.textContent = saved + ' Carter level(s) saved!' + (result.errors && result.errors.length ? ' Errors: ' + result.errors.join('; ') : '');
-        status.className = 'status ok';
-        records.forEach(r => { const key = r.playerName.toLowerCase(); if (!troopData[key]) troopData[key] = {}; troopData[key].C = r.level; });
-        renderTable();
-        carterBatchQueue = {};
-        renderCarterBatchTable();
       } else { status.textContent = result?.message || 'Failed to save.'; status.className = 'status err'; }
     } catch (err) { status.textContent = 'Error: ' + err.message; status.className = 'status err'; }
   }
