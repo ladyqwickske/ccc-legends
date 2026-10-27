@@ -15,7 +15,8 @@
     'warnings.html',
     'profiling.html',
     'bank.html',
-    'admin.html'
+    'admin.html',
+    'help.html'
   ];
 
   var roleFetchInFlight = false;
@@ -77,6 +78,9 @@
 
     var profileTab = document.getElementById('myProfileTabBtn');
     if (profileTab) profileTab.style.display = (isAdmin || isMember) ? '' : 'none';
+
+    // help.js shows its ? buttons to superiors only
+    document.dispatchEvent(new CustomEvent('portal-role-change', { detail: { role: role } }));
 
     if (rolePending) return;
     guardPage(isAdmin);
