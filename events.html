@@ -187,7 +187,12 @@
     .sched-note { font-size: 0.82em; color: var(--text-muted, #aaa); margin-bottom: 6px; }
     .sched-table td { padding: 4px 6px; vertical-align: middle; }
     .sched-x { padding: 2px 8px !important; font-size: 0.8em; }
-  </style>
+    .status-icon { font-weight: 700; font-size: 1.05em; }
+  .status-icon.ok { color: var(--success); }
+  .status-icon.warn { color: #f0a500; }
+  .status-icon.err { color: #e53935; }
+  .status-icon.na { color: var(--text-muted); }
+</style>
 </head>
 <body>
 
@@ -689,38 +694,83 @@
   let partSortField = null;
   let partSortAsc = true;
   let lastPartData = [];
-  let lastPartHeaders = [];
   function sortParticipation(field) {
     if (partSortField === field) partSortAsc = !partSortAsc;
     else { partSortField = field; partSortAsc = true; }
-    if (currentPartBodyId === 'troopParticipationBody') {
-      renderTroopParticipation(lastPartData, lastPartHeaders);
-    } else {
-      renderParticipation(lastPartData, lastPartHeaders);
-    }
+    renderParticipation(lastPartData);
   }
-  function renderParticipation(data, headers) {
-    // The penalty exemption badge goes in the status column (chest events: Participated, manual: Notes)
-    const statusCol = ['Status', 'Participated', 'Notes'].find(h => headers.includes(h));
-    let sorted = [...data];
-    if (partSortField && headers.includes(partSortField)) {
-      sorted.sort((a, b) => {
-        let va = a[partSortField], vb = b[partSortField];
-        const na = Number(va), nb = Number(vb);
-        if (!isNaN(na) && !isNaN(nb)) return partSortAsc ? na - nb : nb - na;
-        return partSortAsc ? String(va || '').localeCompare(String(vb || '')) : String(vb || '').localeCompare(String(va || ''));
+  // Champions' compact participation table: Member, Category, Target, Achieved, (Title), Status, (Penalty).
+  // The status the database stored (troop: Pass / Partial / Fail; chest: Participated) shows as an icon,
+  // its word in the tooltip; a late joiner or penalty-exempt member gets the Exempt badge instead.
+  // The penalty is one cell: amount, waive / reset, and an Auto / Waived / Adjusted / Exempt badge.
+  function participationColumns(data) {
+    const first = data[0] || {};
+    const kind = 'Troop Category' in first ? 'troop' : 'Chest Count' in first ? 'chest' : 'manual';
+    const cols = [{ key: 'Member Name', label: 'Member Name' }];
+    if (kind === 'chest') {
+      cols.push({ key: 'Chest Count', label: 'Chests', num: true }, { key: 'Total Points', label: 'Points', num: true });
+    } else {
+      cols.push({ key: '_category', label: 'Category' }, { key: '_target', label: 'Target', num: true }, { key: 'Points', label: 'Achieved', num: true });
+      // As Champions: the Title column only when a member has a tournament title
+      if (kind === 'troop' && TITLE_TARGETS && data.some(r => String(r['Notes'] || '').trim())) cols.push({ key: 'Notes', label: 'Title' });
+      if (kind === 'manual' && data.some(r => String(r['Rank'] ?? '').trim() !== '')) cols.push({ key: 'Rank', label: 'Rank', num: true });
+    }
+    cols.push({ key: '_status', label: 'Status' });
+    // As Champions: the Penalty column only for an event with penalties on
+    if (selectedEvent && selectedEvent.penaltyEnabled && 'Penalty' in first) cols.push({ key: 'Penalty', label: 'Penalty', num: true });
+    return { kind, cols };
+  }
+
+  const STATUS_ICON = { ok: '✓', warn: '!', err: '✕', na: '—' };
+  const STATUS_RANK = { na: 0, err: 1, warn: 2, ok: 3 };
+  function participationStatus(kind, row, o) {
+    const word = String((kind === 'chest' ? row['Participated'] : kind === 'troop' ? row['Status'] : row['Notes']) || '').trim();
+    if (kind === 'troop') return { kind: word === 'Pass' ? 'ok' : word === 'Partial' ? 'warn' : word === 'Fail' ? 'err' : 'na', word: word || 'Not calculated yet' };
+    if (kind === 'chest') return { kind: word === 'Yes' ? 'ok' : word === 'Partial' ? 'warn' : word === 'No' ? 'err' : 'na', word: word || '—' };
+    if (o.exempt || word.includes('Not Applicable')) return { kind: 'na', word: word || 'Not Applicable' };
+    const outcome = outcomeOf(o);
+    return { kind: outcome === 'met' ? 'ok' : outcome === 'tried' ? 'warn' : outcome === 'noTarget' ? 'na' : 'err',
+      word: (OUTCOME_GROUPS.find(g => g.key === outcome) || {}).label || word };
+  }
+
+  function participationView(kind, row) {
+    const o = outcomeRowOf(row, selectedEvent);
+    const st = participationStatus(kind, row, o);
+    const rawTarget = String(row['Target'] ?? '').trim();
+    return { row, o, st,
+      _category: o.category, _target: o.target > 0 ? o.target : (rawTarget && isNaN(Number(rawTarget)) ? rawTarget : ''),
+      _status: penaltyExemptBadge(row['Member Name']) ? -1 : STATUS_RANK[st.kind] };
+  }
+
+  function renderParticipation(data) {
+    const { kind, cols } = participationColumns(data);
+    const views = data.map(row => participationView(kind, row));
+    const valueOf = (v, key) => (key in v ? v[key] : v.row[key]);
+    if (partSortField && cols.some(c => c.key === partSortField)) {
+      const col = cols.find(c => c.key === partSortField);
+      views.sort((a, b) => {
+        const va = valueOf(a, partSortField), vb = valueOf(b, partSortField);
+        const cmp = col.num || partSortField === '_status' ? (Number(va) || 0) - (Number(vb) || 0)
+          : String(va ?? '').localeCompare(String(vb ?? ''));
+        return partSortAsc ? cmp : -cmp;
       });
     }
-    document.getElementById(currentPartBodyId).innerHTML = sorted.map(row =>
-      '<tr>' + headers.map(h => {
-        if (h === 'Penalty') return penaltyCellHtml(row);
-        if (h === 'Penalty Status') return penaltyStatusCellHtml(row);
-        const badge = h === statusCol ? penaltyExemptBadge(row['Member Name']) : '';
-        if (badge) return `<td>${badge}${h === 'Notes' && row[h] ? ' ' + escapeHtml(String(row[h])) : ''}</td>`;
-        return `<td>${escapeHtml(String(row[h] || ''))}</td>`;
-      }).join('') + '</tr>'
-    ).join('');
-    renderOutcomeSummary(currentPartBodyId, sorted);
+    const headersEl = document.getElementById(currentPartBodyId.replace(/Body$/, 'Headers'));
+    if (headersEl) headersEl.innerHTML = cols.map(c => `<th onclick="sortParticipation('${c.key}')" style="cursor:pointer;text-align:${c.key === 'Member Name' ? 'left' : 'center'}">${escapeHtml(c.label)}${c.key === partSortField ? (partSortAsc ? ' ▲' : ' ▼') : ''}</th>`).join('');
+    const dash = '<span style="color:var(--text-muted)">—</span>';
+    document.getElementById(currentPartBodyId).innerHTML = views.map(v => '<tr>' + cols.map(c => {
+      if (c.key === 'Member Name') return `<td>${escapeHtml(String(v.row['Member Name'] || ''))}</td>`;
+      if (c.key === '_category') return `<td style="text-align:center">${v._category ? catBadgeHtml(v._category) : dash}</td>`;
+      if (c.key === '_status') {
+        const badge = penaltyExemptBadge(v.row['Member Name']);
+        return `<td style="text-align:center">${badge || `<span class="status-icon ${v.st.kind}" title="${escapeAttr(v.st.word)}">${STATUS_ICON[v.st.kind]}</span>`}</td>`;
+      }
+      if (c.key === 'Penalty') return penaltyCellHtml(v.row);
+      const val = valueOf(v, c.key);
+      if (val === '' || val === null || val === undefined) return `<td style="text-align:center">${dash}</td>`;
+      return `<td style="text-align:center">${c.num && !isNaN(Number(val)) ? Number(val).toLocaleString() : escapeHtml(String(val))}</td>`;
+    }).join('') + '</tr>').join('');
+    renderOutcomeSummary(currentPartBodyId, views.map(v => v.row));
   }
   let currentUser = null;
   let editingEvent = null;
@@ -1362,21 +1412,9 @@
     try {
       const [result] = await Promise.all([callFunction('getEventParticipation', [ev.eventName]), ensureTroopCategories(), ensurePenaltyExemptions()]);
       if (result && result.success && result.data && result.data.length > 0) {
-        // Use dedicated troop columns if calculated, otherwise show raw
-        const firstRow = result.data[0];
-        const hasTroopCols = 'Troop Category' in firstRow;
-        const displayHeaders = hasTroopCols
-          ? ['Member Name', 'Points', 'Troop Category', 'Target', 'Status'].concat(TITLE_TARGETS ? ['Notes'] : [], ('Penalty' in firstRow) ? ['Penalty', 'Penalty Status'] : [])
-          : Object.keys(firstRow);
-
-        headersEl.innerHTML = displayHeaders.map(h =>
-          `<th onclick="sortParticipation('${escapeHtml(h)}')" style="cursor:pointer">${escapeHtml(TITLE_TARGETS && hasTroopCols && h === 'Notes' ? 'Title' : h)}</th>`
-        ).join('');
-
         lastPartData = result.data;
-        lastPartHeaders = displayHeaders;
         currentPartBodyId = 'troopParticipationBody';
-        renderTroopParticipation(result.data, displayHeaders);
+        renderParticipation(result.data);
       } else {
         headersEl.innerHTML = '';
         bodyEl.innerHTML = '<tr><td style="text-align:center;color:var(--text-muted);padding:20px">No participation data yet. Enter points and click Calculate.</td></tr>';
@@ -1384,47 +1422,6 @@
     } catch (err) {
       bodyEl.innerHTML = '<tr><td style="text-align:center;color:var(--danger)">Error loading participation</td></tr>';
     }
-  }
-
-  function renderTroopParticipation(data, headers) {
-    let sorted = [...data];
-    if (partSortField && headers.includes(partSortField)) {
-      sorted.sort((a, b) => {
-        let va = a[partSortField], vb = b[partSortField];
-        const na = Number(va), nb = Number(vb);
-        if (!isNaN(na) && !isNaN(nb)) return partSortAsc ? na - nb : nb - na;
-        return partSortAsc ? String(va || '').localeCompare(String(vb || '')) : String(vb || '').localeCompare(String(va || ''));
-      });
-    }
-    const bodyEl = document.getElementById('troopParticipationBody');
-    bodyEl.innerHTML = sorted.map(row => {
-      return '<tr>' + headers.map(h => {
-        const val = String(row[h] || '');
-        // Style status column (penalty-exempt members: the Exempt badge)
-        if (h === 'Status' && penaltyExemptBadge(row['Member Name'])) return `<td style="text-align:center">${penaltyExemptBadge(row['Member Name'])}</td>`;
-        if (h === 'Status') {
-          const icon = val === 'Pass' ? '✅' : val === 'Partial' ? '⚠️' : val === 'Fail' ? '❌' : '—';
-          const color = val === 'Pass' ? 'var(--success)' : val === 'Partial' ? '#f0a500' : val === 'Fail' ? 'var(--danger)' : 'var(--text-muted)';
-          return `<td style="text-align:center;color:${color};font-weight:600">${icon} ${escapeHtml(val)}</td>`;
-        }
-        // Style category badge
-        if (h === 'Troop Category') {
-          if (val && val !== 'Unknown' && val !== '-') {
-            return `<td style="text-align:center">${catBadgeHtml(val)}</td>`;
-          }
-          return `<td style="text-align:center;color:var(--text-muted)">—</td>`;
-        }
-        // Right-align numeric columns
-        if (h === 'Penalty') return penaltyCellHtml(row);
-        if (h === 'Penalty Status') return penaltyStatusCellHtml(row);
-        if (h === 'Points' || h === 'Target') {
-          const num = Number(val);
-          return `<td style="text-align:right">${!isNaN(num) && val !== '-' ? num.toLocaleString() : val}</td>`;
-        }
-        return `<td>${escapeHtml(val)}</td>`;
-      }).join('') + '</tr>';
-    }).join('');
-    renderOutcomeSummary('troopParticipationBody', sorted);
   }
 
   async function saveTroopEntry() {
@@ -1481,13 +1478,9 @@
     try {
       const [result] = await Promise.all([callFunction('getEventParticipation', [ev.eventName]), ensureTroopCategories(), ensurePenaltyExemptions()]);
       if (result && result.success && result.data.length > 0) {
-        const headers = Object.keys(result.data[0]);
-        document.getElementById(headersId).innerHTML = headers.map(h => `<th onclick="sortParticipation('${escapeHtml(h)}')">${escapeHtml(h)}</th>`).join('');
         lastPartData = result.data;
-        lastPartHeaders = headers;
-        // Use correct body id for rendering
         currentPartBodyId = bodyId;
-        renderParticipation(result.data, headers);
+        renderParticipation(result.data);
       } else {
         document.getElementById(headersId).innerHTML = '';
         document.getElementById(bodyId).innerHTML = '<tr><td style="text-align:center;color:var(--text-muted)">No participation data yet</td></tr>';
@@ -1707,17 +1700,31 @@
 
   let currentPartBodyId = 'chestParticipationBody';
 
-  function penaltyCellHtml(row) {
-    const member = row['Member Name'] || row.memberName || '';
-    const raw = row['Penalty'];
-    const value = raw === '' || raw == null ? '' : Number(raw) || 0;
-    return `<td style="min-width:150px;"><input type="number" min="0" step="1" value="${value || ''}" data-member="${escapeAttr(member)}" class="penalty-input" style="width:90px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;"> <button class="btn secondary" style="padding:3px 7px;font-size:0.78em;" onclick="savePenalty('${escapeAttr(member)}', this)">Save</button></td>`;
+  function penaltyBadgeHtml(amount, status) {
+    const chip = (bg, fg, border, text) => `<span style="display:inline-block;padding:1px 8px;border-radius:10px;font-size:0.75em;font-weight:700;white-space:nowrap;background:${bg};color:${fg};border:1px solid ${border};">${text}</span>`;
+    if (status === 'Exempt') return chip('#e3f5e1', '#1b5e20', '#81c784', 'EXEMPT');
+    if (status === 'Waived') return chip('#eceff1', '#5b5750', '#b0bec5', 'WAIVED');
+    if (status === 'Adjusted') return chip('#ede7f6', '#7b1fa2', '#b39ddb', 'ADJUSTED');
+    if (Number(amount) > 0) return chip('#ffebee', '#c62828', '#ef9a9a', 'AUTO');
+    return '<span style="color:var(--text-muted)">—</span>';
   }
 
-  function penaltyStatusCellHtml(row) {
+  /** The penalty in one cell: amount (saved when changed), waive, reset, and its status badge. */
+  function penaltyCellHtml(row) {
     const member = row['Member Name'] || row.memberName || '';
     const status = row['Penalty Status'] || '';
-    return `<td style="min-width:170px;"><span style="font-weight:600;color:${status === 'Exempt' || status === 'Waived' ? 'var(--success)' : 'var(--text-muted)'}">${escapeHtml(status || 'Auto')}</span> <button class="btn secondary" style="padding:3px 7px;font-size:0.78em;" onclick="waivePenalty('${escapeAttr(member)}')">Waive</button> <button class="btn secondary" style="padding:3px 7px;font-size:0.78em;" onclick="resetPenalty('${escapeAttr(member)}')">Reset</button></td>`;
+    if (status === 'Exempt') return `<td style="text-align:center">${penaltyBadgeHtml(0, status)}</td>`;
+    const raw = row['Penalty'];
+    const value = raw === '' || raw == null ? 0 : Number(raw) || 0;
+    const attr = escapeAttr(member);
+    const unit = selectedEvent && selectedEvent.penaltyType === 'points' ? 'pts' : 'silver';
+    const iconBtn = 'padding:2px 7px;font-size:0.85em;margin:0;';
+    return '<td style="text-align:center"><div style="display:flex;align-items:center;gap:6px;justify-content:center;flex-wrap:wrap;">'
+      + `<input type="number" min="0" step="1" value="${value}" class="penalty-input" style="width:80px;padding:3px 6px;border:1px solid var(--border);border-radius:4px;" onchange="savePenalty('${attr}', this)">`
+      + `<span style="font-size:0.75em;color:var(--text-muted)">${unit}</span>`
+      + `<button class="btn secondary" style="${iconBtn}" title="Waive this penalty" onclick="waivePenalty('${attr}')">🚫</button>`
+      + `<button class="btn secondary" style="${iconBtn}" title="Reset to the calculated value" onclick="resetPenalty('${attr}')">↺</button>`
+      + penaltyBadgeHtml(value, status) + '</div></td>';
   }
 
   // Save / Waive / Reset for one member: changeAppliedPenalty changes only that member's
@@ -1848,7 +1855,7 @@
       }
       const reach = ev.participationMethod === 'hero-reach';
       const showPenalty = !!ev.penaltyEnabled;
-      const headers = ['Member', 'Category', reach ? 'Level' : 'Gained', 'Target', 'Result', 'Levels'].concat(showPenalty ? ['Penalty', 'Penalty Status'] : []);
+      const headers = ['Member', 'Category', reach ? 'Level' : 'Gained', 'Target', 'Result', 'Levels'].concat(showPenalty ? ['Penalty'] : []);
       headersEl.innerHTML = headers.map(h => `<th>${escapeHtml(h)}</th>`).join('');
       const order = { 'No': 0, 'No data': 1, 'Yes': 2 };
       const rows = [...result.data].sort((a, b) => ((order[a.Status] ?? 3) - (order[b.Status] ?? 3)) || String(a['Member Name']).localeCompare(String(b['Member Name'])));
@@ -1856,14 +1863,14 @@
       bodyEl.innerHTML = rows.map(row => {
         const status = String(row.Status || '');
         const exempt = penaltyExemptBadge(row['Member Name']);
-        const result = exempt || (status === 'Yes' ? '<span style="color:var(--success);font-weight:600">✅ Yes</span>'
-          : status === 'No' ? '<span style="color:var(--danger);font-weight:600">❌ No</span>'
+        const result = exempt || (status === 'Yes' ? '<span class="status-icon ok" title="Yes">✓</span>'
+          : status === 'No' ? '<span class="status-icon err" title="No">✕</span>'
           : status === 'No data' ? '<span style="color:#b7791f;font-weight:600" title="No hero level entered before the start, or none since: an officer decides">❔ No data</span>'
           : `<span style="color:var(--text-muted)" title="${escapeAttr(status)}">— N/A</span>`);
         const achieved = row.Achieved === '' || row.Achieved == null ? '' : (reach ? row.Achieved : (Number(row.Achieved) >= 0 ? '+' : '') + row.Achieved);
         const cat = row['Troop Category'] ? catBadgeHtml(row['Troop Category']) : '<span style="color:var(--text-muted)">—</span>';
         return `<tr><td>${escapeHtml(row['Member Name'])}</td><td style="text-align:center">${cat}</td><td style="text-align:center">${cell(achieved)}</td><td style="text-align:center">${cell(row.Target)}</td><td style="text-align:center">${result}</td><td>${cell(row.Notes)}</td>`
-          + (showPenalty ? penaltyCellHtml(row) + penaltyStatusCellHtml(row) : '') + '</tr>';
+          + (showPenalty ? penaltyCellHtml(row) : '') + '</tr>';
       }).join('');
     } catch (err) {
       bodyEl.innerHTML = '<tr><td style="text-align:center;color:var(--danger)">Error loading results</td></tr>';
