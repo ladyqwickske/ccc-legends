@@ -14,7 +14,7 @@
   <script src="help-content.js"></script>
   <script src="help.js"></script>
   <script src="member-transfers.js"></script>
-  <script src="captains.js"></script>
+  <script src="captains.js?v=2026-10-27"></script>
   <style>
     :root {
       --primary: #1fc1e6;
@@ -511,7 +511,7 @@
         callFunction('getMembersList'),
         callFunction('getAllTroopLevelsSummary').catch(() => null),
         callFunction('getHeroLevels').catch(() => null),
-        CCCCaptains.loadAll()
+        window.CCCCaptains ? CCCCaptains.loadAll().catch(() => null) : null   // the table never waits on or fails over the captains
       ]);
       captainData = captains;
       document.querySelectorAll('th.captain-col').forEach(th => { th.hidden = !captainData; });
@@ -655,7 +655,7 @@
         <td style="text-align:center">${troopBadge('m', troops.M)}</td>
         <td style="text-align:center">${troopBadge('s', troops.S)}</td>
         <td style="text-align:center">${troopBadge('e', troops.E)}</td>
-        <td style="text-align:center;white-space:nowrap;">${troopBadge('c', troops.C)}${CCCCaptains.carterStars(captainData && captainData[key])}</td>
+        <td style="text-align:center;white-space:nowrap;">${troopBadge('c', troops.C)}${captainData && CCCCaptains.carterStars ? CCCCaptains.carterStars(captainData[key]) : ''}</td>
         ${isLoggedIn ? `<td class="member-actions">
           <button title="Edit troops" onclick="quickEditTroop('${escapeAttr(m.name)}')">&nbsp;⚔️&nbsp;</button>
           <button title="Edit hero" onclick="quickEditHero('${escapeAttr(m.name)}')">&nbsp;🦸&nbsp;</button>
