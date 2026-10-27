@@ -951,7 +951,7 @@
     let targets = null;
     try { targets = json ? JSON.parse(json) : null; } catch (e) {}
     if (!targets || !Object.keys(targets).length) return '-';
-    return '🎯 ' + Object.entries(targets).map(([cat, pts]) => `${escapeHtml(cat)} ${Number(pts).toLocaleString()}`).join(' · ');
+    return '🎯 ' + Object.entries(targets).map(([cat, pts]) => `${escapeHtml(cat)} ${isTitleTarget(pts) ? 'Title' : Number(pts).toLocaleString()}`).join(' · ');
   }
 
   // Troop target row management
@@ -1386,7 +1386,7 @@
     const entries = Object.entries(targets);
     if (entries.length > 0) {
       summary.innerHTML = entries.map(([cat, pts]) =>
-        `${catBadgeHtml(cat)} ${Number(pts).toLocaleString()}`
+        `${catBadgeHtml(cat)} ${isTitleTarget(pts) ? 'Title' : Number(pts).toLocaleString()}`
       ).join(' &nbsp;│&nbsp; ');
       info.style.display = 'block';
     } else {
