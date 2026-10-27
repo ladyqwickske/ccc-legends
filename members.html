@@ -655,7 +655,7 @@
         <td style="text-align:center">${troopBadge('m', troops.M)}</td>
         <td style="text-align:center">${troopBadge('s', troops.S)}</td>
         <td style="text-align:center">${troopBadge('e', troops.E)}</td>
-        <td style="text-align:center">${troopBadge('c', troops.C)}</td>
+        <td style="text-align:center;white-space:nowrap;">${troopBadge('c', troops.C)}${CCCCaptains.carterStars(captainData && captainData[key])}</td>
         ${isLoggedIn ? `<td class="member-actions">
           <button title="Edit troops" onclick="quickEditTroop('${escapeAttr(m.name)}')">&nbsp;⚔️&nbsp;</button>
           <button title="Edit hero" onclick="quickEditHero('${escapeAttr(m.name)}')">&nbsp;🦸&nbsp;</button>
