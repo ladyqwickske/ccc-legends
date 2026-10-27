@@ -187,7 +187,7 @@ window.HELP_CONTENT = {
         ] },
         { title: '📈 Progress', list: [
           '**⚔️ Track Troops**: save the troop levels (G, S, M, E) and the Carter level of a member.',
-          '**🦸 Hero Level** and **🏗️ Carter Level**: save these levels. **📋 Batch Entry** lets you enter many members at once.',
+          '**🦸 Hero Level**: save the hero level. **📋 Batch Entry** lets you enter many members at once.',
           '**📦 Chest Points**: the chest points of every member in the last 5 periods, compared to their target.'
         ] },
         { title: 'Where are targets, exemptions and logins?', text: 'On the **Admin** page.' }
