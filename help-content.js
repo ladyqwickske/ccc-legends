@@ -130,6 +130,12 @@ window.HELP_CONTENT = {
         { title: '🦸 Hero Events', text: 'Checks if the hero level of each member went up enough during the event. It uses the hero levels entered on the Members page. It is calculated automatically one day after the event.' },
         { title: '➕ Create Event', text: 'Make one event by hand, make the coming events from the schedule (**📅 Generate Events**), or remove generated events that are not needed (**🧹 Clean Up Generated Events**).' },
         { title: '⚙️ Event Types', text: 'The kinds of events (for example Ragnarok) and how each kind is counted: from chests, from troops, by hand, hero level, or only as a date (period marker).' },
+        { title: '🎯 Targets and penalties', list: [
+          '**Target Points**: what every member must reach in this event. Leave it empty to use the event type\'s default (**Threshold** on ⚙️ Event Types).',
+          '**🎯 Troop Category Targets**: a different target per troop category (G7, G8, T8, G9, T9). A member\'s category is their highest troop level.',
+          '**Penalty**: every event can have a penalty, or none. Without a penalty, a missed target has no cost (it still counts in Profiling).',
+          'New events start with the targets of their event type. Generated events start without a penalty.'
+        ] },
         { title: '🗓️ Schedule', text: 'When each tournament comes back, and which events **📅 Generate Events** makes for it. The Calendar page shows this schedule too.' },
         { title: 'Penalty buttons (on every event tab)', list: [
           '**Fill Non-Participants**: marks every member without an entry as "did not take part".',
@@ -159,10 +165,31 @@ window.HELP_CONTENT = {
         ] },
         { q: 'How do I create one event by hand?', steps: [
           'Open **➕ Create Event**.',
-          'Type the name, choose the type, the start date, the end date and the target points.',
-          'Troop event? Add a target per troop category under **🎯 Troop Category Targets**.',
-          'Want a penalty? Tick **Enable missed-target penalty**, choose **Silver** or **Points**, and type the highest penalty. A member who missed half the target gets half the penalty.',
+          'Type the name, choose the event type, the start date and the end date.',
+          'Set the targets and the penalty (see the questions below).',
           'Click **Save Event**.'
+        ] },
+        { q: 'How do I set the target of an event?', steps: [
+          'Open **📋 Manage** and click **✏️** next to the event. For a new event, open **➕ Create Event**.',
+          'Type the target in **Target Points**. This is the target for every member.',
+          'Leave it empty to use the default of the event type (**Threshold** on ⚙️ Event Types). For **Active Period** it is the chest points target of the period.',
+          'Hero events: the target is the number of hero levels to gain (Hero Level Increase) or the hero level to reach (Hero Level Reached).',
+          'Click **Save Event** to save.'
+        ] },
+        { q: 'How do I set targets per troop category?', steps: [
+          'Open the event with **✏️** (or **➕ Create Event**) and choose a troop or hero event type. The section **🎯 Troop Category Targets** appears.',
+          'Click **+ Add Category** for each category. Choose the category (for example G8) and type its target.',
+          'Members whose category has no target here use **Target Points** of the event.',
+          'Click **Save Event** to save.',
+          'To set the same targets for every new event of a type: open **⚙️ Event Types**, edit the type and fill in **🎯 Default Troop Category Targets** (**+ Add Category**). Click **Save Type**. New and generated events then start with these targets.'
+        ] },
+        { q: 'How do I give an event a penalty (or not)?', steps: [
+          'A penalty is a choice per event. An event without a penalty only counts in Profiling.',
+          'Open the event with **✏️** in **📋 Manage** (or use **➕ Create Event**).',
+          'Tick **Enable missed-target penalty**. Choose **Silver** (paid to the clan bank) or **Points** (added to the member\'s chest points target).',
+          'Type the amount: the penalty for a member who did nothing. A member who missed 40% of the target gets 40% of it.',
+          'No penalty? Leave the box unticked. Generated events always start without a penalty, so tick it on the events that need one.',
+          'Click **Save Event** to save. The penalty is only given when you apply the penalties after the event.'
         ] },
         { q: 'Too many generated events. How do I remove them?', steps: [
           'Open **➕ Create Event** and scroll down to **🧹 Clean Up Generated Events**.',
