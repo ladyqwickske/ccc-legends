@@ -360,6 +360,7 @@
 
   </div>
 
+  <div style="text-align:center;margin-bottom:12px;"><button class="btn" id="exportTroopsBtn" onclick="exportTroopsCsv()" title="Every member with their troop levels and profile score, grouped by troop category">⬇️ Export CSV</button></div>
   <div class="member-count" id="memberCount"></div>
 
   <div class="loading" id="loadingDiv"><div class="spinner"></div><br>Loading members...</div>
@@ -1050,6 +1051,48 @@
   }
 
   // UTILITIES
+  // ⬇️ Export CSV: every member with their troop levels and profile score
+  // (getProfilingBundle, the same score as on the Profiling page), grouped by
+  // troop category (highest first), best score first within each category.
+  async function exportTroopsCsv() {
+    const btn = document.getElementById('exportTroopsBtn');
+    const label = btn.textContent;
+    btn.disabled = true; btn.textContent = '⏳ Exporting...';
+    try {
+      const res = await callFunction('getProfilingBundle');
+      if (!res || !res.success) throw new Error((res && res.message) || 'Could not load the profile scores');
+      const scores = {};
+      const ranked = (res.members || []).filter(m => !m.notRanked).sort((a, b) => b.overallScore - a.overallScore);
+      (res.members || []).forEach(m => {
+        scores[(m.name || '').trim().toLowerCase()] = { score: m.overallScore, rating: m.rating, rank: m.notRanked ? 'Not ranked yet' : ranked.indexOf(m) + 1 };
+      });
+      const rows = membersData.map(member => {
+        const key = (member.name || '').trim().toLowerCase();
+        const t = troopData[key] || {};
+        return { member, t, cat: determineTroopCategory(t.G, t.M, t.S), hero: heroData[key], p: scores[key] || {} };
+      }).sort((a, b) => CATEGORY_ORDER.indexOf(b.cat) - CATEGORY_ORDER.indexOf(a.cat)
+        || (b.p.score ?? -1) - (a.p.score ?? -1) || a.member.name.localeCompare(b.member.name));
+      const cell = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
+      const lines = [['Category', 'Rank in category', 'Member', 'Guardsmen (G)', 'Monsters (M)', 'Specialists (S)', 'Eng. Corps (E)', 'Carter (C)', 'Hero level', 'Profile score', 'Rating', 'Clan rank', 'Joined'].map(cell).join(',')];
+      let prevCat, catRank = 0;
+      rows.forEach(r => {
+        catRank = r.cat === prevCat ? catRank + 1 : 1; prevCat = r.cat;
+        lines.push([r.cat || 'No troop levels', catRank, r.member.name, r.t.G, r.t.M, r.t.S, r.t.E, r.t.C, r.hero ? r.hero.level : '',
+          r.p.score, r.p.rating, r.p.rank, r.member.joinDate || ''].map(cell).join(','));
+      });
+      const blob = new Blob(['\ufeff' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'members-troops-scores-' + new Date().toISOString().slice(0, 10) + '.csv';
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    } catch (e) {
+      showToast('Export failed: ' + e.message, 'error');
+    } finally {
+      btn.disabled = false; btn.textContent = label;
+    }
+  }
+
   function escapeHtml(str) {
     if (!str) return '';
     const div = document.createElement('div');
