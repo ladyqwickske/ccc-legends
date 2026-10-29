@@ -245,7 +245,7 @@
       <button class="tab-btn-inner" data-group="chestdata" data-tab="manualChestsTab" id="manualChestsTabBtn" style="display:none" onclick="switchTab('manualChestsTab', this)">➕ Manual Chests</button>
       <button class="tab-btn-inner active" data-group="chestdata" data-tab="chestNameFixTab" onclick="switchTab('chestNameFixTab', this)">🔀 Move Chests</button>
       <button class="tab-btn-inner" data-group="chestdata" data-tab="ocrTab" onclick="switchTab('ocrTab', this)">🔤 OCR Corrections</button>
-      <button class="tab-btn-inner" data-group="chestdata" data-tab="voltronNamesTab" onclick="switchTab('voltronNamesTab', this)">🛰️ Voltron Names</button>
+      <button class="tab-btn-inner" data-group="chestdata" data-tab="voltronNamesTab" id="voltronNamesTabBtn" style="display:none" onclick="switchTab('voltronNamesTab', this)">🛰️ Voltron Names</button>
       <button class="tab-btn-inner" data-group="chestdata" data-tab="removeChestsTab" onclick="switchTab('removeChestsTab', this)">🛠️ Manage Chest Data</button>
       <button class="tab-btn-inner" hidden data-group="rules" data-tab="chestValuesTab" onclick="switchTab('chestValuesTab', this)">🏷️ Chest Point Values</button>
       <button class="tab-btn-inner" hidden data-group="rules" data-tab="exemptTab" onclick="switchTab('exemptTab', this)">🛡️ Exemptions</button>
@@ -542,6 +542,7 @@
       loadMembers();
       if (window.ManualChests) window.ManualChests.checkAccess();
       if (window.Superiors) window.Superiors.checkAccess();
+      if (window.VoltronNames) window.VoltronNames.checkAccess();
     }
     initTransfers();
     const tab = (location.hash || '').slice(1);
@@ -1343,7 +1344,7 @@
       return { load, render, addWord };
     })();
 
-    // 🛰️ Voltron Names: Voltron player names → member names for the Voltron imports
+    // 🛰️ Voltron Names (owner only): Voltron player names → member names for the Voltron imports
     // (getVoltronNameCorrections / updateVoltronNameCorrections). Names the last runs
     // could not match are listed on top for a quick fix.
     window.VoltronNames = (function () {
@@ -1470,7 +1471,15 @@
         if (!(mEl.value || '').trim()) { status('Which member is "' + v + '"?', false); return; }
         if (await set(v, mEl.value)) { vEl.value = ''; mEl.value = ''; }
       }
-      return { load, render, add };
+      // Show the tab only to the owner: the Worker answers getVoltronNameCorrections only for her (and the imports' API key).
+      function checkAccess() {
+        const btn = document.getElementById('voltronNamesTabBtn');
+        if (!btn) return;
+        post({ action: 'getVoltronNameCorrections' })
+          .then(r => { if (r && r.success) btn.style.display = ''; })
+          .catch(() => {});
+      }
+      return { load, render, add, checkAccess };
     })();
 
     // 🏷️ Chest Point Values: the points per chest (old "Chests 2.0" tab), changed on the
