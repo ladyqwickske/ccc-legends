@@ -874,6 +874,8 @@
     const status = document.getElementById('addMemberStatus');
     status.textContent = ''; status.className = 'status';
     if (!name) { status.textContent = 'Name is required.'; status.className = 'status err'; return; }
+    // A former member had this name: same person (→ Returning member) or someone new? (member-transfers.js)
+    if (window.ReturningMember && !(await window.ReturningMember.confirmNew(name))) return;
 
     status.textContent = 'Adding...';
     try {
