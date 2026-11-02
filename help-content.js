@@ -34,6 +34,15 @@ window.HELP_CONTENT = {
       ]
     },
     {
+      id: 'whatsnew',
+      title: '🆕 What\'s new (November 2026)',
+      list: [
+        '**🔁 Member Transfers** can now move a player between the cCc clans. Tick **🔁 Move the member** and give the **Transfer date**. When the other clan approves, the player is removed there (reason "Transferred to …") and added here with that date as join date. Their troop, hero and captain levels are copied automatically. See **Admin** below.',
+        '**🛰️ Voltron Names** (only the clan leader): Voltron names that do not match a member, and the member they belong to. The Voltron imports use this list. It replaces a file on the chesttracker computer.',
+        'The Voltron growth import reads the new layout of Voltron\'s Growth page again.'
+      ]
+    },
+    {
       id: 'language',
       title: '🌐 Read the site in your own language',
       text: [
@@ -361,7 +370,8 @@ window.HELP_CONTENT = {
           '**🔀 Move Chests**: move chests from one name to the right member, for example chests saved under a name the chesttracker read wrong.',
           '**🔤 OCR Corrections**: words the chesttracker reads wrong, and the correct word. The chesttracker uses them at its next run. This does not change chests that are already saved: move those with **🔀 Move Chests**.',
           '**🛠️ Manage Chest Data**: every chest of the active or previous period. Remove chests that should not count, or correct a wrong chest type, name or level. You can undo this under **Recent removals** and **Recent corrections**.',
-          '**➕ Manual Chests** (only the clan leader): add chests the chesttracker missed.'
+          '**➕ Manual Chests** (only the clan leader): add chests the chesttracker missed.',
+          '**🛰️ Voltron Names** (only the clan leader): Voltron player names that do not match a member, and the member they belong to. Names the last Voltron imports could not match are listed at the top: pick the member and click **✔ Save**. The next Voltron import then records their scores and levels.'
         ] },
         { title: '🏷️ Rules', list: [
           '**🏷️ Chest Point Values**: how many points each chest is worth. A change counts again for the active period right away.',
@@ -370,7 +380,7 @@ window.HELP_CONTENT = {
         ] },
         { title: '🔁 Between clans', list: [
           '**🔗 Link Former Members**: a member who came back and was added as a new member. Link their old history to them.',
-          '**🔁 Member Transfers**: a player who moves between the cCc clans. Ask the old clan for their profile, and answer requests from other clans. Nothing is shared until a superior approves it.'
+          '**🔁 Member Transfers**: a player who moves between the cCc clans. Ask the old clan to transfer the player (or only for their profile), and answer requests from other clans. Nothing is shared or moved until a superior of the other clan approves it. With **🔁 Move the member**, approving removes the player there (reason "Transferred to …", end date = the transfer date) and adds them here with that date as join date, with their troop, hero and captain levels.'
         ] },
         { title: '🔐 Access', list: [
           '**🔐 Login Accounts**: link a member to a Google account, so they can sign in and see their profile. One Google account can be linked to several members (alt accounts).',
@@ -406,14 +416,27 @@ window.HELP_CONTENT = {
           'Type their Google e-mail next to their name.',
           'Click **💾 Save Linked Accounts**. They can now sign in and open **My Profile**.'
         ] },
-        { q: 'A player comes to us from another cCc clan.', steps: [
-          'Add them on **Members → ➕ Add Member** first.',
-          'Open **🔁 Between clans → 🔁 Member Transfers**. Under **📨 Ask another clan for a profile**, choose the clan and type their name in that clan.',
-          'Click **📨 Send request**.',
-          'Wait until a superior of the other clan approves. The request then shows **✅ approved** under **📤 Our requests**.',
-          'Click **👁️ View profile** to see their profile.',
-          'Under the profile, pick our member at **For our member** and click **⬇️ Copy levels**. Confirm.',
-          'This adds their troop and hero levels and their captain history to our records.'
+        { q: 'A player moves to us from another cCc clan.', steps: [
+          'Open **🔁 Between clans → 🔁 Member Transfers**. Under **📨 Ask another clan for a member (transfer) or their profile**, choose the clan and type their name in that clan.',
+          'Their name here is different? Type it in **Their name here**. Fill in the **Transfer date**: the day they joined us.',
+          'Leave **🔁 Move the member** ticked. Click **📨 Send request** and confirm.',
+          'A superior of the other clan approves the request on their **🔁 Member Transfers** page.',
+          'Then the player is removed there and added here, with the transfer date as join date. Their troop, hero and captain levels are copied. You do not need to add them on the Members page.',
+          'Was the player in our clan before? They come back with their old history (like **Returning member**).',
+          'Under **📤 Our requests** you see what was done. A ⚠️ line means something is not finished yet: it is tried again each time this page is opened.'
+        ] },
+        { q: 'Another clan asks to transfer one of our members.', steps: [
+          'Open **🔁 Between clans → 🔁 Member Transfers**. The request is under **📥 Requests from other clans**, with **🔁 Transfer on** and the date.',
+          'Check **Which of our members?** and click **✅ Approve**. Confirm.',
+          'The member is moved to Former Members, with the transfer date as end date and the reason "Transferred to" the other clan.',
+          'Not our player, or not leaving? Click **⛔ Decline**.'
+        ] },
+        { q: 'Voltron writes a member\'s name differently.', steps: [
+          'Open **📥 Chest data → 🛰️ Voltron Names** (only the clan leader sees it).',
+          'Names the Voltron imports could not match are under **Not matched in the last runs**. Type or pick the member and click **✔ Save**.',
+          'Or add one yourself under **Corrections**: the name exactly as Voltron shows it, and the member. Click **➕ Add**.',
+          'Not a member of ours? Click **✖ Not a member**.',
+          'The next Voltron import records their missing scores and levels.'
         ] }
       ]
     },
