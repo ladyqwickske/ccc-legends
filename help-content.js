@@ -38,7 +38,6 @@ window.HELP_CONTENT = {
       title: '🆕 What\'s new (November 2026)',
       list: [
         '**🔁 Member Transfers** can now move a player between the cCc clans. Tick **🔁 Move the member** and give the **Transfer date**. When the other clan approves, the player is removed there (reason "Transferred to …") and added here with that date as join date. Their troop, hero and captain levels are copied automatically. See **Admin** below.',
-        '**🛰️ Voltron Names** (only the clan leader): Voltron names that do not match a member, and the member they belong to. The Voltron imports use this list. It replaces a file on the chesttracker computer.',
         'The Voltron growth import reads the new layout of Voltron\'s Growth page again.'
       ]
     },
@@ -370,8 +369,7 @@ window.HELP_CONTENT = {
           '**🔀 Move Chests**: move chests from one name to the right member, for example chests saved under a name the chesttracker read wrong.',
           '**🔤 OCR Corrections**: words the chesttracker reads wrong, and the correct word. The chesttracker uses them at its next run. This does not change chests that are already saved: move those with **🔀 Move Chests**.',
           '**🛠️ Manage Chest Data**: every chest of the active or previous period. Remove chests that should not count, or correct a wrong chest type, name or level. You can undo this under **Recent removals** and **Recent corrections**.',
-          '**➕ Manual Chests** (only the clan leader): add chests the chesttracker missed.',
-          '**🛰️ Voltron Names** (only the clan leader): Voltron player names that do not match a member, and the member they belong to. Names the last Voltron imports could not match are listed at the top: pick the member and click **✔ Save**. The next Voltron import then records their scores and levels.'
+          '**➕ Manual Chests** (only the clan leader): add chests the chesttracker missed.'
         ] },
         { title: '🏷️ Rules', list: [
           '**🏷️ Chest Point Values**: how many points each chest is worth. A change counts again for the active period right away.',
@@ -430,13 +428,6 @@ window.HELP_CONTENT = {
           'Check **Which of our members?** and click **✅ Approve**. Confirm.',
           'The member is moved to Former Members, with the transfer date as end date and the reason "Transferred to" the other clan.',
           'Not our player, or not leaving? Click **⛔ Decline**.'
-        ] },
-        { q: 'Voltron writes a member\'s name differently.', steps: [
-          'Open **📥 Chest data → 🛰️ Voltron Names** (only the clan leader sees it).',
-          'Names the Voltron imports could not match are under **Not matched in the last runs**. Type or pick the member and click **✔ Save**.',
-          'Or add one yourself under **Corrections**: the name exactly as Voltron shows it, and the member. Click **➕ Add**.',
-          'Not a member of ours? Click **✖ Not a member**.',
-          'The next Voltron import records their missing scores and levels.'
         ] }
       ]
     },
