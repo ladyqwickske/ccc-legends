@@ -59,7 +59,19 @@ window.GAS_WEB_APP_URL = window.CLOUDFLARE_WORKER_URL;
 			+ ' @media (min-width: 601px) { nav.tab-nav { padding-right: 110px; padding-left: 8px; } nav.tab-nav .nav-links a { padding-left: 12px; padding-right: 12px; white-space: nowrap; } }'
 			+ ' @media (min-width: 601px) and (max-width: 1180px) { nav.tab-nav .nav-links a { padding-left: 7px; padding-right: 7px; font-size: 0.85em; } }'
 			+ ' @media (min-width: 601px) and (max-width: 960px) { nav.tab-nav { padding-right: 96px; } nav.tab-nav .nav-links .nav-icon { display: none; } nav.tab-nav .nav-links a { padding-left: 5px; padding-right: 5px; font-size: 0.8em; } }'
-			+ ' @media (min-width: 601px) and (max-width: 1500px) { nav.tab-nav #userEmail { display: none !important; } }';
+			+ ' @media (min-width: 601px) and (max-width: 1500px) { nav.tab-nav #userEmail { display: none !important; } }'
+			// Tablets (601–1024px, or a touch screen up to 1400px, e.g. a tablet held sideways):
+			// the pages switch to the ☰ menu only up to 600px, so give tablets the same ☰ menu
+			// here, as on the cCc Anatolia site (instead of the squeezed desktop bar).
+			+ ' @media (min-width: 601px) and (max-width: 1024px), (min-width: 601px) and (max-width: 1400px) and (pointer: coarse) {'
+			+ ' nav.tab-nav { flex-wrap: wrap !important; padding: 0 8px !important; align-items: center !important; }'
+			+ ' nav.tab-nav .hamburger { display: flex !important; }'
+			+ ' nav.tab-nav .login-bar { position: static !important; flex: 1 !important; justify-content: flex-end !important; padding: 4px 0 !important; gap: 6px !important; }'
+			+ ' nav.tab-nav .nav-links { display: none !important; width: 100% !important; flex-direction: column !important; order: 10 !important; }'
+			+ ' nav.tab-nav .nav-links.open { display: flex !important; }'
+			+ ' nav.tab-nav .nav-links a { padding: 10px 12px !important; font-size: 0.9em !important; border-bottom: 1px solid var(--border) !important; }'
+			+ ' nav.tab-nav .nav-links .nav-icon { display: inline !important; }'
+			+ ' }';
 		(document.head || document.documentElement).appendChild(style);
 	})();
 
