@@ -166,3 +166,42 @@ window.GAS_WEB_APP_URL = window.CLOUDFLARE_WORKER_URL;
 	if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', add);
 	else add();
 })();
+
+// Clan shield in the menu bar on every page (a link to the Dashboard): on the left of
+// the bar on desktops, and next to ☰ on phones and tablets.
+(function clanShield() {
+	var add = function () {
+		var nav = document.querySelector('nav.tab-nav');
+		if (!nav || document.getElementById('clanShield')) return;
+		var name = (typeof SITE_CONFIG !== 'undefined' && SITE_CONFIG.clanName) || document.title;
+		var link = document.createElement('a');
+		link.id = 'clanShield';
+		link.className = 'clan-shield';
+		link.href = 'dashboard.html';
+		link.title = name;
+		var img = document.createElement('img');
+		img.src = 'clan-shield.png';
+		img.alt = name;
+		link.appendChild(img);
+		var hamburger = document.getElementById('hamburgerBtn');
+		if (hamburger) hamburger.insertAdjacentElement('afterend', link);
+		else nav.insertBefore(link, nav.firstChild);
+		var style = document.createElement('style');
+		style.textContent = 'nav.tab-nav a.clan-shield { padding: 0 !important; border: none !important; display: flex; align-items: center; flex: 0 0 auto; }'
+			+ ' nav.tab-nav a.clan-shield img { height: 36px; width: auto; display: block; }'
+			// Desktop: on the left of the bar, the menu links stay centred and clear of it
+			+ ' @media (min-width: 1025px) and (pointer: fine), (min-width: 1401px) {'
+			+ ' nav.tab-nav { padding-left: 60px !important; }'
+			+ ' nav.tab-nav a.clan-shield { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); }'
+			+ ' nav.tab-nav a.clan-shield img { height: 40px; }'
+			+ ' }'
+			// Phones and tablets: right after ☰
+			+ ' @media (max-width: 1024px), (max-width: 1400px) and (pointer: coarse) {'
+			+ ' nav.tab-nav a.clan-shield { margin: 0 4px; }'
+			+ ' nav.tab-nav a.clan-shield img { height: 34px; }'
+			+ ' }';
+		document.head.appendChild(style);
+	};
+	if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', add);
+	else add();
+})();
