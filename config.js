@@ -59,7 +59,19 @@ window.GAS_WEB_APP_URL = window.CLOUDFLARE_WORKER_URL;
 			+ ' @media (min-width: 601px) { nav.tab-nav { padding-right: 110px; padding-left: 8px; } nav.tab-nav .nav-links a { padding-left: 12px; padding-right: 12px; white-space: nowrap; } }'
 			+ ' @media (min-width: 601px) and (max-width: 1180px) { nav.tab-nav .nav-links a { padding-left: 7px; padding-right: 7px; font-size: 0.85em; } }'
 			+ ' @media (min-width: 601px) and (max-width: 960px) { nav.tab-nav { padding-right: 96px; } nav.tab-nav .nav-links .nav-icon { display: none; } nav.tab-nav .nav-links a { padding-left: 5px; padding-right: 5px; font-size: 0.8em; } }'
-			+ ' @media (min-width: 601px) and (max-width: 1500px) { nav.tab-nav #userEmail { display: none !important; } }';
+			+ ' @media (min-width: 601px) and (max-width: 1500px) { nav.tab-nav #userEmail { display: none !important; } }'
+			// Tablets (601–1024px, or a touch screen up to 1400px, e.g. a tablet held sideways):
+			// the pages switch to the ☰ menu only up to 600px, so give tablets the same ☰ menu
+			// here, as on the cCc Anatolia site (instead of the squeezed desktop bar).
+			+ ' @media (min-width: 601px) and (max-width: 1024px), (min-width: 601px) and (max-width: 1400px) and (pointer: coarse) {'
+			+ ' nav.tab-nav { flex-wrap: wrap !important; padding: 0 8px !important; align-items: center !important; }'
+			+ ' nav.tab-nav .hamburger { display: flex !important; }'
+			+ ' nav.tab-nav .login-bar { position: static !important; flex: 1 !important; justify-content: flex-end !important; padding: 4px 0 !important; gap: 6px !important; }'
+			+ ' nav.tab-nav .nav-links { display: none !important; width: 100% !important; flex-direction: column !important; order: 10 !important; }'
+			+ ' nav.tab-nav .nav-links.open { display: flex !important; }'
+			+ ' nav.tab-nav .nav-links a { padding: 10px 12px !important; font-size: 0.9em !important; border-bottom: 1px solid var(--border) !important; }'
+			+ ' nav.tab-nav .nav-links .nav-icon { display: inline !important; }'
+			+ ' }';
 		(document.head || document.documentElement).appendChild(style);
 	})();
 
@@ -150,6 +162,45 @@ window.GAS_WEB_APP_URL = window.CLOUDFLARE_WORKER_URL;
 			'letter-spacing:.5px', 'pointer-events:auto', 'opacity:.92'
 		].join(';');
 		document.body.appendChild(badge);
+	};
+	if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', add);
+	else add();
+})();
+
+// Clan shield in the menu bar on every page (a link to the Dashboard): on the left of
+// the bar on desktops, and next to ☰ on phones and tablets.
+(function clanShield() {
+	var add = function () {
+		var nav = document.querySelector('nav.tab-nav');
+		if (!nav || document.getElementById('clanShield')) return;
+		var name = (typeof SITE_CONFIG !== 'undefined' && SITE_CONFIG.clanName) || document.title;
+		var link = document.createElement('a');
+		link.id = 'clanShield';
+		link.className = 'clan-shield';
+		link.href = 'dashboard.html';
+		link.title = name;
+		var img = document.createElement('img');
+		img.src = 'clan-shield.png';
+		img.alt = name;
+		link.appendChild(img);
+		var hamburger = document.getElementById('hamburgerBtn');
+		if (hamburger) hamburger.insertAdjacentElement('afterend', link);
+		else nav.insertBefore(link, nav.firstChild);
+		var style = document.createElement('style');
+		style.textContent = 'nav.tab-nav a.clan-shield { padding: 0 !important; border: none !important; display: flex; align-items: center; flex: 0 0 auto; }'
+			+ ' nav.tab-nav a.clan-shield img { height: 36px; width: auto; display: block; }'
+			// Desktop: on the left of the bar, the menu links stay centred and clear of it
+			+ ' @media (min-width: 1025px) and (pointer: fine), (min-width: 1401px) {'
+			+ ' nav.tab-nav { padding-left: 60px !important; }'
+			+ ' nav.tab-nav a.clan-shield { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); }'
+			+ ' nav.tab-nav a.clan-shield img { height: 40px; }'
+			+ ' }'
+			// Phones and tablets: right after ☰
+			+ ' @media (max-width: 1024px), (max-width: 1400px) and (pointer: coarse) {'
+			+ ' nav.tab-nav a.clan-shield { margin: 0 4px; }'
+			+ ' nav.tab-nav a.clan-shield img { height: 34px; }'
+			+ ' }';
+		document.head.appendChild(style);
 	};
 	if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', add);
 	else add();
