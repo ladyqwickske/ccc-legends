@@ -255,6 +255,7 @@
       <button class="tab-btn-inner" hidden data-group="clans" data-tab="transfersTab" id="transfersTabBtn" onclick="switchTab('transfersTab', this)">🔁 Member Transfers</button>
       <button class="tab-btn-inner" hidden data-group="access" data-tab="accountsTab" onclick="switchTab('accountsTab', this)">🔐 Login Accounts</button>
       <button class="tab-btn-inner" hidden data-group="access" data-tab="superiorsTab" id="superiorsTabBtn" style="display:none" onclick="switchTab('superiorsTab', this)">👑 Superiors</button>
+      <button class="tab-btn-inner" hidden data-group="access" data-tab="emailSettingsTab" id="emailSettingsTabBtn" style="display:none" onclick="switchTab('emailSettingsTab', this)">📧 E-mails</button>
     </div>
 
     <div id="manualChestsTab" class="tab-panel">
@@ -527,6 +528,29 @@
     </div>
 
 
+    <div id="emailSettingsTab" class="tab-panel">
+      <h3 style="margin:0 0 10px;color:var(--primary)">E-mails</h3>
+      <div style="font-size:0.82em;color:var(--text-muted);margin:2px 0 4px;">Who gets the e-mails about this clan. Separate several addresses with commas. Only the owners can see this tab.</div>
+      <h4 style="margin:14px 0 4px;color:var(--primary)">📋 Import reports</h4>
+      <div style="font-size:0.82em;color:var(--text-muted);margin:2px 0 4px;">After each chest import: names and chests that matched nobody, events calculated. Also the mail when the database starts a new period by itself.</div>
+      <textarea id="emReport" style="width:100%;min-height:52px;padding:8px 10px;border:1px solid var(--border);border-radius:6px;" placeholder="name@example.com, other@example.com"></textarea>
+      <div id="emReportNote" style="font-size:0.82em;color:var(--text-muted);margin:2px 0 4px;"></div>
+      <button class="btn" style="margin:4px 0 0;" onclick="EmailSettings.save('report')">💾 Save</button> <button class="btn secondary" style="margin:4px 0 0;" onclick="EmailSettings.save('report', true)" title="Back to the default">↺ Default</button>
+      <h4 style="margin:14px 0 4px;color:var(--primary)">🏁 Period summary</h4>
+      <div style="font-size:0.82em;color:var(--text-muted);margin:2px 0 4px;">The summary at the end of each period. Leave it empty to send it to nobody.</div>
+      <textarea id="emSummary" style="width:100%;min-height:52px;padding:8px 10px;border:1px solid var(--border);border-radius:6px;" placeholder="name@example.com, other@example.com"></textarea>
+      <div id="emSummaryNote" style="font-size:0.82em;color:var(--text-muted);margin:2px 0 4px;"></div>
+      <button class="btn" style="margin:4px 0 0;" onclick="EmailSettings.save('periodSummary')">💾 Save</button> <button class="btn secondary" style="margin:4px 0 0;" onclick="EmailSettings.save('periodSummary', true)" title="Back to the default">↺ Default</button>
+      <div id="emOrchBox" style="display:none;">
+        <h4 style="margin:14px 0 4px;color:var(--primary)">🛰️ Chesttracker and Voltron</h4>
+        <div style="font-size:0.82em;color:var(--text-muted);margin:2px 0 4px;">From the chesttracker PC, for every clan: Voltron imports (unmatched names, member check, failures), period resets, Peace Shield problems. Used from its next sync (about a minute); no restart needed.</div>
+        <textarea id="emOrch" style="width:100%;min-height:52px;padding:8px 10px;border:1px solid var(--border);border-radius:6px;" placeholder="name@example.com, other@example.com"></textarea>
+        <div id="emOrchNote" style="font-size:0.82em;color:var(--text-muted);margin:2px 0 4px;"></div>
+        <button class="btn" style="margin:4px 0 0;" onclick="EmailSettings.save('orch')">💾 Save</button> <button class="btn secondary" style="margin:4px 0 0;" onclick="EmailSettings.save('orch', true)" title="Back to the default">↺ Default</button>
+      </div>
+      <div id="emStatus" class="status" style="display:none;"></div>
+    </div>
+
     <div id="superiorsTab" class="tab-panel">
       <h3 style="margin:0 0 10px;color:var(--primary)">Superiors</h3>
       <p style="font-size:0.82em;color:var(--text-muted);margin-bottom:12px;">Superiors can use the management pages (Events, Members, Warnings, Bank, Profiling, …) and make changes. Tick a member to make them a superior: the Google account(s) linked to them on <b>🔐 Login Accounts</b> get the rights, and lose them when the member leaves the clan. Logins that aren't clan members go under <b>Extra e-mails</b>. Only you can see this list; you are always a superior yourself.</p>
@@ -568,6 +592,7 @@
       loadMembers();
       if (window.ManualChests) window.ManualChests.checkAccess();
       if (window.Superiors) window.Superiors.checkAccess();
+      if (window.EmailSettings) window.EmailSettings.checkAccess();
       if (window.VoltronNames) window.VoltronNames.checkAccess();
       if (window.RosterCheck) window.RosterCheck.checkAccess();
     }
@@ -709,6 +734,7 @@
     if (tabId === 'removeChestsTab' && window.RemoveChests) window.RemoveChests.load();
     if (tabId === 'manualChestsTab' && window.ManualChests) window.ManualChests.load();
     if (tabId === 'superiorsTab' && window.Superiors) window.Superiors.load();
+    if (tabId === 'emailSettingsTab' && window.EmailSettings) window.EmailSettings.load();
     if (tabId === 'transfersTab' && window.MemberTransfers) window.MemberTransfers.load();
     if (tabId === 'linkFormerTab' && window.LinkFormer) window.LinkFormer.load();
   }
@@ -1370,6 +1396,71 @@
         change([{ op: 'addWord', word: w }], '"' + w + '" added. Add its misreadings on its line.');
       }
       return { load, render, addWord };
+    })();
+
+    // 📧 E-mails (owners only): who gets the report e-mails (getEmailSettings / updateEmailSettings),
+    // and on the site whose Worker runs the orchestrator's remote control also the chesttracker's own
+    // e-mails (Voltron, period resets: the orchestrator setting, getOrchestratorRemote).
+    window.EmailSettings = (function () {
+      const $ = (id) => document.getElementById(id);
+      const post = async (body) => {
+        const res = await fetch(window.GAS_WEB_APP_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+        return res.json();
+      };
+      const status = (msg, ok) => {
+        const el = $('emStatus');
+        el.style.display = msg ? '' : 'none';
+        el.className = 'status ' + (ok ? 'ok' : 'err');
+        el.textContent = msg || '';
+      };
+      const pretty = (list) => String(list || '').split(/[,;]/).map(s => s.trim()).filter(Boolean).join(', ');
+      const note = (id, saved, configured) => { $(id).textContent = saved ? 'Set here. ↺ goes back to the Worker setting: ' + (pretty(configured) || 'nobody') + '.' : 'The Worker setting (nothing saved here yet).'; };
+      let orch = null;   // the orchestrator remote control, when this site has it
+      async function load() {
+        status('');
+        try {
+          const r = await post({ action: 'getEmailSettings' });
+          if (!r || !r.success) throw new Error((r && (r.message || r.error)) || 'Could not load the e-mail settings');
+          $('emReport').value = pretty(r.report.emails); note('emReportNote', r.report.saved, r.report.configured);
+          $('emSummary').value = pretty(r.periodSummary.emails); note('emSummaryNote', r.periodSummary.saved, r.periodSummary.configured);
+        } catch (e) { status(e.message, false); }
+        try {
+          const o = await post({ action: 'getOrchestratorRemote' });
+          orch = o && o.success && o.status ? o : null;
+        } catch (e) { orch = null; }
+        $('emOrchBox').style.display = orch ? '' : 'none';
+        if (orch) {
+          const set = orch.settings && orch.settings.orchestrator && orch.settings.orchestrator.email_to;
+          $('emOrch').value = pretty(set || orch.status.emailTo || '');
+          $('emOrchNote').textContent = orch.status.emailToFile === undefined
+            ? 'The chesttracker on the PC needs its next update before it uses this.'
+            : set ? 'Set here. ↺ goes back to orchestrator.json on the PC: ' + (pretty(orch.status.emailToFile) || 'nobody') + '.'
+              : 'From orchestrator.json on the PC (nothing saved here yet).';
+        }
+      }
+      async function save(which, reset) {
+        status('');
+        try {
+          let r;
+          if (which === 'orch') {
+            r = await post({ action: 'updateOrchestratorRemote', userEmail: '', set: { scope: 'orchestrator', field: 'email_to', value: reset ? null : $('emOrch').value } });
+          } else {
+            const body = { action: 'updateEmailSettings' };
+            body[which] = reset ? null : $(which === 'report' ? 'emReport' : 'emSummary').value;
+            r = await post(body);
+          }
+          if (!r || !r.success) throw new Error((r && (r.message || r.error)) || 'Saving failed');
+          await load();
+          status(reset ? 'Back to the default.' : (r.message || 'Saved.'), true);
+        } catch (e) { status(e.message, false); }
+      }
+      // Show the tab only to the owners: the Worker answers getEmailSettings only for them.
+      function checkAccess() {
+        const btn = $('emailSettingsTabBtn');
+        if (!btn) return;
+        post({ action: 'getEmailSettings' }).then(r => { if (r && r.success) btn.style.display = ''; }).catch(() => {});
+      }
+      return { load, save, checkAccess };
     })();
 
     // 🛰️ Voltron Names (owner only): Voltron player names → member names for the Voltron imports
