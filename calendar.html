@@ -675,7 +675,8 @@
   // UTILITIES
   function escapeHtml(str) { if (!str) return ''; const d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
   function escapeJsonAttr(obj) {
-    return JSON.stringify(obj).replace(/'/g, '&#39;').replace(/"/g, "'");
+    // JSON inside a double-quoted onclick="…": names with ' (Arachne's Swarm) stay valid
+    return JSON.stringify(obj).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
   }
   function showToast(msg, type) {
     const t = document.getElementById('toast'); t.textContent = msg;
