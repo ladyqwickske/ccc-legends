@@ -154,6 +154,12 @@
 
     /* Upcoming Events List */
     .upcoming { margin-top: 20px; }
+    details.upcoming > summary { cursor: pointer; list-style: none; }
+    details.upcoming > summary::-webkit-details-marker { display: none; }
+    details.upcoming > summary h3 { display: inline; }
+    details.upcoming > summary::before { content: '▸ '; color: var(--primary-soft); }
+    details.upcoming[open] > summary::before { content: '▾ '; }
+    .upcoming-count { font-size: 0.75em; font-weight: 400; color: var(--text-muted); }
     .upcoming h3 { color: var(--primary); margin-bottom: 8px; }
     .upcoming-item {
       background: #f8f4ea; border-radius: 8px; padding: 10px 14px;
@@ -177,7 +183,6 @@
     .rotation-item { display: flex; flex-direction: column; gap: 2px; }
     .rotation-item.running { border-left: 4px solid var(--primary-soft); font-size: 1.02em; }
     .rotation-next > summary { cursor: pointer; font-size: 0.85em; color: var(--text-muted); margin: 2px 0 6px; }
-    .rotation-note { font-size: 0.78em; color: var(--text-muted); }
     .rotation-when { font-size: 0.85em; color: var(--text-muted); }
     .rotation-state { font-size: 0.8em; font-weight: 600; color: var(--primary-soft); }
     .rotation-more { margin-top: 4px; background: none; border: 1px solid var(--border); color: var(--text); border-radius: 6px; padding: 4px 10px; cursor: pointer; font-size: 0.85em; }
@@ -298,15 +303,14 @@
   <aside class="cal-side" id="rotationSection" style="display:none">
     <div class="rotation-list" id="rotationForest"></div>
     <div class="rotation-list" id="rotationMini"></div>
-    <div class="rotation-note">From Voltron's calendar, in your own time zone. Updated daily by the chesttracker.</div>
   </aside>
   </div>
 
   <!-- Upcoming Events -->
-  <div class="upcoming" id="upcomingSection">
-    <h3>📌 Upcoming &amp; Active Events</h3>
+  <details class="upcoming" id="upcomingSection">
+    <summary><h3>📌 Upcoming &amp; Active Events <span class="upcoming-count" id="upcomingCount"></span></h3></summary>
     <div id="upcomingList"></div>
-  </div>
+  </details>
 </div>
 
 <!-- Event Detail Popup -->
@@ -354,8 +358,6 @@
       { title: 'Doomsday',          firstStart: '2026-03-01', duration: 1, interval: 6,  color: 'ev-doomsday',    category: 'Daily Event', description: 'Doomsday — recurring every 6 days.' },
       { title: 'Arachne\'s Swarm',  firstStart: '2026-03-02', duration: 1, interval: 6,  color: 'ev-arachne',  category: 'Daily Event', description: 'Arachne\'s Swarm — recurring every 6 days.' },
       { title: 'Ruthless Slaughter',firstStart: '2026-03-03', duration: 1, interval: 6,  color: 'ev-slaughter',  category: 'Daily Event', description: 'Ruthless Slaughter — recurring every 6 days.' },
-      { title: 'Crypt Start',firstStart: '2026-03-03', duration: 1, interval: 6, color: 'ev-crypting', category: 'Crypting', description: 'Crypting period starts — same day as Ruthless Slaughter.' },
-      { title: 'Crypt End',  firstStart: '2026-03-08', duration: 1, interval: 6, color: 'ev-crypting', category: 'Crypting', description: 'Crypting period ends — the day before the next Ruthless Slaughter.' },
       { title: 'Ancients',          firstStart: '2026-03-03', duration: 2, interval: 6,  color: 'ev-ancients',   category: 'Daily Event', description: 'Ancients — 2-day event (Towers day 1, Tin Man day 2).' },
       { title: 'Thirst for Battle', firstStart: '2026-03-05', duration: 1, interval: 6,  color: 'ev-thirst',    category: 'Daily Event', description: 'Thirst for Battle — recurring every 6 days.' },
       { title: 'The Great Hunt',    firstStart: '2026-03-06', duration: 1, interval: 6,  color: 'ev-great-hunt',   category: 'Daily Event', description: 'The Great Hunt — recurring every 6 days.' },
@@ -369,10 +371,10 @@
       { title: 'Ragnarok',          firstStart: '2026-04-04', duration: 2, interval: 24, color: 'ev-ragnarok',    category: 'Major Event', description: 'Ragnarok — 2-day event.' },
       // Only on the dates Voltron's calendar lists (no rhythm): a tournament's game days run from
       // the day after its 17:00 UTC start (the day itself when it starts before 17:00) to its end.
-      { title: 'Dawn of the Season', voltronOnly: true, firstStart: '2026-01-01', duration: 1, interval: 1, color: 'ev-dawn-season', category: 'Season Event', description: 'Dawn of the Season — shown on the dates from Voltron\'s calendar (no fixed rhythm).' },
-      { title: 'Prime Arena', voltronOnly: true, firstStart: '2026-01-01', duration: 1, interval: 1, color: 'ev-prime-arena', category: 'Special Event', description: 'Prime Arena — shown on the dates from Voltron\'s calendar (no fixed rhythm).' },
-      { title: 'Lucky Bazaar', voltronOnly: true, firstStart: '2026-01-01', duration: 1, interval: 1, color: 'ev-lucky-bazaar', category: 'Special Event', description: 'Lucky Bazaar — shown on the dates from Voltron\'s calendar (no fixed rhythm).' },
-      { title: 'Sands of Eternity', voltronOnly: true, firstStart: '2026-01-01', duration: 1, interval: 1, color: 'ev-sands', category: 'Special Event', description: 'Sands of Eternity — shown on the dates from Voltron\'s calendar (no fixed rhythm).' },
+      { title: 'Dawn of the Season', voltronOnly: true, firstStart: '2026-01-01', duration: 1, interval: 1, color: 'ev-dawn-season', category: 'Season Event', description: 'Dawn of the Season — shown on the dates from the game calendar (no fixed rhythm).' },
+      { title: 'Prime Arena', voltronOnly: true, firstStart: '2026-01-01', duration: 1, interval: 1, color: 'ev-prime-arena', category: 'Special Event', description: 'Prime Arena — shown on the dates from the game calendar (no fixed rhythm).' },
+      { title: 'Lucky Bazaar', voltronOnly: true, firstStart: '2026-01-01', duration: 1, interval: 1, color: 'ev-lucky-bazaar', category: 'Special Event', description: 'Lucky Bazaar — shown on the dates from the game calendar (no fixed rhythm).' },
+      { title: 'Sands of Eternity', voltronOnly: true, firstStart: '2026-01-01', duration: 1, interval: 1, color: 'ev-sands', category: 'Special Event', description: 'Sands of Eternity — shown on the dates from the game calendar (no fixed rhythm).' },
     ];
 
 
@@ -478,7 +480,7 @@
       const known = VOLTRON[def.title];
       let occ;
       if (known && known.length) {
-        const note = ' Dates from Voltron\'s calendar' + (VOLTRON_INFO && VOLTRON_INFO.kingdom ? ' (kingdom ' + VOLTRON_INFO.kingdom + ')' : '') + '.';
+        const note = ' Dates from the game calendar' + (VOLTRON_INFO && VOLTRON_INFO.kingdom ? ' (kingdom ' + VOLTRON_INFO.kingdom + ')' : '') + '.';
         for (const o of known) {
           if (o.start <= rangeEndDate && o.end >= rangeStartDate) {
             events.push({
@@ -759,24 +761,32 @@
     document.getElementById('eventPopup').style.display = 'block';
   }
 
-  // UPCOMING
+  // UPCOMING (collapsed; open: what runs now and the next 7 days, "Show all" for the rest)
+  let upcomingAll = false;
   function renderUpcoming() {
     const list = document.getElementById('upcomingList');
     const today = formatDate(new Date());
+    const weekAhead = formatDate(new Date(Date.now() + 7 * 86400000));
     const upcoming = eventsData
       .filter(ev => ev.endDate >= today)
       .sort((a, b) => (a.startDate || '').localeCompare(b.startDate || ''));
+    const running = upcoming.filter(ev => ev.startDate <= today).length;
+    const soon = upcoming.filter(ev => ev.startDate <= weekAhead);
+    const count = document.getElementById('upcomingCount');
+    if (count) count.textContent = `— ${running} running now, ${soon.length - running} more in the next 7 days`;
 
     if (upcoming.length === 0) {
       list.innerHTML = '<div style="color:var(--text-muted); padding:10px;">No upcoming events</div>';
       return;
     }
-    list.innerHTML = upcoming.map(ev => `
+    const shown = upcomingAll ? upcoming : soon;
+    list.innerHTML = shown.map(ev => `
       <div class="upcoming-item" onclick="showEventPopup(${escapeJsonAttr(ev)})" style="cursor:pointer">
         <span class="event-name">${escapeHtml(ev.eventName)}</span>
         <span class="event-dates">${ev.startDate} → ${ev.endDate}</span>
       </div>
-    `).join('');
+    `).join('') + (upcoming.length > soon.length
+      ? `<button class="rotation-more" onclick="upcomingAll = !upcomingAll; renderUpcoming();">${upcomingAll ? 'Next 7 days only' : `Show all (${upcoming.length - soon.length} more)`}</button>` : '');
   }
 
   // POPUP
