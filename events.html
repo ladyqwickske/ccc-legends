@@ -959,7 +959,7 @@
   // Troop target row management
   const TROOP_CATEGORIES = ['G4','G5','G6','G7','T7','G8','T8','G9','T9'];
   // A clan with Voltron access (site-config.js voltronAccess) can make a tournament title the
-  // target of a troop category (Winner, Podium, Top 10 or Badge, from the Voltron import).
+  // target of a troop category (Winner, Podium, Top 10 or Badge, from the game data import).
   const TITLE_TARGETS = !!(typeof SITE_CONFIG !== 'undefined' && SITE_CONFIG.voltronAccess);
   const isTitleTarget = (v) => String(v ?? '').trim().toLowerCase() === 'title';
 
@@ -2172,7 +2172,7 @@
           <td><input class="sched-in" type="date" value="${esc(r.firstStart)}" onchange="Schedule.setTour(${i}, 'firstStart', this.value)"></td>
           <td><input class="sched-in" type="number" min="1" max="30" style="width:64px;" value="${esc(r.duration)}" onchange="Schedule.setTour(${i}, 'duration', this.value)"></td>
           <td><input class="sched-in" type="number" min="1" max="366" style="width:64px;" value="${esc(r.interval)}" onchange="Schedule.setTour(${i}, 'interval', this.value)"></td>
-          <td style="text-align:center;">${voltron.has(String(r.title).toLowerCase()) ? '<span title="Uses Voltron\'s dates when the chesttracker has stored its calendar">✔️</span>' : ''}</td>
+          <td style="text-align:center;">${voltron.has(String(r.title).toLowerCase()) ? '<span title="Uses the game calendar dates when the chesttracker has stored its calendar">✔️</span>' : ''}</td>
           <td><button class="btn secondary btn-secondary sched-x" title="Remove" onclick="Schedule.removeTour(${i})">✕</button></td>
         </tr>`).join('');
       const events = state.eventMap.map((m, i) => {
@@ -2192,9 +2192,9 @@
       ed.innerHTML = `
         <div class="sched-note" style="margin-bottom:10px;">${sourceText()}${dirty ? ' <b>Unsaved changes.</b>' : ''}</div>
         <h4 style="margin:12px 0 6px;">Tournaments</h4>
-        <div class="sched-note">The <b>first date</b> is a day the tournament starts at the 17:00 UTC reset; its first game day is the day after. The <b>length</b> counts calendar days from that start, so a tournament of 1 game day is 2 days long. ✔️ = the dates come from Voltron's calendar when it is available (${esc((info.voltronTitles || []).join(', '))}).</div>
+        <div class="sched-note">The <b>first date</b> is a day the tournament starts at the 17:00 UTC reset; its first game day is the day after. The <b>length</b> counts calendar days from that start, so a tournament of 1 game day is 2 days long. ✔️ = the dates come from the game calendar when it is available (${esc((info.voltronTitles || []).join(', '))}).</div>
         <div class="table-container" style="overflow-x:auto;"><table class="sched-table">
-          <thead><tr><th>Tournament</th><th>First date</th><th>Length (days)</th><th>Repeats every (days)</th><th>Voltron</th><th></th></tr></thead>
+          <thead><tr><th>Tournament</th><th>First date</th><th>Length (days)</th><th>Repeats every (days)</th><th>Game data</th><th></th></tr></thead>
           <tbody>${tours}</tbody></table></div>
         <button class="btn secondary btn-secondary" style="margin-top:6px;" onclick="Schedule.addTour()">+ Add tournament</button>
         <h4 style="margin:16px 0 6px;">Events made for each tournament</h4>
@@ -2296,7 +2296,7 @@
       }
       out.sort((a, b) => a.s.localeCompare(b.s) || a.name.localeCompare(b.name));
       $('schedulePreview').innerHTML = out.length
-        ? '<div class="sched-note">' + out.length + ' event(s) in the next 30 days on this rhythm (Voltron\'s dates can move the tournaments it knows):</div><ul style="margin:6px 0 0 18px; columns:2; font-size:0.85em;">'
+        ? '<div class="sched-note">' + out.length + ' event(s) in the next 30 days on this rhythm (the game calendar dates can move the tournaments it knows):</div><ul style="margin:6px 0 0 18px; columns:2; font-size:0.85em;">'
           + out.map(o => '<li>' + esc(o.name) + '</li>').join('') + '</ul>'
         : '<div class="sched-note">No events in the next 30 days.</div>';
     }

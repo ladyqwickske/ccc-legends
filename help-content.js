@@ -38,7 +38,7 @@ window.HELP_CONTENT = {
       title: '🆕 What\'s new (November 2026)',
       list: [
         '**🔁 Member Transfers** can now move a player between the cCc clans. Tick **🔁 Move the member** and give the **Transfer date**. When the other clan approves, the player is removed there (reason "Transferred to …") and added here with that date as join date. Their troop, hero and captain levels are copied automatically. See **Admin** below.',
-        'The Voltron growth import reads the new layout of Voltron\'s Growth page again.'
+        'The game data growth import reads the new layout of the growth page again.'
       ]
     },
     {
