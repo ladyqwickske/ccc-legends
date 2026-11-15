@@ -163,6 +163,25 @@
     .upcoming-item .event-name { font-weight: 600; }
     .upcoming-item .event-dates { font-size: 0.85em; color: var(--text-muted); }
 
+    /* Voltron's mini tournaments (the kingdom's rotation), next to the calendar */
+    .container:has(.cal-side:not([style*="display: none"])) { max-width: 1440px; }
+    .cal-layout { display: flex; gap: 18px; align-items: flex-start; }
+    .cal-main { flex: 1 1 auto; min-width: 0; }
+    .cal-side { flex: 0 0 300px; max-width: 300px; }
+    @media (max-width: 900px) {
+      .cal-layout { flex-direction: column; }
+      .cal-side { flex-basis: auto; max-width: none; width: 100%; }
+    }
+    .rotation-list { margin-bottom: 16px; }
+    .rotation-list h3 { color: var(--primary-soft); margin: 0 0 8px; font-size: 1.05em; }
+    .rotation-item { display: flex; flex-direction: column; gap: 2px; }
+    .rotation-item.running { border-left: 4px solid var(--primary-soft); font-size: 1.02em; }
+    .rotation-next > summary { cursor: pointer; font-size: 0.85em; color: var(--text-muted); margin: 2px 0 6px; }
+    .rotation-note { font-size: 0.78em; color: var(--text-muted); }
+    .rotation-when { font-size: 0.85em; color: var(--text-muted); }
+    .rotation-state { font-size: 0.8em; font-weight: 600; color: var(--primary-soft); }
+    .rotation-more { margin-top: 4px; background: none; border: 1px solid var(--border); color: var(--text); border-radius: 6px; padding: 4px 10px; cursor: pointer; font-size: 0.85em; }
+
     .loading { text-align: center; padding: 40px; color: var(--text-muted); }
     .spinner {
       display: inline-block; width: 24px; height: 24px;
@@ -201,6 +220,30 @@
       .event-dot { font-size: 0.6em; }
       .month-nav .month-label { font-size: 1em; min-width: 140px; }
     }
+
+    /* Phones: the month always fits the screen. A day's events are coloured bars (no room for
+       names); tapping a day lists them in full under the calendar (today is picked at first). */
+    .day-agenda { display: none; }
+    @media (max-width: 600px) {
+      .container { padding: 16px 8px; }
+      .calendar-grid { grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 1px; }
+      .day-header { font-size: 0.72em; padding: 6px 0; }
+      .day-cell { min-width: 0; min-height: 52px; padding: 3px 3px 4px; cursor: pointer; }
+      .day-cell .day-number { font-size: 0.8em; margin-bottom: 3px; }
+      .day-cell .event-dot { height: 5px; padding: 0; margin: 0 0 2px; font-size: 0; border-radius: 3px;
+        background: currentColor !important; pointer-events: none; }
+      .day-cell.selected { outline: 2px solid var(--primary); outline-offset: -2px; }
+      .day-agenda { display: block; margin: 12px 0 4px; }
+      .day-agenda h4 { color: var(--primary); font-size: 0.95em; margin: 0 0 8px; }
+      .day-agenda .event-dot { display: flex; align-items: center; justify-content: space-between; gap: 8px;
+        font-size: 0.9em; padding: 9px 12px; margin: 0 0 6px; border-radius: 8px; white-space: normal; }
+      .day-agenda .agenda-tag { font-size: 0.78em; opacity: 0.8; white-space: nowrap; }
+      .day-agenda .agenda-empty { color: var(--text-muted); font-size: 0.85em; }
+      .month-nav { gap: 6px; flex-wrap: wrap; }
+      .month-nav button { padding: 6px 12px; }
+      .month-nav .month-label { min-width: 0; flex: 1 1 auto; font-size: 1em; }
+      .upcoming-item { flex-direction: column; align-items: flex-start; gap: 2px; }
+    }
   </style>
 </head>
 <body>
@@ -229,6 +272,8 @@
   <h1>Calendar</h1>
   <p class="subtitle">Event Schedule Overview</p>
 
+  <div class="cal-layout">
+  <div class="cal-main">
   <div class="month-nav">
     <button onclick="changeMonth(-1)">◀</button>
     <span class="month-label" id="monthLabel"></span>
@@ -247,6 +292,15 @@
     <div class="day-header">Sat</div>
     <div class="day-header">Sun</div>
   </div>
+  </div>
+
+  <!-- Voltron's mini tournaments next to the calendar: the running one on top, gone once over -->
+  <aside class="cal-side" id="rotationSection" style="display:none">
+    <div class="rotation-list" id="rotationForest"></div>
+    <div class="rotation-list" id="rotationMini"></div>
+    <div class="rotation-note">From Voltron's calendar, in your own time zone. Updated daily by the chesttracker.</div>
+  </aside>
+  </div>
 
   <!-- Upcoming Events -->
   <div class="upcoming" id="upcomingSection">
@@ -261,8 +315,9 @@
   <h3 id="popupTitle"></h3>
   <div class="detail"><strong>Type:</strong> <span id="popupType"></span></div>
   <div class="detail"><strong>Dates:</strong> <span id="popupDates"></span></div>
-  <div class="detail"><strong>Method:</strong> <span id="popupMethod"></span></div>
-  <div class="detail"><strong>Target:</strong> <span id="popupTarget"></span></div>
+  <div class="detail" id="popupMethodRow"><strong>Method:</strong> <span id="popupMethod"></span></div>
+  <div class="detail" id="popupTargetRow"><strong>Target:</strong> <span id="popupTarget"></span></div>
+  <div class="detail" id="popupStatusRow" style="display:none"><strong>Status:</strong> <span id="popupStatus"></span></div>
   <br>
   <button class="btn secondary" onclick="closePopup()">Close</button>
 </div>
@@ -409,7 +464,7 @@
     if (!window.GAS_WEB_APP_URL) return;
     fetch(window.GAS_WEB_APP_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'getVoltronCalendar' }) })
       .then(r => r.json())
-      .then(res => { if (res && res.success) { LAST_VOLTRON = res; setVoltronCalendar(res); loadEvents(); } })
+      .then(res => { if (res && res.success) { LAST_VOLTRON = res; setVoltronCalendar(res); loadEvents(); setRotation(res.rotation); } })
       .catch(() => { /* no Voltron calendar: the recurring rhythm only */ });
   }
 
@@ -593,6 +648,7 @@
   function createDayCell(dayNum, dateStr, isOtherMonth, isToday) {
     const cell = document.createElement('div');
     cell.className = 'day-cell' + (isOtherMonth ? ' other-month' : '') + (isToday ? ' today' : '');
+    cell.dataset.date = dateStr;
     cell.innerHTML = `<div class="day-number">${dayNum}</div>`;
 
     // Find events that span this date
@@ -637,6 +693,72 @@
     return `${y}-${m}-${day}`;
   }
 
+  // MINI TOURNAMENTS — and forest ones in a season kingdom (getVoltronCalendar → rotation: [{ name, start, end, kind }], UTC
+  // seconds). Shown while running or upcoming; an ended one drops off at the next refresh.
+  let ROTATION = [], rotationAll = { forest: false, mini: false }, rotationOpen = { forest: false, mini: false }, rotationTimer = null;
+  function setRotation(list) {
+    ROTATION = (Array.isArray(list) ? list : []).filter(o => o && o.name && o.end > o.start);
+    renderRotation();
+    if (!rotationTimer && ROTATION.length) rotationTimer = setInterval(renderRotation, 30000);
+  }
+  function rotationIn(sec) {
+    const m = Math.max(0, Math.round(sec / 60)), d = Math.floor(m / 1440), h = Math.floor((m % 1440) / 60), mm = m % 60;
+    return d ? `${d}d ${h}h` : h ? `${h}h ${mm}m` : `${mm}m`;
+  }
+  function rotationTime(sec, withDay) {
+    return new Date(sec * 1000).toLocaleString(undefined, withDay
+      ? { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }
+      : { hour: '2-digit', minute: '2-digit' });
+  }
+  function rotationItem(o, now) {
+    const running = o.start <= now;
+    return `<div class="upcoming-item rotation-item${running ? ' running' : ''}" style="cursor:pointer" onclick="showRotationPopup(${escapeJsonAttr(o)})">
+          <span class="event-name">${escapeHtml(o.name)}</span>
+          <span class="rotation-when">${escapeHtml(rotationTime(o.start, true))} – ${escapeHtml(rotationTime(o.end, false))}</span>
+          <span class="rotation-state">${running ? 'running · ends in ' + rotationIn(o.end - now) : 'in ' + rotationIn(o.start - now)}</span>
+        </div>`;
+  }
+  function renderRotation() {
+    const box = document.getElementById('rotationSection');
+    if (!box) return;
+    const now = Date.now() / 1000;
+    const live = ROTATION.filter(o => o.end > now);
+    box.style.display = live.length ? '' : 'none';
+    for (const [kind, id, title] of [['forest', 'rotationForest', '🌲 Forest tournaments'], ['mini', 'rotationMini', '⚔️ Mini tournaments']]) {
+      const el = document.getElementById(id);
+      if (!el) continue;
+      // the running one(s) on top, then the next ones by start time
+      const items = live.filter(o => o.kind === kind)
+        .sort((a, b) => ((b.start <= now) - (a.start <= now)) || a.start - b.start);
+      if (!items.length) { el.innerHTML = ''; continue; }
+      // shown: what runs now, else the next one; the rest folded away
+      const runningCount = items.filter(o => o.start <= now).length;
+      const top = items.slice(0, Math.max(1, runningCount));
+      const rest = items.slice(top.length);
+      const restShown = rotationAll[kind] ? rest : rest.slice(0, 5);   // the next 5, "Show N more" for the rest
+      const openAttr = rotationOpen[kind] ? ' open' : '';
+      el.innerHTML = `<h3>${title}</h3>` + top.map(o => rotationItem(o, now)).join('') + (rest.length
+        ? `<details class="rotation-next"${openAttr} ontoggle="rotationOpen['${kind}'] = this.open"><summary>Next ${kind === 'forest' ? 'forest' : 'mini'} tournaments (${rest.length})</summary>`
+          + restShown.map(o => rotationItem(o, now)).join('')
+          + (rest.length > restShown.length || rotationAll[kind]
+            ? `<button class="rotation-more" onclick="rotationAll['${kind}'] = !rotationAll['${kind}']; renderRotation();">${rotationAll[kind] ? 'Only the next 5' : `Show ${rest.length - restShown.length} more`}</button>` : '')
+          + '</details>' : '');
+    }
+  }
+  function showRotationPopup(o) {
+    const now = Date.now() / 1000, mins = Math.round((o.end - o.start) / 60);
+    const length = mins >= 60 ? `${Math.floor(mins / 60)}h${mins % 60 ? ' ' + (mins % 60) + 'm' : ''}` : `${mins}m`;
+    document.getElementById('popupTitle').textContent = o.name;
+    document.getElementById('popupType').textContent = o.kind === 'forest' ? 'Forest tournament' : 'Mini tournament';
+    document.getElementById('popupDates').textContent = `${rotationTime(o.start, true)} – ${rotationTime(o.end, true)} (${length})`;
+    document.getElementById('popupStatus').textContent = o.end <= now ? 'over' : o.start <= now ? `running · ends in ${rotationIn(o.end - now)}` : `starts in ${rotationIn(o.start - now)}`;
+    document.getElementById('popupMethodRow').style.display = 'none';
+    document.getElementById('popupTargetRow').style.display = 'none';
+    document.getElementById('popupStatusRow').style.display = '';
+    document.getElementById('popupOverlay').style.display = 'block';
+    document.getElementById('eventPopup').style.display = 'block';
+  }
+
   // UPCOMING
   function renderUpcoming() {
     const list = document.getElementById('upcomingList');
@@ -660,6 +782,9 @@
   // POPUP
   function showEventPopup(ev) {
     document.getElementById('popupTitle').textContent = ev.eventName;
+    document.getElementById('popupMethodRow').style.display = '';
+    document.getElementById('popupTargetRow').style.display = '';
+    document.getElementById('popupStatusRow').style.display = 'none';
     document.getElementById('popupType').textContent = ev.eventType || '-';
     document.getElementById('popupDates').textContent = `${ev.startDate} → ${ev.endDate}`;
     document.getElementById('popupMethod').textContent = ev.participationMethod || '-';
@@ -683,6 +808,63 @@
     t.className = 'toast ' + (type || ''); t.style.display = 'block';
     setTimeout(() => { t.style.display = 'none'; }, 3000);
   }
+</script>
+
+<script>
+/* Phones (≤ 600 px): the month shows each day's events as coloured bars; tapping a day lists
+   them in full under the calendar, and tapping one there opens it as usual. When a month is
+   shown, the day picked before (or today, or the 1st) is listed. */
+(function () {
+  var phone = window.matchMedia('(max-width: 600px)');
+  var grid = document.getElementById('calendarGrid');
+  if (!grid) return;
+  var agenda = document.createElement('div');
+  agenda.className = 'day-agenda';
+  agenda.id = 'dayAgenda';
+  grid.parentNode.insertBefore(agenda, grid.nextSibling);
+  var picked = null;
+  function esc(s) { var d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
+  function title(dateStr) {
+    return new Date(dateStr + 'T00:00:00Z').toLocaleDateString(undefined,
+      { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' });
+  }
+  function show(cell) {
+    grid.querySelectorAll('.day-cell.selected').forEach(function (c) { c.classList.remove('selected'); });
+    if (!cell || !cell.dataset.date) { agenda.innerHTML = ''; return; }
+    cell.classList.add('selected');
+    picked = cell.dataset.date;
+    agenda.innerHTML = '<h4>' + esc(title(picked)) + '</h4>';
+    var dots = cell.querySelectorAll('.event-dot');
+    if (!dots.length) { agenda.insertAdjacentHTML('beforeend', '<div class="agenda-empty">No events this day.</div>'); return; }
+    dots.forEach(function (dot) {
+      var text = (dot.textContent || '').trim() || dot.title || '', tag = '';
+      if (/^▶\s*/.test(text)) { text = text.replace(/^▶\s*/, ''); tag = 'starts'; }
+      else if (/\s*◀$/.test(text)) { text = text.replace(/\s*◀$/, ''); tag = 'ends'; }
+      else if (dot.classList.contains('ev-crypting-bar')) tag = 'ongoing';
+      var item = document.createElement('div');
+      item.className = dot.className.replace(/\bev-crypting-bar\b|\bev-ends\b/g, '').trim();
+      item.style.cursor = 'pointer';
+      item.innerHTML = '<span>' + esc(text) + '</span>' + (tag ? '<span class="agenda-tag">' + tag + '</span>' : '');
+      item.onclick = function () { if (dot.onclick) dot.onclick({ stopPropagation: function () {} }); };
+      agenda.appendChild(item);
+    });
+  }
+  function pickDefault() {
+    if (!phone.matches) { show(null); return; }
+    show((picked && grid.querySelector('.day-cell[data-date="' + picked + '"]'))
+      || grid.querySelector('.day-cell.today') || grid.querySelector('.day-cell:not(.other-month)'));
+  }
+  grid.addEventListener('click', function (e) {
+    if (!phone.matches) return;
+    var cell = e.target.closest('.day-cell');
+    if (!cell) return;
+    e.stopPropagation();
+    show(cell);
+  }, true);
+  new MutationObserver(pickDefault).observe(grid, { childList: true });
+  if (phone.addEventListener) phone.addEventListener('change', pickDefault); else phone.addListener(pickDefault);
+  pickDefault();
+})();
 </script>
 </body>
 </html>
