@@ -426,12 +426,16 @@
     const select = document.getElementById('memberSelect');
     if (!profilingData || !profilingData.members) return;
     const sorted = [...profilingData.members].sort((a, b) => a.name.localeCompare(b.name));
+    // The data can load more than once (sign-in, role check): fill the list afresh, keep the choice.
+    const chosen = select.value;
+    while (select.options.length > 1) select.remove(1);
     sorted.forEach(m => {
       const opt = document.createElement('option');
       opt.value = m.name;
       opt.textContent = m.name;
       select.appendChild(opt);
     });
+    if (chosen) select.value = chosen;
   }
 
   // ─── Tab switching (with browser history so Back button works) ───
