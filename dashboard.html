@@ -693,8 +693,10 @@
     playerArray.forEach(player => {
       if (player.chestsByTypeGrouped) {
         Object.entries(player.chestsByTypeGrouped).forEach(([type, data]) => {
-          if (!typeData[type]) typeData[type] = { levels: new Set(), total: 0 };
+          if (!typeData[type]) typeData[type] = { levels: new Set(), names: new Set(), total: 0 };
           if (data.levels) Object.keys(data.levels).forEach(level => typeData[type].levels.add(level));
+          // Chests without a level (Store, Seasonal Store, shops…): by chest name
+          if (data.names) Object.keys(data.names).forEach(name => typeData[type].names.add(name));
           typeData[type].total += data.total || 0;
         });
       }
@@ -711,7 +713,8 @@
       })
       .map(([name, data]) => ({
         name,
-        levels: Array.from(data.levels).map(String).sort((a, b) => { const aNum = Number(a); const bNum = Number(b); if (Number.isFinite(aNum) && Number.isFinite(bNum)) return aNum - bNum; if (Number.isFinite(aNum)) return -1; if (Number.isFinite(bNum)) return 1; return a.localeCompare(b); })
+        levels: Array.from(data.levels).map(String).sort((a, b) => { const aNum = Number(a); const bNum = Number(b); if (Number.isFinite(aNum) && Number.isFinite(bNum)) return aNum - bNum; if (Number.isFinite(aNum)) return -1; if (Number.isFinite(bNum)) return 1; return a.localeCompare(b); }),
+        names: Array.from(data.names).sort((a, b) => a.localeCompare(b))
       }));
 
     // Build header
@@ -724,13 +727,17 @@
     const expandableTypes = new Set(['Epic Crypt', 'Rare Crypt', 'Common Crypt', 'Epic Squad']);
     let chestCellIndex = 4;
     sortedTypes.forEach(type => {
-      const isExpandable = expandableTypes.has(type.name);
+      const isExpandable = expandableTypes.has(type.name) || type.names.length > 0;
       const toggleIcon = isExpandable ? `<span class="toggle-icon" onclick="event.stopPropagation(); toggleType('${escapeHtml(type.name)}')">▶</span>` : '';
       headerHtml += `<div class="header-cell type-total-header sortable" data-sort="chest-${chestCellIndex}" data-type="${escapeHtml(type.name)}">${toggleIcon}${escapeHtml(type.name)} ${sortIcon()}</div>`;
       chestCellIndex++;
       type.levels.forEach(level => {
         const levelLabel = /^\d+$/.test(String(level)) ? `Lvl ${level}` : level;
         headerHtml += `<div class="header-cell level-header sortable${expandedTypes.has(type.name) ? ' visible' : ''}" data-sort="chest-${chestCellIndex}" data-type="${escapeHtml(type.name)}" data-level="${escapeHtml(String(level))}">${escapeHtml(String(levelLabel))} ${sortIcon()}</div>`;
+        chestCellIndex++;
+      });
+      type.names.forEach(name => {
+        headerHtml += `<div class="header-cell level-header sortable${expandedTypes.has(type.name) ? ' visible' : ''}" data-sort="chest-${chestCellIndex}" data-type="${escapeHtml(type.name)}" title="${escapeHtml(name)}">${escapeHtml(name)} ${sortIcon()}</div>`;
         chestCellIndex++;
       });
     });
@@ -788,6 +795,10 @@
         type.levels.forEach(level => {
           const levelCount = typeInfo?.levels?.[level] || 0;
           rowsHtml += `<div class="cell level-cell${expandedTypes.has(type.name) ? ' visible' : ''}" data-type="${escapeHtml(type.name)}" data-level="${level}"><span class="${levelCount === 0 ? 'count-zero' : ''}">${levelCount || '-'}</span></div>`;
+        });
+        type.names.forEach(name => {
+          const nameCount = typeInfo?.names?.[name] || 0;
+          rowsHtml += `<div class="cell level-cell${expandedTypes.has(type.name) ? ' visible' : ''}" data-type="${escapeHtml(type.name)}"><span class="${nameCount === 0 ? 'count-zero' : ''}">${nameCount || '-'}</span></div>`;
         });
       });
       rowsHtml += '</div>';
