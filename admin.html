@@ -486,7 +486,7 @@
           <input type="date" id="cpvExpDate" style="width:auto;margin:0;padding:6px 8px;border:1px solid var(--border);border-radius:6px;display:none;" onchange="ChestPointValues.renderExport()">
           <label style="margin:0;font-size:0.85em;display:inline-flex;gap:4px;align-items:center;font-weight:normal;text-transform:none;letter-spacing:0;"><input type="checkbox" id="cpvExpChanges" style="width:auto;margin:0;" checked onchange="ChestPointValues.renderExport()">mark what changed</label>
         </div>
-        <textarea id="cpvExpText" readonly spellcheck="false" style="width:100%;box-sizing:border-box;min-height:300px;font-family:ui-monospace,Consolas,monospace;font-size:0.85em;line-height:1.4;padding:8px 10px;border-radius:6px;background:#fff;color:var(--text);border:1px solid var(--border);"></textarea>
+        <textarea id="cpvExpText" readonly spellcheck="false" style="width:100%;box-sizing:border-box;min-height:300px;font-family:ui-monospace,Consolas,monospace;font-size:0.85em;line-height:1.4;padding:8px 10px;border-radius:6px;background:var(--bg-page);color:var(--text);border:1px solid var(--border);"></textarea>
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;align-items:center;">
           <button class="btn" style="margin:0;" onclick="ChestPointValues.copyExport()">📋 Copy</button>
           <button class="btn secondary" style="margin:0;" onclick="ChestPointValues.downloadExport()">⬇ Download .txt</button>
